@@ -34,7 +34,9 @@ void genSublatticeDevice (RectRedux *SiteArray, int buffer_rows, double a_conc, 
 	  double xstart, ystart;
 	  int isclean, l, m;
 	  int *Nrem = (SiteArray->Nrem);
+	  int *Ntot = (SiteArray->Ntot);
 	  
+	  *Ntot = tot_sites;
 	  
 	  if(geo==0)
 	  {

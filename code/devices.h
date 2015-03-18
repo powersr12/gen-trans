@@ -14,6 +14,7 @@ typedef struct {
 	double *site_pots;
 	int **chaininfo;
 	int *Nrem;
+	int *Ntot;
 }RectRedux;
 
 

@@ -284,11 +284,29 @@ main(int argc, char *argv[])
 
 
 
+void device_connectivity (RectRedux *DeviceCell, cnxRulesFn *rule, void *rule_params, cnxProfile *cnxp)
+{
+    int N = *(DeviceCell->Ntot);
+}
 
 
-
-
-
+//This function simply generates the connections present in a pristine nearest neighbour AC or ZZ cell
+//Require a DeviceCell using the "geo" notation
+//says whether i and j are connected or not
+cnxRulesFn zzacnn (RectRedux *DeviceCell, void *rule_params, int a, int b)
+{
+    int i, j, ans=1;  //set ans =0 if there is a connection
+   
+    
+    if ((DeviceCell->geo) == 0)
+    {
+      //zigzag case
+      
+      i= (a % (2 * (DeviceCell->length))); 	//which atom in chain is a?
+      j= (i % 4);				//and which atom in 4 atom unit cell is it?
+      
+    }
+}
 
 
 
