@@ -27,4 +27,4 @@ typedef struct {
 
 void device_connectivity (RectRedux *DeviceCell, cnxRulesFn *rule, void *rule_params, cnxProfile *cnxp);
 
-cnxRulesFn zzacnn (RectRedux *DeviceCell, void *rule_params, int i, int j);
+int zzacnn (RectRedux *DeviceCell, void *rule_params, int i, int j);

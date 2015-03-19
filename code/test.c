@@ -287,16 +287,30 @@ main(int argc, char *argv[])
 void device_connectivity (RectRedux *DeviceCell, cnxRulesFn *rule, void *rule_params, cnxProfile *cnxp)
 {
     int N = *(DeviceCell->Ntot);
+    int i, j;
+    
+    (cnxp->site_cnxnum) = createIntArray(N);
+    
+    (cnxp->site_cnx) = createNonSquareIntMatrix(N, cnxp->max_neigh);
+    
+    for(i=0; i<N; i++)
+    {
+      for(j=0; j<N; j++)
+      {
+	(*rule)(DeviceCell, rule_params, i, j);
+      }
+    }
+    
 }
 
 
 //This function simply generates the connections present in a pristine nearest neighbour AC or ZZ cell
 //Require a DeviceCell using the "geo" notation
 //says whether i and j are connected or not
-cnxRulesFn zzacnn (RectRedux *DeviceCell, void *rule_params, int a, int b)
+int zzacnn (RectRedux *DeviceCell, void *rule_params, int a, int b)
 {
-    int i, j, ans=1;  //set ans =0 if there is a connection
-   
+    int i, j, ans;  //set ans =0 if there is a connection
+    ans=1;
     
     if ((DeviceCell->geo) == 0)
     {
@@ -305,7 +319,82 @@ cnxRulesFn zzacnn (RectRedux *DeviceCell, void *rule_params, int a, int b)
       i= (a % (2 * (DeviceCell->length))); 	//which atom in chain is a?
       j= (i % 4);				//and which atom in 4 atom unit cell is it?
       
+      if(j==0)
+      {
+	if(b==(a-1) && (i!=0))
+	{
+	  ans=0;
+	}
+	
+	if(b==(a+1))
+	{
+	  ans=0;
+	}
+	
+	if(b==(a+1 + 2 *(DeviceCell->length)))
+	{
+	  ans=0;
+	}
+      }
+      
+      if(j==1)
+      {
+	if(b==(a-1))
+	{
+	  ans=0;
+	}
+	
+	if(b==(a+1))
+	{
+	  ans=0;
+	}
+	
+	if(b==(a-1 - 2 *(DeviceCell->length)))
+	{
+	  ans=0;
+	}
+      }
+      
+      if(j==2)
+      {
+	if(b==(a-1))
+	{
+	  ans=0;
+	}
+	
+	if(b==(a+1))
+	{
+	  ans=0;
+	}
+	
+	if(b==(a+1 - 2 *(DeviceCell->length)))
+	{
+	  ans=0;
+	}
+      }
+      
+      if(j==3)
+      {
+	if(b==(a-1) )
+	{
+	  ans=0;
+	}
+	
+	if(b==(a+1)&& (i!=2 *(DeviceCell->length) -1))
+	{
+	  ans=0;
+	}
+	
+	if(b==(a-1 + 2 *(DeviceCell->length)))
+	{
+	  ans=0;
+	}
+      }
+	
+      
     }
+    
+    return ans;
 }
 
 
