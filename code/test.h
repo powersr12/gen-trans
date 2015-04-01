@@ -15,11 +15,11 @@
 #include "../libs/static.h"
 
 
-typedef int (*cnxRulesFn) (RectRedux *, void *, int, int);
+typedef int (cnxRulesFn) (RectRedux *, void *, int, int);
 
 //says whether or not two atoms are connected, NOT the hopping value
 typedef struct {
-	int max_neigh;		//=0 for zigzag, =1 for armchair
+	int max_neigh;		
 	int *site_cnxnum;
 	int **site_cnx;
 }cnxProfile;
@@ -28,3 +28,4 @@ typedef struct {
 void device_connectivity (RectRedux *DeviceCell, cnxRulesFn *rule, void *rule_params, cnxProfile *cnxp);
 
 int zzacnn (RectRedux *DeviceCell, void *rule_params, int i, int j);
+void printConnectivity (RectRedux *DeviceCell, cnxProfile *cnxp);

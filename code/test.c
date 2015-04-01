@@ -21,7 +21,7 @@ main(int argc, char *argv[])
 	  int i, j,k,l;
 	
 	//length and index array related constants
-	  int Ntot, Nrem, length1=6,  length2 = length1*3 , geo=0;
+	  int Ntot, Nrem, length1=5,  length2 = length1*3 , geo=1;
 	
 	//processor and energy loop related integers
 	  int procs=1, this_proc=0, remainder, Epts_temp=11, en, numfin, Epoints=11, conf_num=0;
@@ -31,48 +31,48 @@ main(int argc, char *argv[])
 	  double _Complex En;
 	  
 	//disorder / system config parameters
-	  double suba_conc, suba_pot, subb_conc, subb_pot;
+	  double suba_conc=0.0, suba_pot=0.0, subb_conc=0.0, subb_pot=0.0;
 
 	//misc  
-	  char job_name[64];
+	  char job_name[64] = "test";
 	  int output_type=1;   //=0 no structure output, =1 just atoms by sublattice, =2 atoms and connectors
-	  int buffer_rows, mappings;		   
+	  int buffer_rows=0, mappings=0;		   
 	  double cond2;
 
 	  
 	  
 	//Read command line input - quit if incorrect input
 	  //Maybe replace this with input file?
-	    if(argc ==17)
-	    {
-		    sscanf(argv[1], "%s", job_name);
-		    sscanf(argv[2], "%d", &geo);
-		    sscanf(argv[3], "%d", &length1);
-		    sscanf(argv[4], "%d", &length2);
-		    sscanf(argv[5], "%d", &buffer_rows);
-		    
-		    sscanf(argv[6], "%lf", &suba_conc);
-		    sscanf(argv[7], "%lf", &suba_pot);
-		    
-		    sscanf(argv[8], "%lf", &subb_conc);
-		    sscanf(argv[9], "%lf", &subb_pot);
-		    
-		    sscanf(argv[10], "%lf", &Emin);
-		    sscanf(argv[11], "%lf", &Emax);
-		    sscanf(argv[12], "%d", &Epoints);
-		    sscanf(argv[13], "%d", &mappings); 	//how frequently to make maps (0 = never, 1 = always, 
-								//2 = every second energy etc, -n every nth energy but only for conf 0)
-
-		    sscanf(argv[14], "%d", &conf_num);
-		    sscanf(argv[15], "%d", &procs);
-		    sscanf(argv[16], "%d", &this_proc);
-	    }
-	    
-	    else
-	    {
-		    exit(1);
-	    }
-      
+// 	    if(argc ==17)
+// 	    {
+// 		    sscanf(argv[1], "%s", job_name);
+// 		    sscanf(argv[2], "%d", &geo);
+// 		    sscanf(argv[3], "%d", &length1);
+// 		    sscanf(argv[4], "%d", &length2);
+// 		    sscanf(argv[5], "%d", &buffer_rows);
+// 		    
+// 		    sscanf(argv[6], "%lf", &suba_conc);
+// 		    sscanf(argv[7], "%lf", &suba_pot);
+// 		    
+// 		    sscanf(argv[8], "%lf", &subb_conc);
+// 		    sscanf(argv[9], "%lf", &subb_pot);
+// 		    
+// 		    sscanf(argv[10], "%lf", &Emin);
+// 		    sscanf(argv[11], "%lf", &Emax);
+// 		    sscanf(argv[12], "%d", &Epoints);
+// 		    sscanf(argv[13], "%d", &mappings); 	//how frequently to make maps (0 = never, 1 = always, 
+// 								//2 = every second energy etc, -n every nth energy but only for conf 0)
+// 
+// 		    sscanf(argv[14], "%d", &conf_num);
+// 		    sscanf(argv[15], "%d", &procs);
+// 		    sscanf(argv[16], "%d", &this_proc);
+// 	    }
+// 	    
+// 	    else
+// 	    {
+// 		    exit(1);
+// 	    }
+//       
 
 	//File I/O variables
 	    FILE *output;
@@ -138,6 +138,8 @@ main(int argc, char *argv[])
 	    System.length=length1;
 	    System.length2=length2;
 	    System.Nrem=&Nrem;
+	    System.Ntot=&Ntot;
+
 
 	    //generate, or read in, disorder configuration
 		sprintf(conffile, "%s/.%s", direcname, filename_temp);
@@ -167,9 +169,11 @@ main(int argc, char *argv[])
 	    int **siteinfo = System.siteinfo;
 	    double *site_pots = System.site_pots;
 
+	  cnxProfile cnxp;
+	  cnxp.max_neigh=3;
+	 device_connectivity (&System, &zzacnn, NULL, &cnxp);
+   	     printConnectivity (&System, &cnxp);
 
-	
- 	      
 
 	      double *ldoses = createDoubleArray(*(System.Nrem));
 	      double **conds = createNonSquareDoubleMatrix(*(System.Nrem), 3);
@@ -177,59 +181,59 @@ main(int argc, char *argv[])
 	      int *indices = createIntArray(2*System.length*System.length2);
 	      int **neigh = createNonSquareIntMatrix(2*System.length*System.length2, 3);
 	      
-	      for(en=0; en < Epts_temp; en++)
-	      {
-
-		      realE =  Emin_temp + en*Estep;
-		      sprintf(filename3, "%s/%s.en_%.3lf", direcname, filename_temp, realE);
-
-		      if(mappings == 0)
-		      {
-			cond2 = genConduc5(realE + eta*I, &System, -1.0);
-		      }
-		      
-		      if(mappings > 0)
-		      {
-			if((en % mappings) == 0)
-			{
-			  cond2 = genConduc4(realE + eta*I, &System, ldoses, conds, indices, neigh, -1.0);
-			  CurrentMapOut(&System, conds, indices, neigh, filename3);
-			  LDOSMapOut(&System, ldoses, filename3);
-			}
-			if((en % mappings) != 0)
-			{
-			  cond2 = genConduc5(realE + eta*I, &System, -1.0);
-			}
-		      }
-		      
-		      if(mappings < 0)
-		      {
-			if((en % mappings) == 0 && conf_num == 0)
-			{
-			  cond2 = genConduc4(realE + eta*I, &System, ldoses, conds, indices, neigh, -1.0);
-			  CurrentMapOut(&System, conds, indices, neigh, filename3);
-			  LDOSMapOut(&System, ldoses, filename3);
-			}
-			if((en % mappings) != 0 || conf_num != 0)
-			{
-			  cond2 = genConduc5(realE + eta*I, &System, -1.0);
-			}
-		      }
-		      
-		  //    printf("%lf	%e\n", realE,  genConduc5(realE + eta*I, &System, -1.0));
-			
-		      //cond2 =genConduc5(realE + eta*I, &System, -1.0);
-		      
-			//    printf("%lf	%e	%e\n", realE, genConduc5(realE + eta*I, &System, -1.0),genConduc4(realE + eta*I, &System, ldoses, conds, indices, neigh, -1.0) );
-			    
-		      output =fopen(filename, "a");
-		      fprintf(output, "%lf	%e\n", realE, cond2);
-		      fclose(output);
-
-		      //printf("%lf	%lf\n", realE, cond2);
-
-
- 	      }
+// 	      for(en=0; en < Epts_temp; en++)
+// 	      {
+// 
+// 		      realE =  Emin_temp + en*Estep;
+// 		      sprintf(filename3, "%s/%s.en_%.3lf", direcname, filename_temp, realE);
+// 
+// 		      if(mappings == 0)
+// 		      {
+// 			cond2 = genConduc5(realE + eta*I, &System, -1.0);
+// 		      }
+// 		      
+// 		      if(mappings > 0)
+// 		      {
+// 			if((en % mappings) == 0)
+// 			{
+// 			  cond2 = genConduc4(realE + eta*I, &System, ldoses, conds, indices, neigh, -1.0);
+// 			  CurrentMapOut(&System, conds, indices, neigh, filename3);
+// 			  LDOSMapOut(&System, ldoses, filename3);
+// 			}
+// 			if((en % mappings) != 0)
+// 			{
+// 			  cond2 = genConduc5(realE + eta*I, &System, -1.0);
+// 			}
+// 		      }
+// 		      
+// 		      if(mappings < 0)
+// 		      {
+// 			if((en % mappings) == 0 && conf_num == 0)
+// 			{
+// 			  cond2 = genConduc4(realE + eta*I, &System, ldoses, conds, indices, neigh, -1.0);
+// 			  CurrentMapOut(&System, conds, indices, neigh, filename3);
+// 			  LDOSMapOut(&System, ldoses, filename3);
+// 			}
+// 			if((en % mappings) != 0 || conf_num != 0)
+// 			{
+// 			  cond2 = genConduc5(realE + eta*I, &System, -1.0);
+// 			}
+// 		      }
+// 		      
+// 		  //    printf("%lf	%e\n", realE,  genConduc5(realE + eta*I, &System, -1.0));
+// 			
+// 		      //cond2 =genConduc5(realE + eta*I, &System, -1.0);
+// 		      
+// 			//    printf("%lf	%e	%e\n", realE, genConduc5(realE + eta*I, &System, -1.0),genConduc4(realE + eta*I, &System, ldoses, conds, indices, neigh, -1.0) );
+// 			    
+// 		      output =fopen(filename, "a");
+// 		      fprintf(output, "%lf	%e\n", realE, cond2);
+// 		      fclose(output);
+// 
+// 		      //printf("%lf	%lf\n", realE, cond2);
+// 
+// 
+//  	      }
 	      
 	      
 // 	      genConduc4(realE + eta*I, &System, ldoses, conds, indices, neigh, -1.0);
@@ -250,35 +254,35 @@ main(int argc, char *argv[])
 // 	      
 // 	      
 	       //define this process as finished, and check how many others are
-		check = fopen(checkname, "r");
-		fscanf(check, "%d", &numfin);
-		fclose(check);
-
-		numfin ++;
-		
-		
-		check = fopen(checkname, "w");
-		fprintf(check, "%d", numfin);
-		fclose(check);
-	      
-		//if all processes finished then merge and sort outputs and purge temp files
-		if(numfin == procs)
-		{
-		    sprintf(filename, "%s/.%s", direcname, filename_temp);
-		    sprintf(command, "cat %s.part* | sort -n > %s/%s.dat", filename, direcname, filename_temp);
-		    system(command);
-		    
-
-		    
-		    
-		    if(conf_num != 0)
-		    {
-		      sprintf(command, "rm %s/.%s.*", direcname, filename_temp);
-		      system(command);
-		    }
-	
-		  
-		}
+// 		check = fopen(checkname, "r");
+// 		fscanf(check, "%d", &numfin);
+// 		fclose(check);
+// 
+// 		numfin ++;
+// 		
+// 		
+// 		check = fopen(checkname, "w");
+// 		fprintf(check, "%d", numfin);
+// 		fclose(check);
+// 	      
+// 		//if all processes finished then merge and sort outputs and purge temp files
+// 		if(numfin == procs)
+// 		{
+// 		    sprintf(filename, "%s/.%s", direcname, filename_temp);
+// 		    sprintf(command, "cat %s.part* | sort -n > %s/%s.dat", filename, direcname, filename_temp);
+// 		    system(command);
+// 		    
+// 
+// 		    
+// 		    
+// 		    if(conf_num != 0)
+// 		    {
+// 		      sprintf(command, "rm %s/.%s.*", direcname, filename_temp);
+// 		      system(command);
+// 		    }
+// 	
+// 		  
+// 		}
 		
 }
 
@@ -287,7 +291,7 @@ main(int argc, char *argv[])
 void device_connectivity (RectRedux *DeviceCell, cnxRulesFn *rule, void *rule_params, cnxProfile *cnxp)
 {
     int N = *(DeviceCell->Ntot);
-    int i, j;
+    int i, j, counter;
     
     (cnxp->site_cnxnum) = createIntArray(N);
     
@@ -295,12 +299,43 @@ void device_connectivity (RectRedux *DeviceCell, cnxRulesFn *rule, void *rule_pa
     
     for(i=0; i<N; i++)
     {
-      for(j=0; j<N; j++)
+      counter=0;
+      if((DeviceCell->siteinfo)[i][0] == 0)
       {
-	(*rule)(DeviceCell, rule_params, i, j);
+	for(j=0; j<N; j++)
+	{
+	  if((DeviceCell->siteinfo)[j][0] == 0)
+	  {
+	    if((*rule)(DeviceCell, rule_params, i, j) == 0)
+	    {
+	      (cnxp->site_cnx)[i][counter] = j;
+	      counter++;
+	    }
+	  }
+	}
       }
+      (cnxp->site_cnxnum)[i] = counter;
     }
     
+}
+
+void printConnectivity (RectRedux *DeviceCell, cnxProfile *cnxp)
+{
+  int i, j;
+  int N = *(DeviceCell->Ntot);
+
+  for(i=0; i<N; i++)
+  {
+    printf("%lf	%lf\n", (DeviceCell->pos)[i][0], (DeviceCell->pos)[i][1]);
+    
+    for(j=0; j<(cnxp->site_cnxnum)[i]; j++)
+    {
+      printf("%lf	%lf\n%lf	%lf\n",(DeviceCell->pos)[cnxp->site_cnx[i][j]][0], (DeviceCell->pos)[cnxp->site_cnx[i][j]][1], (DeviceCell->pos)[i][0], (DeviceCell->pos)[i][1]  );
+    }
+    
+    printf("\n");
+  }
+  
 }
 
 
@@ -309,90 +344,195 @@ void device_connectivity (RectRedux *DeviceCell, cnxRulesFn *rule, void *rule_pa
 //says whether i and j are connected or not
 int zzacnn (RectRedux *DeviceCell, void *rule_params, int a, int b)
 {
-    int i, j, ans;  //set ans =0 if there is a connection
+    int i, j, k, l, ans;  //set ans =0 if there is a connection
     ans=1;
     
-    if ((DeviceCell->geo) == 0)
-    {
+    
       //zigzag case
-      
-      i= (a % (2 * (DeviceCell->length))); 	//which atom in chain is a?
-      j= (i % 4);				//and which atom in 4 atom unit cell is it?
-      
-      if(j==0)
+      if ((DeviceCell->geo) == 0)
       {
-	if(b==(a-1) && (i!=0))
-	{
-	  ans=0;
-	}
-	
-	if(b==(a+1))
-	{
-	  ans=0;
-	}
-	
-	if(b==(a+1 + 2 *(DeviceCell->length)))
-	{
-	  ans=0;
-	}
+	      i= (a % (2 * (DeviceCell->length))); 	//which atom in chain is a?
+	      j= (i % 4);				//and which atom in 4 atom unit cell is it?
+	      
+	      if(j==0)
+	      {
+		if(b==(a-1) && (i!=0))
+		{
+		  ans=0;
+		}
+		
+		if(b==(a+1))
+		{
+		  ans=0;
+		}
+		
+		if(b==(a+1 + 2 *(DeviceCell->length)))
+		{
+		  ans=0;
+		}
+	      }
+	      
+	      if(j==1)
+	      {
+		if(b==(a-1))
+		{
+		  ans=0;
+		}
+		
+		if(b==(a+1))
+		{
+		  ans=0;
+		}
+		
+		if(b==(a-1 - 2 *(DeviceCell->length)))
+		{
+		  ans=0;
+		}
+	      }
+	      
+	      if(j==2)
+	      {
+		if(b==(a-1))
+		{
+		  ans=0;
+		}
+		
+		if(b==(a+1))
+		{
+		  ans=0;
+		}
+		
+		if(b==(a+1 - 2 *(DeviceCell->length)))
+		{
+		  ans=0;
+		}
+	      }
+	      
+	      if(j==3)
+	      {
+		if(b==(a-1) )
+		{
+		  ans=0;
+		}
+		
+		if(b==(a+1)&& (i!=2 *(DeviceCell->length) -1))
+		{
+		  ans=0;
+		}
+		
+		if(b==(a-1 + 2 *(DeviceCell->length)))
+		{
+		  ans=0;
+		}
+	      }
       }
       
-      if(j==1)
+      //armchair case
+      if((DeviceCell->geo) == 1)
       {
-	if(b==(a-1))
-	{
-	  ans=0;
-	}
+	  i= (a % (2 * (DeviceCell->length))); //which atom in unit cell
+	  k= (a % ( (DeviceCell->length)));	//which atom in chain
+	  j= (a / (2 * (DeviceCell->length))); //which unit cell
+	  l= (i / (DeviceCell->length)); 	//which chain in unit cell
+	  
+	  
+	  if(l==0)
+	  {
+	      if( (k%2) == 0)
+	      {
+		if(b==a-(DeviceCell->length))
+		{
+		  ans=0;
+		}
+		if(b==a-1)
+		{
+		  if(k!=0)
+		  {
+		    ans=0;
+		  }
+		}
+		if(b==a+1)
+		{
+		  if(k!= (DeviceCell->length)-1 )
+		  {
+		    ans=0;
+		  }
+		}
+	      }
+	      
+	      if( (k%2) == 1)
+	      {
+		if(b==a+(DeviceCell->length))
+		{
+		  ans=0;
+		}
+		if(b==a-1)
+		{
+		  if(k!=0)
+		  {
+		    ans=0;
+		  }
+		}
+		if(b==a+1)
+		{
+		  if(k!= (DeviceCell->length)-1 )
+		  {
+		    ans=0;
+		  }
+		}
+	      }
+	  }
+	  
+	  if(l==1)
+	  {
+	      if( (k%2) == 0)
+	      {
+		if(b==a+(DeviceCell->length))
+		{
+		  ans=0;
+		}
+		if(b==a-1)
+		{
+		  if(k!=0)
+		  {
+		    ans=0;
+		  }
+		}
+		if(b==a+1)
+		{
+		  if(k!= (DeviceCell->length)-1 )
+		  {
+		    ans=0;
+		  }
+		}
+	      }
+	      
+	      if( (k%2) == 1)
+	      {
+		if(b==a-(DeviceCell->length))
+		{
+		  ans=0;
+		}
+		if(b==a-1)
+		{
+		  if(k!=0)
+		  {
+		    ans=0;
+		  }
+		}
+		if(b==a+1)
+		{
+		  if(k!= (DeviceCell->length)-1 )
+		  {
+		    ans=0;
+		  }
+		}
+	      }
+	  }
+	  
 	
-	if(b==(a+1))
-	{
-	  ans=0;
-	}
-	
-	if(b==(a-1 - 2 *(DeviceCell->length)))
-	{
-	  ans=0;
-	}
       }
-      
-      if(j==2)
-      {
-	if(b==(a-1))
-	{
-	  ans=0;
-	}
-	
-	if(b==(a+1))
-	{
-	  ans=0;
-	}
-	
-	if(b==(a+1 - 2 *(DeviceCell->length)))
-	{
-	  ans=0;
-	}
-      }
-      
-      if(j==3)
-      {
-	if(b==(a-1) )
-	{
-	  ans=0;
-	}
-	
-	if(b==(a+1)&& (i!=2 *(DeviceCell->length) -1))
-	{
-	  ans=0;
-	}
-	
-	if(b==(a-1 + 2 *(DeviceCell->length)))
-	{
-	  ans=0;
-	}
-      }
-	
-      
-    }
+
     
     return ans;
 }
