@@ -21,7 +21,7 @@ main(int argc, char *argv[])
 	  int i, j,k,l;
 	
 	//length and index array related constants
-	  int Ntot, Nrem, length1=5,  length2 = length1*3 , geo=1;
+	  int Ntot, Nrem, length1=5,  length2 = length1*3 , geo=0;
 	
 	//processor and energy loop related integers
 	  int procs=1, this_proc=0, remainder, Epts_temp=11, en, numfin, Epoints=11, conf_num=0;
@@ -171,8 +171,8 @@ main(int argc, char *argv[])
 
 	  cnxProfile cnxp;
 	  cnxp.max_neigh=3;
-	 device_connectivity (&System, &zzacnn, NULL, &cnxp);
-   	     printConnectivity (&System, &cnxp);
+	  device_connectivity (&System, &zzacnn, NULL, &cnxp);
+   	  printConnectivity (&System, &cnxp);
 
 
 	      double *ldoses = createDoubleArray(*(System.Nrem));
@@ -348,7 +348,7 @@ int zzacnn (RectRedux *DeviceCell, void *rule_params, int a, int b)
     ans=1;
     
     
-      //zigzag case
+      //zigzag case - currently failing for odd-index ZGNRs
       if ((DeviceCell->geo) == 0)
       {
 	      i= (a % (2 * (DeviceCell->length))); 	//which atom in chain is a?
@@ -379,7 +379,7 @@ int zzacnn (RectRedux *DeviceCell, void *rule_params, int a, int b)
 		  ans=0;
 		}
 		
-		if(b==(a+1))
+		if(b==(a+1) && (i!=2 *(DeviceCell->length) -1))
 		{
 		  ans=0;
 		}

@@ -24,6 +24,12 @@ typedef struct {
 	int **site_cnx;
 }cnxProfile;
 
+typedef struct {
+	int max_neigh;		
+	int *site_cnxnum;
+	int **site_cnx;
+}cnxProfile;
+
 
 void device_connectivity (RectRedux *DeviceCell, cnxRulesFn *rule, void *rule_params, cnxProfile *cnxp);
 
