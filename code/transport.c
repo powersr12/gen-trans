@@ -1,4 +1,48 @@
 #include "transport.h"
+#include "test.h"
+
+void genTransmissions(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp, 
+		      cellDivision *cellinfo, void *hoppingfunc, void *hoppingparams,
+		      void *leadsfunc, void *leadsparams)
+{
+    //important definitions and quantities
+    int length1 = (DeviceCell->length);
+    int length2 = (DeviceCell->length2);
+    int geo = (DeviceCell->geo);
+    
+    int num_cells = (cellinfo->num_cells);
+    
+    int this_cell, dim, dim_old=0, dim_new;
+    double _Complex **g_old, g_new, g00inv;
+    double _Complex g_sys_r, g_sys_a;
+    
+   
+      
+    
+      //calculate retarded GF of system 
+	  //call genDeviceGF function
+      
+      
+      
+      
+	  
+      
+      
+      
+      
+    
+    
+    
+    
+
+  
+  
+  
+  
+  
+  
+}
+
 
 //this has been generalised relative to the antidot code version (RectRedux param set)
 double genConduc5(double _Complex En, RectRedux *DeviceCell, double hopping)
@@ -838,3 +882,48 @@ double genConduc4(double _Complex En,
 		    
 		    
 }
+
+
+
+double _Complex  **genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp, 
+		      cellDivision *cellinfo, void *hoppingfunc(), void *hoppingparams)
+{
+  
+  
+  
+  int geo = (DeviceCell->geo);
+    
+  int num_cells = (cellinfo->num_cells);
+  
+  int this_cell, dim, dim_old=0, dim_new;
+  double _Complex **g_old, **g_new, **g00inv;
+  int i, j, k;
+  
+  //calculate system GF		
+  for(this_cell=num_cells-1; this_cell>=0; this_cell--)
+  {
+    
+    //generate disconnected cell GF
+      dim = (cellinfo->cell_dims)[this_cell];
+      g00inv = createSquareMatrix(dim);
+      
+    //onsites
+      
+      
+      
+    //generate self energy term from previous cells
+      
+      
+      
+  }
+    
+  
+  
+  
+  
+  
+  
+  
+  
+}
+

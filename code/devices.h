@@ -20,6 +20,8 @@ typedef struct {
 
 
 void genSublatticeDevice (RectRedux *SiteArray, int buffer_rows, double a_conc, double a_pot, double b_conc, double b_pot, int seed, int struc_out, char *filename);
+void genAntidotDevice (RectRedux *SiteArray, int buffer_rows, int AD_length, double AD_rad, int lat_width, int lat_length, int seed, int struc_out, char *filename);
+
 
 void exportRectConf(RectRedux *System, char *filename);
 void importRectConf(RectRedux *System, int length, int length2, char *filename);
