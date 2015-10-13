@@ -2,7 +2,7 @@
 #include "test.h"
 
 void genTransmissions(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp, 
-		      cellDivision *cellinfo, void *hoppingfunc, void *hoppingparams,
+		      cellDivision *cellinfo, hoppingfunc *hoppingfn, void *hoppingparams,
 		      void *leadsfunc, void *leadsparams)
 {
     //important definitions and quantities
@@ -18,30 +18,195 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnx
     
    
       
+      //leads, sigmas and gammas
+    
     
       //calculate retarded GF of system 
 	  //call genDeviceGF function
       
       
-      
-      
-	  
-      
-      
-      
-      
-    
-    
-    
-    
-
-  
-  
-  
-  
+        
   
   
 }
+
+//mode indicates either single sweep (mode=0) or double sweep (mode=1)
+//(mode=2) for double sweep with reversed sweeping directions (for broken time-reversal symmetry cases)
+void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp, 
+		      cellDivision *cellinfo, hoppingfunc *hoppingfn, void *hoppingparams, int mode, 
+		      double _Complex **Gon, double _Complex **Goff, double _Complex **Sigma)
+{
+    int geo = (DeviceCell->geo);
+    
+  int num_cells = (cellinfo->num_cells);
+  
+  int this_cell, dim, dim_old=0, dim_new;
+  double _Complex **g_old,  **g00inv, **V12, **V21, **smallSigma, **temp1, **temp2;
+  int i, j, k, l, index1, index2, this0, last0;
+  
+  int cell_start, cell_end, cell_iter, it_count;
+  
+  if(mode == 0 || mode == 1)
+  {
+    cell_start = num_cells-1;
+    cell_end = 0;
+    cell_iter = -1;
+  }
+    
+  
+  //calculate system GF	
+  //backwards recursive sweep!
+  for(it_count=0; it_count<(cellinfo->num_cells); it_count ++)
+  {
+	this_cell = cell_start + it_count*cell_iter;
+  
+	printf("########\n#cell %d\n", this_cell);
+	
+    //generate disconnected cell GF
+	dim = (cellinfo->cell_dims)[this_cell];
+	g00inv = createSquareMatrix(dim);
+	
+	this0=(cellinfo->starting_index)[this_cell];
+	if(it_count>0)
+	{
+	  last0=(cellinfo->starting_index)[this_cell-cell_iter];
+	  
+	  V21 = createNonSquareMatrix(dim, dim_old);
+	  V12 = createNonSquareMatrix(dim_old, dim);
+	}
+	
+	
+	//onsites
+	for(i=0; i<dim; i++)
+	{
+	  index1 = (cellinfo->cells_site_order)[this0 +i];
+	  
+	  g00inv[i][i] = En - (DeviceCell->site_pots)[index1];
+	  
+	}
+
+	//internal (& external?) hoppings
+	for(i=0; i<dim; i++)
+	{
+	  
+	  index1 = (cellinfo->cells_site_order)[this0 +i];
+	  for(j=0; j<(cnxp->site_cnxnum)[index1]; j++)
+	  {
+	    index2 = (cnxp->site_cnx)[index1][j];
+	    
+	    //is this neighbour in the same cell?
+	    if( (cellinfo->sites_by_cell)[index2] == this_cell)
+	    {
+		//what is its index within the cell?
+		k=0;
+		for(l=0; l<dim; l++)
+		{
+		  if( index2 == (cellinfo->cells_site_order)[this0 +l])
+		  {
+		    k=l;
+		  }
+		}
+ 		g00inv[i][k] -= hoppingfn(DeviceCell, index1, index2, hoppingparams);
+	      
+	    }
+	    
+	    
+	    //is this neighbour in the previous cell?
+	    if( (cellinfo->sites_by_cell)[index2] == (this_cell-cell_iter))
+	    {
+		//what is its index within the cell?
+		k=0;
+		for(l=0; l<dim_old; l++)
+		{
+		  if( index2 == (cellinfo->cells_site_order)[last0 +l])
+		  {
+		    k=l;
+		  }
+		}
+ 		V21[i][k] = hoppingfn(DeviceCell, index1, index2, hoppingparams);
+		V12[k][i] = hoppingfn(DeviceCell, index2, index1, hoppingparams);
+	      
+	    }
+	    
+	    
+	  }
+	}
+	
+	  // 	//check non-zero elements at the cell stage
+	  	printf("g00inv\n");
+	  	listNonZero(g00inv, dim, dim);
+	  
+	  	if(it_count>0)
+	  	{
+	  	  printf("V21\n");
+	  	  listNonZero(V21, dim, dim_old);
+	  	  
+	  	  printf("V12\n");
+	  	  listNonZero(V12, dim_old, dim);
+	  	}
+      
+      
+      	  
+
+    //generate self energy term from previous cells
+	smallSigma=createSquareMatrix(dim);
+	
+	if(it_count>0)
+	{
+	  //previous cells self energy: smallSigma = V21 g_old V12
+	    temp1 = createNonSquareMatrix(dim, dim_old);
+	    MatrixMultNS(V21, g_old, temp1, dim, dim_old, dim_old);
+	    MatrixMultNS(temp1, V12, smallSigma, dim, dim_old, dim);
+	    FreeMatrix(temp1);
+	  
+	  
+	}
+      
+	
+	
+	
+    //account for lead self energies if this is cell 0
+	if(this_cell==0)
+	{
+	  temp1 = createSquareMatrix(dim);
+	  MatrixAdd(smallSigma, Sigma, temp1, dim);
+	  MatrixCopy(temp1, smallSigma, dim);
+	  FreeMatrix(temp1);
+	}
+	
+	temp1 = createSquareMatrix(dim);
+	MatrixSubtract(g00inv, smallSigma, temp1, dim);
+	if(it_count>0)
+	{
+	  FreeMatrix(g_old);
+	}
+	g_old = createSquareMatrix(dim);
+	InvertMatrixGSL(temp1, g_old, dim);
+	FreeMatrix(temp1); FreeMatrix(g00inv); FreeMatrix(smallSigma);
+	
+	if(it_count>0)
+	{
+	  FreeMatrix(V12); FreeMatrix(V21);
+	}
+	
+	//save the temporary edges if needed for the dual sweep
+	if(mode==1)
+	{
+	}
+	
+	dim_old=dim;
+      
+  }//end of first sweep 
+    
+  
+}
+
+
+
+
+
+
+
 
 
 //this has been generalised relative to the antidot code version (RectRedux param set)
@@ -884,46 +1049,31 @@ double genConduc4(double _Complex En,
 }
 
 
-
-double _Complex  **genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp, 
-		      cellDivision *cellinfo, void *hoppingfunc(), void *hoppingparams)
+double _Complex simpleTB(RectRedux *DeviceCell, int a, int b, void *hoppingparams)
 {
+  simpleTB_params *para = (simpleTB_params *)hoppingparams; 
+  double t0 = para->t0;
+  double kpar = para->kpar;
+  double ans=0.0;
+  double x1 = (DeviceCell->pos)[a][0], y1 = (DeviceCell->pos)[a][1];
+  double x2 = (DeviceCell->pos)[b][0], y2 = (DeviceCell->pos)[b][1];
   
+  double dist = sqrt(pow(x2-x1, 2.0) + pow(y2-y1, 2.0));
   
+  if((para->isperiodic)==0)
+  {
+    if(dist > (para->NN_lowdis) && dist < (para->NN_highdis))
+    {
+     ans=t0;     
+    }
+  }
   
-  int geo = (DeviceCell->geo);
-    
-  int num_cells = (cellinfo->num_cells);
-  
-  int this_cell, dim, dim_old=0, dim_new;
-  double _Complex **g_old, **g_new, **g00inv;
-  int i, j, k;
-  
-  //calculate system GF		
-  for(this_cell=num_cells-1; this_cell>=0; this_cell--)
+  if((para->isperiodic)==1)
   {
     
-    //generate disconnected cell GF
-      dim = (cellinfo->cell_dims)[this_cell];
-      g00inv = createSquareMatrix(dim);
-      
-    //onsites
-      
-      
-      
-    //generate self energy term from previous cells
-      
-      
-      
   }
-    
-  
-  
-  
-  
-  
-  
-  
+  //printf("# hopping %d	%d: %lf	%lf\n", a, b, ans, dist);
+  return ans;
   
 }
 

@@ -2,8 +2,8 @@ CC=gcc
 CFLAGS=-lm -lgsl -lgslcblas -O3
 CFLAGSDEBUG=-lm -lgsl -lgslcblas -Wall -g
 
-test: test.o transport.o devices.o useful.o  mapping.o ../libs/matrices.o ../libs/hubbard.o ../libs/graphene_gf.o ../libs/suscept.o ../libs/static.o ../libs/greenfns.o ../libs/cubature.o
-	$(CC)  test.o transport.o devices.o useful.o mapping.o ../libs/matrices.o ../libs/hubbard.o ../libs/graphene_gf.o ../libs/suscept.o ../libs/static.o ../libs/greenfns.o ../libs/cubature.o $(CFLAGS) -o test
+test: test.o connect.o transport.o devices.o useful.o  mapping.o ../libs/matrices.o ../libs/hubbard.o ../libs/graphene_gf.o ../libs/suscept.o ../libs/static.o ../libs/greenfns.o ../libs/cubature.o
+	$(CC)  test.o connect.o transport.o devices.o useful.o mapping.o ../libs/matrices.o ../libs/hubbard.o ../libs/graphene_gf.o ../libs/suscept.o ../libs/static.o ../libs/greenfns.o ../libs/cubature.o $(CFLAGS) -o test
 
 test.o: test.c test.h
 	$(CC) -c -g -O3 test.c
@@ -13,6 +13,9 @@ devices.o: devices.c devices.h
 	
 useful.o: useful.c useful.h
 	$(CC) -c -g -O3 useful.c
+	
+connect.o: connect.c connect.h
+	$(CC) -c -g -O3 connect.c
 	
 transport.o: transport.c transport.h
 	$(CC) -c -g -O3 transport.c
