@@ -4,11 +4,12 @@
 //Accepts devices with RectRedux geometries, but calls specified routines for defining cells and setting hopping values
 //This file is for developing routines - finished products should go in separate files to be included in compilation
 
+//DO NOT TRY PERIODIC SYSTEMS WITH ODD RIBBON WIDTHS!
 
 //command line version
 #include "test.h"
 
-#define eta 1.0e-5
+#define eta 1.0e-4
 
 
 
@@ -21,8 +22,8 @@ main(int argc, char *argv[])
 	  int i, j,k,l;
 	
 	//length and index array related constants
-	  int Ntot, Nrem, length1=4,  length2 = length1*3 , geo=1;
-	  length2 = 2;
+	  int Ntot, Nrem, length1=2,  length2 = length1*3 , geo=0;
+	  length2 = 32;
 	
 	//processor and energy loop related integers
 	  int procs=1, this_proc=0, remainder, Epts_temp=11, en, numfin, Epoints=11, conf_num=0;
@@ -34,12 +35,15 @@ main(int argc, char *argv[])
 	  
 	   int buffer_rows=0;
 	//disorder / system config parameters - for sublattice
-	  double suba_conc=0.0, suba_pot=0.0, subb_conc=0.0, subb_pot=0.0;
+	  double suba_conc=1.0, suba_pot=0.075, subb_conc=1.0, subb_pot=-0.075;
 	  
 	//disorder / system config parameters - for antidots overwrites some of the above...
-	  int AD_length=7, lat_width=1, lat_length=2;
-	  double AD_rad=5.0;
-	/*  
+	  int AD_length=7, lat_width=3, lat_length=4;
+	  double AD_rad=1.0;
+	  
+	//lead info
+	  int num_leads=2;
+	  
 	  if(geo==0)
 	  {
 	    length1=2*lat_width*AD_length ; length2= 3*AD_length*lat_length + 2*buffer_rows;
@@ -48,7 +52,7 @@ main(int argc, char *argv[])
 	  if(geo==1)
 	  {
 	    length1=6*lat_width*AD_length ; length2= AD_length*lat_length + 2*buffer_rows;
-	  }*/
+	  }
 
 	    
 
@@ -158,6 +162,9 @@ main(int argc, char *argv[])
 	    System.length2=length2;
 	    System.Nrem=&Nrem;
 	    System.Ntot=&Ntot;
+	    
+	    
+	    RectRedux *LeadCells[num_leads];
 
 	    //timing
 	    clock_t time;
@@ -169,8 +176,8 @@ main(int argc, char *argv[])
 		
 		if(this_proc==0)
 		{
-		  genSublatticeDevice (&System, buffer_rows, suba_conc, suba_pot, subb_conc, subb_pot, conf_num, 1, strucfile);
-		  //genAntidotDevice (&System, buffer_rows, AD_length, AD_rad, lat_width, lat_length, conf_num, 1, strucfile);
+		//  genSublatticeDevice (&System, buffer_rows, suba_conc, suba_pot, subb_conc, subb_pot, conf_num, 1, strucfile);
+		  genAntidotDevice (&System, buffer_rows, AD_length, AD_rad, lat_width, lat_length, conf_num, 1, strucfile);
 
 		  
 		  //export the disorder configuration for the other processes calculating the same configuration
@@ -179,6 +186,8 @@ main(int argc, char *argv[])
 		    exportRectConf(&System, conffile);
 		  }
 		}
+		
+		lead_para leadp={};
 		
 		
 		time = clock() - time;
@@ -202,7 +211,7 @@ main(int argc, char *argv[])
 
 	  cnxProfile cnxp;
 	  cnxp.max_neigh=3;
-	  device_connectivity (&System, &zzacnn, NULL, &cnxp);
+	  device_connectivity (&System, &zzacnnk, NULL, &cnxp);
 	  
 		time = clock() - time;
 		printf("#made connection profile in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
@@ -222,14 +231,64 @@ main(int argc, char *argv[])
 		printf("#split cells in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		time = clock();
 
-	  printf("# %d\n", cellinfo.group_cell);
+// 	  printf("# %d\n", cellinfo.group_cell);
 	  
-	  simpleTB_params hoppara ={-1.0, 0, 0.0, 0.56, 0.59};
+	  simpleTB_params hoppara ={-1.0, 1, 0.0, 0.56, 0.59};
+	  
+
+	  peierlsTB_params maghoppara={};
+	  maghoppara.t0=-1.0;
+	  maghoppara.isperiodic=1;
+	  maghoppara.kpar=0.0;
+	  maghoppara.NN_lowdis=0.56;
+	  maghoppara.NN_highdis=0.59;
+	  maghoppara.gauge=0;
+	  maghoppara.Btes=20;
+	  
+	  int *res = createIntArray(2);
+	  res[0] = 1;
+	  res[1] = 0; 
+	  double **reslimits = createNonSquareDoubleMatrix(2, 2);
+	  reslimits[0][0] = pos[0][0];
+	  reslimits[0][1] = pos[Ntot-1][0];
+	
+	  maghoppara.restrics = res;
+	  maghoppara.limits = reslimits;
 	  
 	  double _Complex **Sigma = createSquareMatrix(cellinfo.cell1dim);
-	  genDeviceGF(0.2+eta*I, &System, &cnxp, &cellinfo, &simpleTB, &hoppara, 0, 
-		      NULL, NULL, Sigma);
+	  double _Complex **G00 = createSquareMatrix(cellinfo.cell1dim);
+
+ 	 // genDeviceGF(0.2+eta*I, &System, &cnxp, &cellinfo, &simpleTB, &hoppara, 0, G00, NULL, Sigma);
 	  
+	  // simple2leads (0.2+eta*I, &System, LeadCells, &cellinfo, &leadp, Sigma);
+
+// 	  leadp.hopfn = &simpleTB;
+// 	  leadp.hoppara = &hoppara;
+	  
+	   leadp.hopfn = &peierlsTB;
+	  leadp.hoppara = &maghoppara;
+	  
+	  leadp.leadsfn = &simple2leads;
+	  
+	  trans_params tpara = {};
+	  tpara.num_leads=2;
+	  tpara.TRsym=1;
+	  double **transmissions = createNonSquareDoubleMatrix(num_leads, num_leads);
+
+	  tpara.transmissions = transmissions;
+	  		genLeads(&System, LeadCells, 2, 0, &leadp);
+
+	  
+ 	 for(realE=0.002; realE<0.5; realE+=0.002)
+	 {
+ 	 //realE=0.2;
+	    //genTransmissions(realE+eta*I, &System, LeadCells, &cnxp, &cellinfo, &simpleTB, &hoppara, &leadp, &tpara);
+	    genTransmissions(realE+eta*I, &System, LeadCells, &cnxp, &cellinfo, &peierlsTB, &maghoppara, &leadp, &tpara);
+
+	   // printf("#%lf	%e	%e	%e	%e\n", realE, transmissions[0][0], transmissions[0][1], transmissions[1][0], transmissions[1][1]);
+	    printf("%lf	%e	\n", realE, transmissions[0][1]);
+
+	 }
 	  
 // 	      double *ldoses = createDoubleArray(*(System.Nrem));
 // 	      double **conds = createNonSquareDoubleMatrix(*(System.Nrem), 3);

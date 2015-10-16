@@ -5,6 +5,229 @@
 
 //Routines for generating various devices (RectRedux form)
 
+//creates the simplest RectRedux array for a finite number of ribbon chains
+//note that this format should be the general layout for "generateDevice" routines
+//with other disorder or antidot parameters placed into parameter structure p 
+void **simpleRibbonGeo (RectRedux *SiteArray, void *p, int struc_out, char *filename)
+{
+	  int length = SiteArray->length;
+	  int length2 = SiteArray->length2;
+	  int geo = SiteArray->geo;
+	    
+	  double smalldist;
+	  FILE *out;
+	  
+	  if(struc_out != 0)
+	  {
+	    out = fopen(filename, "w");
+	    
+	  }
+	    
+	 // srand(time(NULL) + seed);
+	  
+
+	  //atomic coordinates and the atoms that are in and out, similar to previous cases
+	  int tot_sites = 2*length*length2;
+	  double **site_coords = createNonSquareDoubleMatrix(tot_sites, 3);
+	  double *site_pots = createDoubleArray(tot_sites);
+	  int **siteinfo = createNonSquareIntMatrix(tot_sites, 2);
+	  double xstart, ystart;
+	  int isclean, l, m;
+	  int *Nrem = (SiteArray->Nrem);
+	  int *Ntot = (SiteArray->Ntot);
+	  
+	  *Ntot = tot_sites;
+
+	  if(geo==0)
+	  {
+	    for(l=0; l<length2; l++)
+	    {
+	      xstart=l*1.0;
+	      for(m=0; m<length; m++)
+	      {
+		ystart= m*sqrt(3)/2 + 1/(2*sqrt(3));
+		
+		if((m%2) == 0)
+		{
+		    site_coords[l*2*length + 2*m][0] = xstart+0.5;
+		    site_coords[l*2*length + 2*m + 1][0] = xstart;
+		}
+		
+		if((m%2) == 1)
+		{
+		    site_coords[l*2*length + 2*m][0] = xstart;
+		    site_coords[l*2*length + 2*m + 1][0] = xstart+0.5;
+		}
+		
+		    site_coords[l*2*length + 2*m][1] = ystart;
+		    site_coords[l*2*length + 2*m + 1][1] = ystart + 1/(2*sqrt(3));
+		    siteinfo[l*2*length + 2*m][1]=0;
+		    siteinfo[l*2*length + 2*m +1][1]=1;
+
+		  
+	      }
+	    }
+	  }
+	  
+	  if(geo==1)
+	  {
+	      for(l=0; l<length2; l++)
+	      {
+		xstart = l*sqrt(3);
+		for(m=0; m<length; m++)
+		{
+		  if((m%2) == 0)
+		  {
+		    site_coords[l*2*length + m][0] = xstart;
+		    site_coords[l*2*length + length + m][0] = xstart +2 / sqrt(3);
+		    siteinfo[l*2*length + m][1] = 0;
+		    siteinfo[l*2*length + length + m][1] = 1;
+		  }
+		  if((m%2) == 1)
+		  {
+		    site_coords[l*2*length + m][0] = xstart +  1/(2*sqrt(3));
+		    site_coords[l*2*length + length + m][0] = xstart + (sqrt(3))/2;
+		    siteinfo[l*2*length + m][1] = 1;
+		    siteinfo[l*2*length + length + m][1] = 0;
+		  }
+		  
+		  site_coords[l*2*length + m][1] = m*0.5;
+		  site_coords[l*2*length + length + m][1] = m*0.5;
+
+		  
+		}
+		
+		
+	      }
+		
+	  }
+	      
+	          
+	      	      
+	      //chaininfo needed for conductance calcs (if atoms are missing)
+		      (SiteArray->chaininfo) = createNonSquareIntMatrix(length2, 4);
+		      int tempint=0, tempint2=0;
+	 
+			for(l=0; l<length2; l++)
+			{
+			  tempint=0;
+			  for(m=0; m<2*length; m++)
+			  {
+			    if(siteinfo[l*2*length +m][0] == 0)
+			    {
+			      tempint ++;
+			      tempint2++;
+			    }
+			  }
+			  (SiteArray->chaininfo)[l][0] = tempint;
+			}
+			*Nrem = tempint2;
+			
+			
+			(SiteArray->chaininfo)[0][1] = 0;
+			for(l=1; l<length2; l++)
+			{
+			  (SiteArray->chaininfo)[l][1] = (SiteArray->chaininfo)[l-1][1] + (SiteArray->chaininfo)[l-1][0];
+			}
+
+
+			//are first and last atoms in each chain present?
+			for(l=1; l<length2; l++)
+			{
+			  if(siteinfo[l*2*length][0] == 1)
+			    (SiteArray->chaininfo)[l][2] = 1;
+			  
+			  if(siteinfo[(l+1)*2*length -1][0] == 1)
+			    (SiteArray->chaininfo)[l][3] = 1;
+			}
+	  
+	  
+	  
+		      
+			if(struc_out == 1)
+			{
+			  for(l=0; l<2*length*length2; l++)
+			  {
+			    if(siteinfo[l][0] == 0 )
+			    {  
+			      fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			    }
+			  }
+			  fprintf(out, "\n");
+			  
+
+			  
+			}
+			
+			  if(struc_out != 0)
+			  {
+			    fclose(out);
+			  }
+			    
+			
+			  
+			  //Fill the array of data structures describing the system
+			  (SiteArray->pos) = site_coords;
+			  (SiteArray->site_pots) = site_pots;
+			  (SiteArray->siteinfo) = siteinfo;
+  
+  
+}
+
+//generate lead geometries and rect_reduxes to match a device
+//mode=0 - basic left-right setup, same size 
+void genLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, int mode, lead_para *params)
+{
+  int i, j;
+  if(mode==0)
+  {
+   
+    
+    for(i=0; i < numleads; i++)
+    {
+      Leads[i] = (RectRedux *)malloc(sizeof(RectRedux));
+      (Leads[i]->geo) = (SiteArray->geo);
+      (Leads[i]->length) = (SiteArray->length);
+      (Leads[i]->length2) = 1;
+      (Leads[i]->Nrem) = (int *)malloc(sizeof(int));
+      (Leads[i]->Ntot) = (int *)malloc(sizeof(int));
+      simpleRibbonGeo (Leads[i], NULL, 0, NULL);
+    }
+    
+    
+    (params->shift_vecs) = createNonSquareDoubleMatrix(numleads, 3);
+    (params->shift_vecs)[0][0] = -((SiteArray->pos)[2*(SiteArray->length)][0] - (SiteArray->pos)[0][0]);
+    (params->shift_vecs)[1][0] = (SiteArray->pos)[2*(SiteArray->length)][0] - (SiteArray->pos)[0][0];
+    (params->shift_vecs)[0][1] = 0;
+    (params->shift_vecs)[1][1] = 0;
+    
+    
+    
+    //shift leads accordingly to desired positions
+    for(i=0; i<*(Leads[0]->Ntot); i++)
+    {
+      (Leads[0]->pos)[i][0] += (params->shift_vecs)[0][0];      
+    }
+    
+    for(i=0; i<*(Leads[1]->Ntot); i++)
+    {
+      (Leads[1]->pos)[i][0] += (SiteArray->length2)*(params->shift_vecs)[1][0];      
+    }
+    
+  }
+  
+// 	for(i=0; i<numleads; i++)
+// 	{
+// 	  for(j=0; j<*(Leads[i]->Ntot); j++)
+// 	  {
+// 	    printf("%lf	%lf\n", (Leads[i]->pos)[j][0], (Leads[i]->pos)[j][1]);
+// 	  }
+// 	  printf("\n");
+// 	}
+  
+  
+  
+}
 
 //very general - creates ribbon with sublattice dependent potential
 void genSublatticeDevice (RectRedux *SiteArray, int buffer_rows, double a_conc, double a_pot, double b_conc, double b_pot, int seed, int struc_out, char *filename)

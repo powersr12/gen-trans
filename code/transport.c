@@ -1,30 +1,113 @@
 #include "transport.h"
 #include "test.h"
 
-void genTransmissions(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp, 
+void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Leads, cnxProfile *cnxp, 
 		      cellDivision *cellinfo, hoppingfunc *hoppingfn, void *hoppingparams,
-		      void *leadsfunc, void *leadsparams)
+		      lead_para *leadsparams, trans_params *tpara)
 {
     //important definitions and quantities
     int length1 = (DeviceCell->length);
     int length2 = (DeviceCell->length2);
     int geo = (DeviceCell->geo);
     
-    int num_cells = (cellinfo->num_cells);
+    int cell1dim = (cellinfo->cell1dim);
+    int num_leads = tpara->num_leads;
     
     int this_cell, dim, dim_old=0, dim_new;
     double _Complex **g_old, g_new, g00inv;
-    double _Complex g_sys_r, g_sys_a;
+    double _Complex **g_sys_r, **g_sys_a, **SigmaR, **SigmaA, **Gamma, **temp1, **temp2;
+    double _Complex **Gamma1, **Gamma2, **gsr, **gsa;
+    int d1, d2, s1, s2;
     
-   
-      
-      //leads, sigmas and gammas
+    int i, j, k;
     
-    
+    SigmaR = createSquareMatrix(cell1dim);
+    SigmaA = createSquareMatrix(cell1dim);
+    g_sys_r = createSquareMatrix(cell1dim);
+    g_sys_a = createSquareMatrix(cell1dim);
+    Gamma = createSquareMatrix(cell1dim);
+
+      leadfunction *leadfn = (leadfunction *)(leadsparams->leadsfn);
+
+      //lead sigmas 
+	 (leadfn)(En, DeviceCell, Leads, cellinfo, leadsparams, SigmaR);
+	 
+
+
       //calculate retarded GF of system 
-	  //call genDeviceGF function
+         genDeviceGF(En, DeviceCell, cnxp, cellinfo, hoppingfn, hoppingparams, 0, g_sys_r, NULL, SigmaR);
       
       
+      //calculate advanced quantities
+	 if( (tpara->TRsym) == 0)
+	 {
+	   for(i=0; i<cell1dim; i++)
+	   {
+	     for(j=0; j<cell1dim; j++)
+	     {
+		SigmaA[i][j] = conj(SigmaR[j][i]);
+		g_sys_a[i][j] = conj(g_sys_r[j][i]);		
+	     }
+	   }
+	 }
+	 else if( (tpara->TRsym) == 1)
+	 {
+	    (leadfn)(creal(En) - I*cimag(En), DeviceCell, Leads, cellinfo, leadsparams, SigmaA);
+	    genDeviceGF(creal(En) - I*cimag(En), DeviceCell, cnxp, cellinfo, hoppingfn, hoppingparams, 0, g_sys_a, NULL, SigmaA);
+	 }
+	 
+	 
+	 //Gamma
+	  for(i=0; i<cell1dim; i++)
+	  {
+	    for(j=0; j<cell1dim; j++)
+	    {
+	      Gamma[i][j] = I*(SigmaR[i][j] - SigmaA[i][j]);
+	    }
+	  }
+      FreeMatrix(SigmaR); FreeMatrix(SigmaA); 
+      
+      s1=0; 
+      for(i=0; i<num_leads; i++)
+      {
+	d1=(cellinfo->lead_dims)[i];
+	s2=0;
+	Gamma1 = createSquareMatrix(d1);
+	MatrixCopyPart(Gamma, Gamma1, s1, s1, 0, 0, d1, d1);
+	
+	for(j=0; j< num_leads; j++)
+	{
+	  d2=(cellinfo->lead_dims)[j];
+	  gsr = createNonSquareMatrix(d1, d2);
+	  MatrixCopyPart(g_sys_r, gsr, s1, s2, 0, 0, d1, d2);
+	  Gamma2 = createSquareMatrix(d2);
+	  MatrixCopyPart(Gamma, Gamma2, s2, s2, 0, 0, d2, d2);
+	  gsa = createNonSquareMatrix(d2, d1);
+	  MatrixCopyPart(g_sys_a, gsa, s2, s1, 0, 0, d2, d1);
+	  
+	  temp1=createNonSquareMatrix(d1, d2);
+	  MatrixMultNS(Gamma1, gsr, temp1, d1, d1, d2);
+	  temp2=createNonSquareMatrix(d1, d2);
+	  MatrixMultNS(temp1, Gamma2, temp2, d1, d2, d2);
+	  FreeMatrix(temp1);
+	  temp1=createSquareMatrix(d1);
+	  MatrixMultNS(temp2, gsa, temp1, d1, d2, d1);
+	  FreeMatrix(temp2);
+	  
+	  (tpara->transmissions)[i][j] = creal(MatrixTrace(temp1, d1));
+	  FreeMatrix(temp1);
+	  s2+=d2;
+	  FreeMatrix(gsr); FreeMatrix(Gamma2); FreeMatrix(gsa);
+	}
+	
+	s1+=d1;
+	FreeMatrix(Gamma1);
+      }
+      
+      
+      
+      FreeMatrix(Gamma);
+      FreeMatrix(g_sys_r); FreeMatrix(g_sys_a);
         
   
   
@@ -36,7 +119,8 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 		      cellDivision *cellinfo, hoppingfunc *hoppingfn, void *hoppingparams, int mode, 
 		      double _Complex **Gon, double _Complex **Goff, double _Complex **Sigma)
 {
-    int geo = (DeviceCell->geo);
+  
+  int geo = (DeviceCell->geo);
     
   int num_cells = (cellinfo->num_cells);
   
@@ -45,6 +129,8 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
   int i, j, k, l, index1, index2, this0, last0;
   
   int cell_start, cell_end, cell_iter, it_count;
+  int dim1  = (cellinfo->cell_dims)[0];
+  double *bshifts = createDoubleArray(3);
   
   if(mode == 0 || mode == 1)
   {
@@ -60,7 +146,7 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
   {
 	this_cell = cell_start + it_count*cell_iter;
   
-	printf("########\n#cell %d\n", this_cell);
+//    	printf("########\n#cell %d\n", this_cell);
 	
     //generate disconnected cell GF
 	dim = (cellinfo->cell_dims)[this_cell];
@@ -106,7 +192,8 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 		    k=l;
 		  }
 		}
- 		g00inv[i][k] -= hoppingfn(DeviceCell, index1, index2, hoppingparams);
+		//printf("neighbours	%d	%d\n", i, k);
+ 		g00inv[i][k] -= hoppingfn(DeviceCell, DeviceCell, index1, index2, bshifts, hoppingparams);
 	      
 	    }
 	    
@@ -123,8 +210,8 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 		    k=l;
 		  }
 		}
- 		V21[i][k] = hoppingfn(DeviceCell, index1, index2, hoppingparams);
-		V12[k][i] = hoppingfn(DeviceCell, index2, index1, hoppingparams);
+ 		V21[i][k] = hoppingfn(DeviceCell, DeviceCell, index1, index2, bshifts, hoppingparams);
+		V12[k][i] = hoppingfn(DeviceCell, DeviceCell, index2, index1, bshifts, hoppingparams);
 	      
 	    }
 	    
@@ -132,18 +219,18 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 	  }
 	}
 	
-	  // 	//check non-zero elements at the cell stage
-	  	printf("g00inv\n");
-	  	listNonZero(g00inv, dim, dim);
-	  
-	  	if(it_count>0)
-	  	{
-	  	  printf("V21\n");
-	  	  listNonZero(V21, dim, dim_old);
-	  	  
-	  	  printf("V12\n");
-	  	  listNonZero(V12, dim_old, dim);
-	  	}
+	  	//check non-zero elements at the cell stage
+// 	  	printf("#g00inv\n");
+// 	  	listNonZero(g00inv, dim, dim);
+// 	  
+// 	  	if(it_count>0)
+// 	  	{
+// 	  	  printf("#V21\n");
+// 	  	  listNonZero(V21, dim, dim_old);
+// 	  	  
+// 	  	  printf("#V12\n");
+// 	  	  listNonZero(V12, dim_old, dim);
+// 	  	}
       
       
       	  
@@ -197,7 +284,18 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 	dim_old=dim;
       
   }//end of first sweep 
+  
+  MatrixCopy(g_old, Gon, dim1);
+  FreeMatrix(g_old);
+  
+  if(mode>0)
+  {
     
+    //insert second sweep here
+    
+  }
+  
+   free(bshifts);
   
 }
 
@@ -1049,31 +1147,401 @@ double genConduc4(double _Complex En,
 }
 
 
-double _Complex simpleTB(RectRedux *DeviceCell, int a, int b, void *hoppingparams)
+
+//has been edited to accept 2 device cell structures, so can calculate hopping between leads and device also
+//bshifts allows rigid shifting of one cell, e.g. for neighbouring cell calculations
+double _Complex simpleTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, int b, double *bshifts, void *hoppingparams)
 {
   simpleTB_params *para = (simpleTB_params *)hoppingparams; 
   double t0 = para->t0;
   double kpar = para->kpar;
-  double ans=0.0;
-  double x1 = (DeviceCell->pos)[a][0], y1 = (DeviceCell->pos)[a][1];
-  double x2 = (DeviceCell->pos)[b][0], y2 = (DeviceCell->pos)[b][1];
+  double _Complex ans=0.0;
+  double x1 = (aDeviceCell->pos)[a][0], y1 = (aDeviceCell->pos)[a][1];
+  double x2 = (bDeviceCell->pos)[b][0] + bshifts[0], y2 = (bDeviceCell->pos)[b][1] + bshifts[1];
+  double y2p, distp;
   
   double dist = sqrt(pow(x2-x1, 2.0) + pow(y2-y1, 2.0));
+  double ycelldist;
   
-  if((para->isperiodic)==0)
-  {
+  //if((para->isperiodic)==0)
+  //{
     if(dist > (para->NN_lowdis) && dist < (para->NN_highdis))
     {
      ans=t0;     
     }
-  }
+  //}
   
+
+      //note the += to allow more than one connection between the same atoms (or their images)
   if((para->isperiodic)==1)
   {
+    //set separation to up and down cells
+    //this is only sensible for even-indexed ribbons, but will run with odd results for odd indices
+    //this
+    if((aDeviceCell->geo)==0)
+    {
+	ycelldist = (aDeviceCell->length)*sqrt(3)/2;
+    }
+    if((aDeviceCell->geo)==1)
+    {
+	ycelldist = (aDeviceCell->length)*0.5;
+    }
+    
+    //check if b is in cell above
+    y2p = y2 + ycelldist;
+    distp= sqrt(pow(x2-x1, 2.0) + pow(y2p-y1, 2.0));
+    
+    if(distp > (para->NN_lowdis) && distp < (para->NN_highdis))
+    {
+     ans+=t0*cexp(-I*kpar);    
+    }
+    
+    //check if b is in cell below
+    y2p = y2 - ycelldist;
+    distp= sqrt(pow(x2-x1, 2.0) + pow(y2p-y1, 2.0));
+    
+    if(distp > (para->NN_lowdis) && distp < (para->NN_highdis))
+    {
+     ans+=t0*cexp(I*kpar); 
+    }
+    
     
   }
   //printf("# hopping %d	%d: %lf	%lf\n", a, b, ans, dist);
   return ans;
   
 }
+
+
+
+double _Complex peierlsTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, int b, double *bshifts, void *hoppingparams)
+{
+  peierlsTB_params *para = (peierlsTB_params *)hoppingparams; 
+  double t0 = para->t0;
+  double kpar = para->kpar;
+  double _Complex ans=0.0;
+  double x1 = (aDeviceCell->pos)[a][0], y1 = (aDeviceCell->pos)[a][1];
+  double x2 = (bDeviceCell->pos)[b][0] + bshifts[0], y2 = (bDeviceCell->pos)[b][1] + bshifts[1];
+  double y2p, distp;
+  
+  double dist = sqrt(pow(x2-x1, 2.0) + pow(y2-y1, 2.0));
+  double ycelldist;
+  
+  //if((para->isperiodic)==0)
+  //{
+    if(dist > (para->NN_lowdis) && dist < (para->NN_highdis))
+    {
+     ans=t0*graphenePeierlsPhase(x1, y1, x2, y2, para->gauge, para->Btes, para->restrics, para->limits);     
+    }
+  //}
+  
+
+      //note the += to allow more than one connection between the same atoms (or their images)
+  if((para->isperiodic)==1)
+  {
+    //set separation to up and down cells
+    //this is only sensible for even-indexed ribbons, but will run with odd results for odd indices
+    //this
+    if((aDeviceCell->geo)==0)
+    {
+	ycelldist = (aDeviceCell->length)*sqrt(3)/2;
+    }
+    if((aDeviceCell->geo)==1)
+    {
+	ycelldist = (aDeviceCell->length)*0.5;
+    }
+    
+    //check if b is in cell above
+    y2p = y2 + ycelldist;
+    distp= sqrt(pow(x2-x1, 2.0) + pow(y2p-y1, 2.0));
+    
+    if(distp > (para->NN_lowdis) && distp < (para->NN_highdis))
+    {
+     ans+=t0*graphenePeierlsPhase(x1, y1, x2, y2p, para->gauge, para->Btes, para->restrics, para->limits)*cexp(-I*kpar);    
+    }
+    
+    //check if b is in cell below
+    y2p = y2 - ycelldist;
+    distp= sqrt(pow(x2-x1, 2.0) + pow(y2p-y1, 2.0));
+    
+    if(distp > (para->NN_lowdis) && distp < (para->NN_highdis))
+    {
+     ans+=t0*graphenePeierlsPhase(x1, y1, x2, y2p, para->gauge, para->Btes, para->restrics, para->limits)*cexp(-I*kpar);    
+    }
+    
+    
+  }
+  //printf("# hopping %d	%d: %lf	%lf\n", a, b, ans, dist);
+  return ans;
+  
+}
+
+//returns peierls phase factor for two sites in graphene lattice
+//note assumes the graphene lattice constant, so should be generalised for nongraphene
+double _Complex graphenePeierlsPhase(double x1, double y1, double x2, double y2, int gauge, double BTesla, int *res, double **limits)
+{
+ 
+  double xb, yb, delx, dely, midx, midy;
+  double beta = BTesla * 1.46262E-5;
+  double phase;
+  dely=y2-y1; delx=x2-x1;
+  midx=x1 + delx/2; midy = y1+dely/2;
+  
+
+  
+  
+  if(res[0] == 0)
+  {
+    xb=midx;
+  }
+  else if(res[0] == 1)
+  {
+    xb=midx;
+    if(xb<limits[0][0])
+    {
+      xb=limits[0][0]  ;
+    }
+    if(xb>limits[0][1])
+    {
+      xb=limits[0][1]  ;
+    }
+    
+  }
+  //printf("#x %lf	%lf\n", x, x1);
+  
+  if(res[1] == 0)
+  {
+    yb=midy;
+  }
+  else if(res[0] == 1)
+  {
+    yb=midy;
+    if(yb<limits[1][0])
+    {
+      yb=limits[1][0];
+    }
+    if(yb>limits[1][1])
+    {
+      yb=limits[1][1];
+    }
+  }
+  
+  if(gauge == 0)
+  {
+  //  phase = beta*(x*dely + 0.5*delx*dely);
+  // phase = beta*(x*dely );
+    phase = beta*xb*dely;
+  }
+  
+  else if(gauge == 1)
+  {
+   // phase = beta*(y*delx + 0.5*delx*dely);
+   //phase = beta*(y*delx );
+        phase = beta*yb*delx;
+
+    
+  }
+//  printf("# %lf (%lf,  %lf) phase %+e\n", x, delx, dely, phase);
+  
+  return cexp(2 * M_PI * I * phase);  
+  
+  
+}
+
+
+//simplest way to generate sigmas
+void simple2leads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadCells, cellDivision *cellinfo, lead_para *params, double _Complex **Sigma)
+{
+  
+
+	int geo = (DeviceCell->geo);
+	int i, j, k;
+	int dim1, dim2; 
+  	double elemerr=1.0e-10;
+	int lcount, rcount;
+	double _Complex **ginv, **V12, **V21, **g00, **SL, **SR, **VLD, **VDL, **smallSigma, **temp1;
+	int dim1a, dim2a;
+	double *bshifts0 = createDoubleArray(3);
+	    hoppingfunc *hopfn = (hoppingfunc *)(params->hopfn);
+
+	
+	    //a cleverer, more general version of this routine could simply loop over an arbitrary # of leads
+	    //not much would need to be changed for this to work
+	    
+//    //generate lead SGFs
+	
+      //lead 1
+	  dim1 = *(LeadCells[0]->Nrem);
+	  ginv = createSquareMatrix(dim1);
+	  V12 = createSquareMatrix(dim1);
+	  V21 = createSquareMatrix(dim1);
+	  g00 = createSquareMatrix(dim1);
+
+	  SL = createSquareMatrix(dim1);
+      
+	  //generate the info required for Rubio method
+	  lead_prep(En, LeadCells[0], 0, params, ginv, V12, V21);
+	  
+// 	  listNonZero(ginv, dim1, dim1);
+// 	  listNonZero(V12, dim1, dim1);
+// 	  listNonZero(V21, dim1, dim1);
+
+	  InvertMatrixGSL(ginv, g00, dim1);
+	  RubioSGF(SL, g00, V12, V21, dim1, &lcount, elemerr*dim1*dim1);
+	  FreeMatrix(ginv); FreeMatrix(V12); FreeMatrix(V21); FreeMatrix (g00);
+	  
+      //lead 2
+	  dim2 = *(LeadCells[1]->Nrem);
+	  ginv = createSquareMatrix(dim2);
+	  V12 = createSquareMatrix(dim2);
+	  V21 = createSquareMatrix(dim2);
+	  g00 = createSquareMatrix(dim2);
+
+	  SR = createSquareMatrix(dim2);
+      
+	  //generate the info required for Rubio method
+	  lead_prep(En, LeadCells[1], 1, params, ginv, V12, V21);
+	  
+// 	  listNonZero(ginv, dim2, dim2);
+// 	  listNonZero(V12, dim2, dim2);
+// 	  listNonZero(V21, dim2, dim2);
+
+	  InvertMatrixGSL(ginv, g00, dim1);
+	  RubioSGF(SR, g00, V12, V21, dim1, &lcount, elemerr*dim2*dim2);
+	  FreeMatrix(ginv); FreeMatrix(V12); FreeMatrix(V21); FreeMatrix (g00);
+
+ 	
+	 //connections of left and right leads to device
+	  //leads are connected to the device using the hopping rules of the lead region, not the device region
+	  
+	  //lead1
+	  dim1a = (cellinfo->lead_dims)[0];
+	  VLD = createNonSquareMatrix(dim1, dim1a);
+	  VDL = createNonSquareMatrix(dim1a, dim1);
+	  
+	  for(i=0; i <dim1; i++)
+	  {
+	    for(j=0; j<dim1a; j++)
+	    {
+		k=(cellinfo->lead_sites)[j];
+		VLD[i][j] =  (hopfn)(LeadCells[0], DeviceCell, i, k, bshifts0, (params->hoppara) );
+	      	VDL[j][i] =  (hopfn)(DeviceCell, LeadCells[0], k, i, bshifts0, (params->hoppara) );
+	      	//VDL[j][i] =  conj(VLD[i][j] );
+
+	    }
+		  
+	  }
+//  	  listNonZero(VLD, dim1, dim1a);
+//  	  listNonZero(VDL, dim1a, dim1);
+
+	  temp1 = createNonSquareMatrix(dim1a, dim1);
+	  MatrixMultNS(VDL, SL, temp1, dim1a, dim1, dim1);
+	  smallSigma = createSquareMatrix(dim1a);
+	  MatrixMultNS(temp1, VLD, smallSigma, dim1a, dim1, dim1a);
+	  FreeMatrix(temp1); FreeMatrix(VLD); FreeMatrix(VDL);
+	  
+	  MatrixCopyPart(smallSigma, Sigma, 0, 0, 0, 0, dim1a, dim1a);
+	  FreeMatrix(smallSigma); FreeMatrix(SL);
+
+
+	  //lead2
+	  dim2a = (cellinfo->lead_dims)[1];
+	  VLD = createNonSquareMatrix(dim2, dim2a);
+	  VDL = createNonSquareMatrix(dim2a, dim2);
+	  
+	  for(i=0; i <dim2; i++)
+	  {
+	    for(j=0; j<dim2a; j++)
+	    {
+		k=(cellinfo->lead_sites)[dim1a+j];
+		VLD[i][j] =  (hopfn)(LeadCells[1], DeviceCell, i, k, bshifts0, (params->hoppara) );
+	      	VDL[j][i] =  (hopfn)(DeviceCell, LeadCells[1], k, i, bshifts0, (params->hoppara) );
+// 	      	VDL[j][i] =  conj(VLD[i][j] );
+
+	    }
+		  
+	  }
+// 	  listNonZero(VLD, dim2, dim2a);
+//   	  listNonZero(VDL, dim2a, dim2);
+	  
+	  temp1 = createNonSquareMatrix(dim2a, dim2);
+	  MatrixMultNS(VDL, SR, temp1, dim2a, dim2, dim2);
+	  smallSigma = createSquareMatrix(dim2a);
+	  MatrixMultNS(temp1, VLD, smallSigma, dim2a, dim2, dim2a);
+	  FreeMatrix(temp1); FreeMatrix(VLD); FreeMatrix(VDL);
+	  
+	  MatrixCopyPart(smallSigma, Sigma, 0, 0, dim1a, dim1a, dim2a, dim2a);
+	  FreeMatrix(smallSigma); FreeMatrix(SR);
+	  free(bshifts0);
+
+}
+
+
+//general routine to prepare lead cells for Rubio-esque routine
+//takes positions, cell sep. vector and hopping rule
+//returns unit cell ginv, V12 and V21
+void lead_prep(double _Complex En, RectRedux *LeadCell, int leadindex, lead_para *params, double _Complex **ginv, double _Complex **V12, double _Complex **V21)
+{
+    int i, j, k;
+    
+    int dim = *(LeadCell->Nrem);
+    
+    hoppingfunc *hopfn = (hoppingfunc *)(params->hopfn);
+    double *bshifts = createDoubleArray(3);
+    
+  
+    //g00
+    for(i=0; i <dim; i++)
+    {
+      ginv[i][i] = En - (LeadCell->site_pots[i]);
+      
+      for(j=0; j<dim; j++)
+      {
+	if(j!=i)
+	{
+	  ginv[i][j] = - (hopfn)(LeadCell, LeadCell, i, j, bshifts, (params->hoppara) );
+	}
+	
+      }
+            
+    }
+
+      //Vs
+    for(i=0; i<3; i++)
+      bshifts[i] = (params->shift_vecs)[leadindex][i];
+    
+    
+      for(i=0; i <dim; i++)
+      {
+	for(j=0; j<dim; j++)
+	{
+	  
+	    V12[i][j] =  (hopfn)(LeadCell, LeadCell, i, j, bshifts, (params->hoppara) );
+	  
+	  
+	}
+	      
+      }
+
+      
+    for(i=0; i<3; i++)
+      bshifts[i] = -(params->shift_vecs)[leadindex][i];
+    
+    
+      for(i=0; i <dim; i++)
+      {
+	for(j=0; j<dim; j++)
+	{
+	  
+	    V21[i][j] =  (hopfn)(LeadCell, LeadCell, i, j, bshifts, (params->hoppara) );
+// 	    V21[i][j] =  conj(V12[j][i]);
+
+	}
+	      
+      }
+    free(bshifts);
+
+}
+  
+  
 

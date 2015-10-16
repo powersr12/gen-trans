@@ -298,7 +298,7 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
 	  }
 	}
 	cellinfo->cell1dim = j;  
-	(cellinfo->lead_dims)[1] = (cellinfo->lead_dims)[0] - j;
+	(cellinfo->lead_dims)[1] = j- (cellinfo->lead_dims)[0];
 	
 	//printf("#cell1 %d\n", cellinfo->cell1dim);
 	
@@ -364,9 +364,10 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
 	  }
 	}
 	cellinfo->cell1dim = j;  
-	(cellinfo->lead_dims)[1] = (cellinfo->lead_dims)[0] - j;
+	(cellinfo->lead_dims)[1] = j -(cellinfo->lead_dims)[0];
 	//printf("#cell1 %d\n", cellinfo->cell1dim);
-	
+		 // printf("lead dims %d:	%d\n", (cellinfo->lead_dims)[0],  (cellinfo->lead_dims)[1]);
+
 	//group sites
 	
 	cellinfo->group_dim = 0;
@@ -377,6 +378,7 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
 	for(l=0; l<(cellinfo->lead_dims)[0] + (cellinfo->lead_dims)[1]; l++)
 	{
 	  cellinfo->lead_sites[l] = (cellinfo->cells_site_order)[l];
+	  //printf("leadsite %d:	%d\n", l,  cellinfo->lead_sites[l]);
 	}
 	
 	
@@ -559,14 +561,14 @@ void cellSplitter (RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellin
 // 	printf("\n");
 //       }
 
-    for(i=0;i<(cellinfo->num_cells);i++)
-    {
-      for(j=0; j<(cellinfo->cell_dims)[i]; j++)
-      {
-	printf("%lf	%lf\n", (DeviceCell->pos)[(cellinfo->cells_site_order)[(cellinfo->starting_index)[i] + j]][0], (DeviceCell->pos)[(cellinfo->cells_site_order)[(cellinfo->starting_index)[i] + j]][1]);
-      }
-      printf("\n");
-    }
+//     for(i=0;i<(cellinfo->num_cells);i++)
+//     {
+//       for(j=0; j<(cellinfo->cell_dims)[i]; j++)
+//       {
+// 	printf("%lf	%lf\n", (DeviceCell->pos)[(cellinfo->cells_site_order)[(cellinfo->starting_index)[i] + j]][0], (DeviceCell->pos)[(cellinfo->cells_site_order)[(cellinfo->starting_index)[i] + j]][1]);
+//       }
+//       printf("\n");
+//     }
     
   
 }
@@ -983,27 +985,27 @@ int zzacnnk (RectRedux *DeviceCell, void *rule_params, int a, int b)
 	      }
 	  }
 	  
-	
+	     //the periodicity ones!
+	  if(k==(DeviceCell->length)-1)
+	  {
+	    if(b== (a-(DeviceCell->length)+1))
+	    {
+	      ans=0;
+	    }
+	    
+	  }
+	  if(k==0)
+	  {
+	    if(b== (a+(DeviceCell->length)-1))
+	    {
+	      ans=0;
+	    }
+	    
+	  }
+      
       }
       
-      //the periodicity ones!
-      if(k==(DeviceCell->length)-1)
-      {
-	if(b== (a-(DeviceCell->length)+1))
-	{
-	  ans=0;
-	}
-	
-      }
-       if(k==0)
-      {
-	if(b== (a+(DeviceCell->length)-1))
-	{
-	  ans=0;
-	}
-	
-      }
-      
+ 
 
     
     return ans;

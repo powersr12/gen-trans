@@ -5,6 +5,8 @@
 
 #include "useful.h"
 
+
+
 typedef struct {
 	int geo;		//=0 for zigzag, =1 for armchair
 	int length;
@@ -17,7 +19,16 @@ typedef struct {
 	int *Ntot;
 }RectRedux;
 
+typedef struct {
+	double **shift_vecs;
+	void *hopfn;
+	void *leadsfn;
+	void *hoppara;
+}lead_para;
 
+void genLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, int mode, lead_para *params);
+
+void **simpleRibbonGeo (RectRedux *SiteArray, void *p, int struc_out, char *filename);
 
 void genSublatticeDevice (RectRedux *SiteArray, int buffer_rows, double a_conc, double a_pot, double b_conc, double b_pot, int seed, int struc_out, char *filename);
 void genAntidotDevice (RectRedux *SiteArray, int buffer_rows, int AD_length, double AD_rad, int lat_width, int lat_length, int seed, int struc_out, char *filename);
