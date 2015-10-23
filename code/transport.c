@@ -1266,7 +1266,7 @@ double _Complex peierlsTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a,
     
     if(distp > (para->NN_lowdis) && distp < (para->NN_highdis))
     {
-     ans+=t0*graphenePeierlsPhase(x1, y1, x2, y2p, para->gauge, para->Btes, para->restrics, para->limits)*cexp(-I*kpar);    
+     ans+=t0*graphenePeierlsPhase(x1, y1, x2, y2p, para->gauge, para->Btes, para->restrics, para->limits)*cexp(I*kpar);    
     }
     
     

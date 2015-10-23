@@ -23,7 +23,7 @@ main(int argc, char *argv[])
 	
 	//length and index array related constants
 	  int Ntot, Nrem, length1=2,  length2 = length1*3 , geo=0;
-	  length2 = 32;
+	  length2 = 30;
 	
 	//processor and energy loop related integers
 	  int procs=1, this_proc=0, remainder, Epts_temp=11, en, numfin, Epoints=11, conf_num=0;
@@ -32,27 +32,48 @@ main(int argc, char *argv[])
 	  double realE=0.0, Emax=-0.9, Emin=0.9, Estep=0.04, Emin_temp=0.0;
 	  double _Complex En;
 	  
+	//k loop & periodicity related params
+	  int isperiodic=1;
+	  double kmin=0.0, kmax=2*M_PI;
+	  int kpts=1;
+	  double kstep;
+	      if(kpts>1)
+	      {
+		kstep = (kmax-kmin)/(kpts-1);
+	      }
+	      if (kpts==1)
+	      {
+		kstep = 0.0;
+	      }
+	  cnxRulesFn *connectrules;
+	    if(isperiodic==0)
+	      connectrules = &zzacnn;
+	    if(isperiodic==1)
+	      connectrules = &zzacnnk;
+	    
+	  
+	  
 	  
 	   int buffer_rows=0;
 	//disorder / system config parameters - for sublattice
-	  double suba_conc=1.0, suba_pot=0.075, subb_conc=1.0, subb_pot=-0.075;
+	  double suba_conc=1.0, suba_pot=0.062, subb_conc=1.0, subb_pot=-0.062;
 	  
 	//disorder / system config parameters - for antidots overwrites some of the above...
-	  int AD_length=7, lat_width=3, lat_length=4;
+	  int AD_length=5, lat_width=1, lat_length=2;
 	  double AD_rad=1.0;
 	  
 	//lead info
 	  int num_leads=2;
 	  
-	  if(geo==0)
-	  {
-	    length1=2*lat_width*AD_length ; length2= 3*AD_length*lat_length + 2*buffer_rows;
-	  }
-	  
-	  if(geo==1)
-	  {
-	    length1=6*lat_width*AD_length ; length2= AD_length*lat_length + 2*buffer_rows;
-	  }
+// 	  if(geo==0)
+// 	  {
+// 	    length1=2*lat_width*AD_length ; length2= 3*AD_length*lat_length + 2*buffer_rows;
+// 	  }
+// 	  
+// 	  if(geo==1)
+// 	  {
+// 	    length1=6*lat_width*AD_length ; length2= AD_length*lat_length + 2*buffer_rows;
+// 	  }
 
 	    
 
@@ -176,8 +197,8 @@ main(int argc, char *argv[])
 		
 		if(this_proc==0)
 		{
-		//  genSublatticeDevice (&System, buffer_rows, suba_conc, suba_pot, subb_conc, subb_pot, conf_num, 1, strucfile);
-		  genAntidotDevice (&System, buffer_rows, AD_length, AD_rad, lat_width, lat_length, conf_num, 1, strucfile);
+		  genSublatticeDevice (&System, buffer_rows, suba_conc, suba_pot, subb_conc, subb_pot, conf_num, 1, strucfile);
+		//  genAntidotDevice (&System, buffer_rows, AD_length, AD_rad, lat_width, lat_length, conf_num, 1, strucfile);
 
 		  
 		  //export the disorder configuration for the other processes calculating the same configuration
@@ -211,7 +232,7 @@ main(int argc, char *argv[])
 
 	  cnxProfile cnxp;
 	  cnxp.max_neigh=3;
-	  device_connectivity (&System, &zzacnnk, NULL, &cnxp);
+	  device_connectivity (&System, connectrules, NULL, &cnxp);
 	  
 		time = clock() - time;
 		printf("#made connection profile in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
@@ -233,12 +254,12 @@ main(int argc, char *argv[])
 
 // 	  printf("# %d\n", cellinfo.group_cell);
 	  
-	  simpleTB_params hoppara ={-1.0, 1, 0.0, 0.56, 0.59};
+	  simpleTB_params hoppara ={-1.0, isperiodic, 0.0, 0.56, 0.59};
 	  
 
 	  peierlsTB_params maghoppara={};
 	  maghoppara.t0=-1.0;
-	  maghoppara.isperiodic=1;
+	  maghoppara.isperiodic=isperiodic;
 	  maghoppara.kpar=0.0;
 	  maghoppara.NN_lowdis=0.56;
 	  maghoppara.NN_highdis=0.59;
@@ -267,7 +288,7 @@ main(int argc, char *argv[])
 	  
 	   leadp.hopfn = &peierlsTB;
 	  leadp.hoppara = &maghoppara;
-	  
+// 	  
 	  leadp.leadsfn = &simple2leads;
 	  
 	  trans_params tpara = {};
@@ -278,17 +299,28 @@ main(int argc, char *argv[])
 	  tpara.transmissions = transmissions;
 	  		genLeads(&System, LeadCells, 2, 0, &leadp);
 
-	  
- 	 for(realE=0.002; realE<0.5; realE+=0.002)
-	 {
- 	 //realE=0.2;
+	  double kavg;
+			
+ 	for(realE=0.002; realE<0.5; realE+=0.002)
+	{
+ 	// realE=0.8;
 	    //genTransmissions(realE+eta*I, &System, LeadCells, &cnxp, &cellinfo, &simpleTB, &hoppara, &leadp, &tpara);
-	    genTransmissions(realE+eta*I, &System, LeadCells, &cnxp, &cellinfo, &peierlsTB, &maghoppara, &leadp, &tpara);
+	    kavg=0.0;
 
+	   for(k=0; k<kpts; k++)
+	   {
+	     maghoppara.kpar = kmin + k*kstep;
+	     	     hoppara.kpar = kmin + k*kstep;
+
+	     genTransmissions(realE+eta*I, &System, LeadCells, &cnxp, &cellinfo, &peierlsTB, &maghoppara, &leadp, &tpara);
+	     kavg += (transmissions[0][1]/kpts);
+// 	     	    printf("%lf	%e	\n", maghoppara.kpar, transmissions[0][1]);
+
+	   }
 	   // printf("#%lf	%e	%e	%e	%e\n", realE, transmissions[0][0], transmissions[0][1], transmissions[1][0], transmissions[1][1]);
-	    printf("%lf	%e	\n", realE, transmissions[0][1]);
+	    printf("%lf	%e	\n", realE, kavg);
 
-	 }
+	}
 	  
 // 	      double *ldoses = createDoubleArray(*(System.Nrem));
 // 	      double **conds = createNonSquareDoubleMatrix(*(System.Nrem), 3);
