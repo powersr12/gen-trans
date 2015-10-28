@@ -8,13 +8,13 @@ typedef void (leadfunction) (double _Complex, RectRedux *, RectRedux **, cellDiv
 
 
 
-typedef struct {
-	double t0;		
-	int isperiodic;
-	double kpar;
-	double NN_lowdis;
-	double NN_highdis;
-}simpleTB_params;
+// typedef struct {
+// 	double t0;		
+// 	int isperiodic;
+// 	double kpar;
+// 	double NN_lowdis;
+// 	double NN_highdis;
+// }simpleTB_params;
 
 typedef struct {
 	double t0;		
@@ -24,9 +24,9 @@ typedef struct {
 	double NN_highdis;
 	int gauge;
 	double Btes;
-	int *restrics;	//are there limits on x, y
-	double **limits; //what are the limits on x, y
-}peierlsTB_params;
+	int *restrics;	//are there limits on x, y with field
+	double **limits; //what are the limits on x, y with field
+}gen_hop_params;
 
 
 typedef struct {

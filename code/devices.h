@@ -26,12 +26,33 @@ typedef struct {
 	void *hoppara;
 }lead_para;
 
+typedef struct {
+	int buffer_rows;
+	double a_conc;
+	double a_pot;
+	double b_conc;
+	double b_pot;
+	int seed;
+}subl_para;
+
+typedef struct {
+	int buffer_rows;
+	int AD_length;
+	double AD_rad;
+	int lat_width;
+	int lat_length;
+	int seed;
+}adot_para;
+
+typedef void (generatefn) (RectRedux *, void *, int , char *);
+
 void genLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, int mode, lead_para *params);
 
-void **simpleRibbonGeo (RectRedux *SiteArray, void *p, int struc_out, char *filename);
+void simpleRibbonGeo (RectRedux *SiteArray, void *p, int struc_out, char *filename);
 
-void genSublatticeDevice (RectRedux *SiteArray, int buffer_rows, double a_conc, double a_pot, double b_conc, double b_pot, int seed, int struc_out, char *filename);
-void genAntidotDevice (RectRedux *SiteArray, int buffer_rows, int AD_length, double AD_rad, int lat_width, int lat_length, int seed, int struc_out, char *filename);
+void genSublatticeDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename);
+void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename);
+
 
 
 void exportRectConf(RectRedux *System, char *filename);

@@ -1,9 +1,10 @@
 CC=gcc
 CFLAGS=-lm -lgsl -lgslcblas -O3
 CFLAGSDEBUG=-lm -lgsl -lgslcblas -Wall -g
+MYLIBDIR=../libs
 
-test: test.o connect.o transport.o devices.o useful.o  mapping.o ../libs/matrices.o ../libs/hubbard.o ../libs/graphene_gf.o ../libs/suscept.o ../libs/static.o ../libs/greenfns.o ../libs/cubature.o
-	$(CC)  test.o connect.o transport.o devices.o useful.o mapping.o ../libs/matrices.o ../libs/hubbard.o ../libs/graphene_gf.o ../libs/suscept.o ../libs/static.o ../libs/greenfns.o ../libs/cubature.o $(CFLAGS) -o test
+test: test.o connect.o transport.o devices.o useful.o  mapping.o matrices.o hubbard.o graphene_gf.o suscept.o static.o greenfns.o cubature.o
+	$(CC)  test.o connect.o transport.o devices.o useful.o mapping.o matrices.o hubbard.o graphene_gf.o suscept.o static.o greenfns.o cubature.o $(CFLAGS) -o test
 
 test.o: test.c test.h
 	$(CC) -c -g -O3 test.c
@@ -23,30 +24,29 @@ transport.o: transport.c transport.h
 mapping.o: mapping.c mapping.h
 	$(CC) -c -g -O3 mapping.c
 	
-../libs/matrices.o: ../libs/matrices.c ../libs/matrices.h
-	$(CC) -c -g ../libs/matrices.c -o ../libs/matrices.o
+matrices.o: $(MYLIBDIR)/matrices.c $(MYLIBDIR)/matrices.h
+	$(CC) -c -g $(MYLIBDIR)/matrices.c -o matrices.o
 
-../libs/hubbard.o: ../libs/hubbard.c ../libs/hubbard.h
-	$(CC) -c ../libs/hubbard.c -o ../libs/hubbard.o
+hubbard.o: $(MYLIBDIR)/hubbard.c $(MYLIBDIR)/hubbard.h
+	$(CC) -c $(MYLIBDIR)/hubbard.c -o hubbard.o
 
-./libs/graphene_gf.o: ../libs/graphene_gf.c ../libs/graphene_gf.h
-	$(CC) -c ../libs/graphene_gf.c -o ../libs/graphene_gf.o
+graphene_gf.o: $(MYLIBDIR)/graphene_gf.c $(MYLIBDIR)/graphene_gf.h
+	$(CC) -c $(MYLIBDIR)/graphene_gf.c -o graphene_gf.o
 
-../libs/suscept.o: ../libs/suscept.c ../libs/suscept.h 
-	$(CC) -c ../libs/suscept.c -o ../libs/suscept.o
+suscept.o: $(MYLIBDIR)/suscept.c $(MYLIBDIR)/suscept.h 
+	$(CC) -c $(MYLIBDIR)/suscept.c -o suscept.o
 
-../libs/static.o: ../libs/static.c ../libs/static.h 
-	$(CC) -c ../libs/static.c -o ../libs/static.o
+static.o: $(MYLIBDIR)/static.c $(MYLIBDIR)/static.h 
+	$(CC) -c $(MYLIBDIR)/static.c -o static.o
 	
-../libs/greenfns.o: ../libs/greenfns.c ../libs/greenfns.h
-	$(CC) -c ../libs/greenfns.c -o ../libs/greenfns.o
+greenfns.o: $(MYLIBDIR)/greenfns.c $(MYLIBDIR)/greenfns.h
+	$(CC) -c $(MYLIBDIR)/greenfns.c -o greenfns.o
 	
-../libs/cubature.o: ../libs/cubature.c ../libs/cubature.h
-	$(CC) -c ../libs/cubature.c -o ../libs/cubature.o
+cubature.o: $(MYLIBDIR)/cubature.c $(MYLIBDIR)/cubature.h
+	$(CC) -c $(MYLIBDIR)/cubature.c -o cubature.o
 
 	
 	
 clean: FRC
-	rm *.o ../libs/*.o
 	
 FRC: 		

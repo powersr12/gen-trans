@@ -8,7 +8,7 @@
 //creates the simplest RectRedux array for a finite number of ribbon chains
 //note that this format should be the general layout for "generateDevice" routines
 //with other disorder or antidot parameters placed into parameter structure p 
-void **simpleRibbonGeo (RectRedux *SiteArray, void *p, int struc_out, char *filename)
+void simpleRibbonGeo (RectRedux *SiteArray, void *p, int struc_out, char *filename)
 {
 	  int length = SiteArray->length;
 	  int length2 = SiteArray->length2;
@@ -176,6 +176,7 @@ void **simpleRibbonGeo (RectRedux *SiteArray, void *p, int struc_out, char *file
 
 //generate lead geometries and rect_reduxes to match a device
 //mode=0 - basic left-right setup, same size 
+
 void genLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, int mode, lead_para *params)
 {
   int i, j;
@@ -230,8 +231,15 @@ void genLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, int mode, 
 }
 
 //very general - creates ribbon with sublattice dependent potential
-void genSublatticeDevice (RectRedux *SiteArray, int buffer_rows, double a_conc, double a_pot, double b_conc, double b_pot, int seed, int struc_out, char *filename)
+void genSublatticeDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename)
 {  
+	  subl_para *params = (subl_para *)p;
+	  double a_conc = (params->a_conc);
+	  double b_conc = (params->b_conc);
+	  double a_pot = (params->a_pot);
+	  double b_pot = (params->b_pot);
+	  int buffer_rows = (params->buffer_rows);
+	  int seed = (params->seed);
 	  
 	  int length = SiteArray->length;
 	    int length2 = SiteArray->length2;
@@ -458,9 +466,16 @@ void genSublatticeDevice (RectRedux *SiteArray, int buffer_rows, double a_conc, 
 //The first and last buffer_rows chains of the device will not be altered from pristine graphene
 //This version requires more aligning of the graphene and antidot sheets
 //i.e. ribbon width is not automatically an integer multiple of GAL cell width
-void genAntidotDevice (RectRedux *SiteArray, int buffer_rows, int AD_length, double AD_rad, int lat_width, int lat_length, int seed, int struc_out, char *filename)
+void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename)
 {  
+	  adot_para *params = (adot_para *)p;
 	  
+	  int buffer_rows = (params->buffer_rows);
+	  int AD_length = (params->AD_length);
+	  double AD_rad = (params->AD_rad);
+	  int lat_width = (params->lat_width);
+	  int lat_length = (params->lat_length);
+	  int seed = (params->seed);
 	  int length = SiteArray->length;
 	  int length2 = SiteArray->length2;
 	  int geo = SiteArray->geo;
@@ -803,6 +818,8 @@ void exportRectConf(RectRedux *System, char *filename)
   sprintf(fullname, "%s.info", filename);
   fileout = fopen(fullname, "w");
        fprintf(fileout, "%d\n", *(System->Nrem));
+       fprintf(fileout, "%d\n", *(System->Ntot));
+
   fclose(fileout);
 
 }
@@ -872,7 +889,8 @@ void importRectConf(RectRedux *System, int length, int length2, char *filename)
   fileout = fopen(fullname, "r");
     
        fscanf(fileout, "%d", (System->Nrem));
-    
+       fscanf(fileout, "%d", (System->Ntot));
+
   fclose(fileout);
   
 

@@ -1152,7 +1152,7 @@ double genConduc4(double _Complex En,
 //bshifts allows rigid shifting of one cell, e.g. for neighbouring cell calculations
 double _Complex simpleTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, int b, double *bshifts, void *hoppingparams)
 {
-  simpleTB_params *para = (simpleTB_params *)hoppingparams; 
+  gen_hop_params *para = (gen_hop_params *)hoppingparams; 
   double t0 = para->t0;
   double kpar = para->kpar;
   double _Complex ans=0.0;
@@ -1216,7 +1216,7 @@ double _Complex simpleTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, 
 
 double _Complex peierlsTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, int b, double *bshifts, void *hoppingparams)
 {
-  peierlsTB_params *para = (peierlsTB_params *)hoppingparams; 
+  gen_hop_params *para = (gen_hop_params *)hoppingparams; 
   double t0 = para->t0;
   double kpar = para->kpar;
   double _Complex ans=0.0;
