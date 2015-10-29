@@ -202,12 +202,13 @@ main(int argc, char *argv[])
 	      {
 		connectrules = &zzacnn;
 		sprintf(peritype, "RIBBON");
+		kpts = 1;
+
 	      }
 	      if(isperiodic==1)
 	      {
 		connectrules = &zzacnnk;
 		sprintf(peritype, "PERIODIC");
-		kpts = 1;
 	      }
 		
 	  
@@ -332,24 +333,48 @@ main(int argc, char *argv[])
 		    
 		    
 		    //antidot system sizes calculated from lattice details
-		    if(geo==0)
+		    if(strcmp("trig", latgeo) == 0)
 		    {
-		      length1=2*(adotp.lat_width)*(adotp.AD_length) ; 
-		      length2= 3*(adotp.AD_length)*(adotp.lat_length) + 2*(adotp.buffer_rows);
+		      if(geo==0)
+		      {
+			length1=2*(adotp.lat_width)*(adotp.AD_length) ; 
+			length2= 3*(adotp.AD_length)*(adotp.lat_length) + 2*(adotp.buffer_rows);
+		      }
+		      
+		      if(geo==1)
+		      {
+			length1=6*(adotp.lat_width)*(adotp.AD_length) ; 
+			length2= (adotp.AD_length)*(adotp.lat_length) + 2*(adotp.buffer_rows);
+		      }
+		      
+		      sprintf(sysinfo, "%s_lat_L_%d_%s_dot_R_%.1lf_%dx%d", (adotp.latgeo),(adotp.AD_length), (adotp.dotgeo), (adotp.AD_rad), (adotp.lat_width),  (adotp.lat_length)); 
+
 		    }
 		    
-		    if(geo==1)
+		    if(strcmp("rect", latgeo) == 0)
 		    {
-		      length1=6*(adotp.lat_width)*(adotp.AD_length) ; 
-		      length2= (adotp.AD_length)*(adotp.lat_length) + 2*(adotp.buffer_rows);
+		      if(geo==0)
+		      {
+			length1=2*(adotp.lat_width)*(adotp.AD_length) ; 
+			length2= (adotp.AD_length2)*(adotp.lat_length) + 2*(adotp.buffer_rows);
+		      }
+		      
+		      if(geo==1)
+		      {
+			length1=2*(adotp.lat_width)*(adotp.AD_length2) ; 
+			length2= (adotp.AD_length)*(adotp.lat_length) + 2*(adotp.buffer_rows);
+		      }
+		      sprintf(sysinfo, "%s_lat_L_%d_%d_%s_dot_R_%.1lf_%dx%d", (adotp.latgeo),(adotp.AD_length), (adotp.AD_length2) , (adotp.dotgeo), (adotp.AD_rad), (adotp.lat_width),  (adotp.lat_length)); 
+
 		    }
+		    
+		    
 		    
 		    //set functions and params for use below
 		    SysFunction = &genAntidotDevice;
 		    SysPara = &adotp;
 		    
 		    //set filename info? (circ and triglat to be generalised later!)
-		    sprintf(sysinfo, "%s_%s_lat_L%d_R%.1lf_%dx%d", (adotp.dotgeo), (adotp.latgeo),(adotp.AD_length), (adotp.AD_rad), (adotp.lat_width),  (adotp.lat_length)); 
 		}
 		
 		
@@ -437,7 +462,7 @@ main(int argc, char *argv[])
             char command[256];
 	    
 	//Create directory and filenaming convention
-	    sprintf(direcname, "res/%s_%s/%s%d_%s", systemtype, peritype, geotype, length1, sysinfo);
+	    sprintf(direcname, "../res/%s_%s/%s%d_%s", systemtype, peritype, geotype, length1, sysinfo);
 	    sprintf(command, "mkdir -p %s", direcname);
 	    system(command);
 	    

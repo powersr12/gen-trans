@@ -581,6 +581,11 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 	    holes_per_cell=2;
 	  }
 	  
+	  if(strcmp("rect", latgeo) == 0)
+	  {
+	    holes_per_cell=1;
+	  }
+	  
 	  tot_holes = holes_per_cell*lat_width*lat_length;
 	  double holes[tot_holes][3];
 	  double unitholes[holes_per_cell][2];
@@ -625,6 +630,47 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 		  
 		}
 	  }
+	  
+	  //rectangular lattice
+	      //ADlength is armchair direction unit vector (in units of sqrt(3)a )
+	      //ADlength2 is zigzag direction unit vector  (in units of a)
+	      
+	  if(strcmp("rect", latgeo) == 0)
+	  {
+	  
+		//zigzag ribbon
+		if(geo==0)
+		{
+		  xstart = buffer_rows*1.0;
+		  ystart = 0.0;
+		  xshift = AD_length2;
+		  yshift = sqrt(3)*AD_length;
+		  
+		  unitholes[0][0]  = (int) (AD_length2/2) - 0.5* (  (AD_length % 2) ); 
+		  unitholes[0][1] = (sqrt(3)/2.0) * (int) (AD_length)   ;
+		  
+		}
+		
+		
+		//armchair ribbon 
+		if(geo==1)
+		{
+		  xstart = buffer_rows*sqrt(3);
+		  ystart = 0.0;
+		  xshift = sqrt(3)*AD_length;
+		  yshift = AD_length2;
+		  
+	
+		  unitholes[0][1]  = AD_length2 -0.5 - (int) (AD_length2/2) +0.5* (  (AD_length % 2) ); 
+		  unitholes[0][0] = (sqrt(3)/2.0) * (int) (AD_length)  - 1 /(2*sqrt(3)) ;
+		  
+		 	  
+
+		  
+		  
+		}
+	  }
+	  
 	  
 	  
 	  for(i=0; i<lat_length; i++)
