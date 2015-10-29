@@ -79,7 +79,7 @@ main(int argc, char *argv[])
 		  {
 		    hopfn = &simpleTB;   
 		  }
-		  else if(ismagnetic == 0)
+		  else if(ismagnetic == 1)
 		  {
 		    hopfn = &peierlsTB;   
 		  }
