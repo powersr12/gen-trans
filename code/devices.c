@@ -472,13 +472,17 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 	  
 	  int buffer_rows = (params->buffer_rows);
 	  int AD_length = (params->AD_length);
+	  int AD_length2 = (params->AD_length2);
 	  double AD_rad = (params->AD_rad);
 	  int lat_width = (params->lat_width);
 	  int lat_length = (params->lat_length);
+	  char *latgeo = (params->latgeo);
+	  char *dotgeo = (params->dotgeo);
 	  int seed = (params->seed);
 	  int length = SiteArray->length;
 	  int length2 = SiteArray->length2;
 	  int geo = SiteArray->geo;
+	 
 	    
 	  double smalldist;
 	  FILE *out;
@@ -570,60 +574,116 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 	  }
 	  
 	  //Antidot positions
-	  int tot_holes = 2*lat_width*lat_length;
+	  int holes_per_cell, tot_holes;
+	  
+	  if(strcmp("trig", latgeo) == 0)
+	  {
+	    holes_per_cell=2;
+	  }
+	  
+	  if(strcmp("rect", latgeo) == 0)
+	  {
+	    holes_per_cell=1;
+	  }
+	  
+	  tot_holes = holes_per_cell*lat_width*lat_length;
 	  double holes[tot_holes][3];
-	  double unitholes[2][2];
+	  double unitholes[holes_per_cell][2];
 	  double xshift, yshift;
 	  
-	  //zigzag ribbon
-	  if(geo==0)
-	  {
-	    xstart = buffer_rows*1.0;
-	    ystart = 0.0;
-	    xshift = 3.0*AD_length;
-	    yshift = sqrt(3)*AD_length;
-	    
-	    unitholes[0][0]  = (int) (AD_length*3.0/4) -0.5* ( ((int) (AD_length/2)) % 2 ); 
-	    unitholes[0][1] = (sqrt(3)/2.0) * (int) (AD_length /2.0)   ;
-	    unitholes[1][0] = unitholes[0][0] + 1.5*AD_length;
-	    unitholes[1][1] = unitholes[0][1] + sqrt(3)*AD_length/2.0;
-	  }
+	  //unit cell hole positions (centres) and shift vectors
 	  
-	  
-	  //armchair ribbon - test at some point
-	  if(geo==1)
+	  //triangular lattice
+	  if(strcmp("trig", latgeo) == 0)
 	  {
-	    xstart = buffer_rows*sqrt(3);
-	    ystart = 0.0;
-	    xshift = sqrt(3)*AD_length;
-	    yshift = 3.0*AD_length;
-	    
-// 	    unitholes[0][1]  = (int) (AD_length*3.0/4) -0.5* ( ((int) (AD_length/2)) % 2 ); 
-// 	    unitholes[0][0] = (sqrt(3)/2.0) * (int) (AD_length /2.0)   ;
-// 	    unitholes[1][1] = unitholes[0][0] + 1.5*AD_length;
-// 	    unitholes[1][0] = unitholes[0][1] + sqrt(3)*AD_length/2.0;
-	    
-	    unitholes[0][1] =3.0*AD_length - 0.5 - ((int) (AD_length*3.0/4) -0.5* ( ((int) (AD_length/2)) % 2 ));
-            unitholes[0][0] = (sqrt(3)/2.0) * (int) (AD_length /2.0)  - 1 /(2*sqrt(3)) ;
-            unitholes[1][1] = unitholes[0][1] - 1.5*AD_length;
-            unitholes[1][0] = unitholes[0][0] + sqrt(3)*AD_length/2.0;
+	  
+		//zigzag ribbon
+		if(geo==0)
+		{
+		  xstart = buffer_rows*1.0;
+		  ystart = 0.0;
+		  xshift = 3.0*AD_length;
+		  yshift = sqrt(3)*AD_length;
+		  
+		  unitholes[0][0]  = (int) (AD_length*3.0/4) -0.5* ( ((int) (AD_length/2)) % 2 ); 
+		  unitholes[0][1] = (sqrt(3)/2.0) * (int) (AD_length /2.0)   ;
+		  unitholes[1][0] = unitholes[0][0] + 1.5*AD_length;
+		  unitholes[1][1] = unitholes[0][1] + sqrt(3)*AD_length/2.0;
+		}
+		
+		
+		//armchair ribbon 
+		if(geo==1)
+		{
+		  xstart = buffer_rows*sqrt(3);
+		  ystart = 0.0;
+		  xshift = sqrt(3)*AD_length;
+		  yshift = 3.0*AD_length;
+		  
+	
+		  unitholes[0][1] =3.0*AD_length - 0.5 - ((int) (AD_length*3.0/4) -0.5* ( ((int) (AD_length/2)) % 2 ));
+		  unitholes[0][0] = (sqrt(3)/2.0) * (int) (AD_length /2.0)  - 1 /(2*sqrt(3)) ;
+		  unitholes[1][1] = unitholes[0][1] - 1.5*AD_length;
+		  unitholes[1][0] = unitholes[0][0] + sqrt(3)*AD_length/2.0;
 
-	    
-	    
+		  
+		  
+		}
 	  }
+	  
+	  //rectangular lattice
+	      //ADlength is armchair direction unit vector (in units of sqrt(3)a )
+	      //ADlength2 is zigzag direction unit vector  (in units of a)
+	      
+	  if(strcmp("rect", latgeo) == 0)
+	  {
+	  
+		//zigzag ribbon
+		if(geo==0)
+		{
+		  xstart = buffer_rows*1.0;
+		  ystart = 0.0;
+		  xshift = AD_length2;
+		  yshift = sqrt(3)*AD_length;
+		  
+		  unitholes[0][0]  = (int) (AD_length2/2) - 0.5* (  (AD_length % 2) ); 
+		  unitholes[0][1] = (sqrt(3)/2.0) * (int) (AD_length)   ;
+		  
+		}
+		
+		
+		//armchair ribbon 
+		if(geo==1)
+		{
+		  xstart = buffer_rows*sqrt(3);
+		  ystart = 0.0;
+		  xshift = sqrt(3)*AD_length;
+		  yshift = AD_length2;
+		  
+	
+		  unitholes[0][1]  = AD_length2 -0.5 - (int) (AD_length2/2) +0.5* (  (AD_length % 2) ); 
+		  unitholes[0][0] = (sqrt(3)/2.0) * (int) (AD_length)  - 1 /(2*sqrt(3)) ;
+		  
+		 	  
+
+		  
+		  
+		}
+	  }
+	  
 	  
 	  
 	  for(i=0; i<lat_length; i++)
 	  {
 	    for(j=0; j<lat_width; j++)
 	    {
-	      holes[2*i*lat_width + 2*j][0] = xstart + i*xshift + unitholes[0][0];
-	      holes[2*i*lat_width + 2*j][1] = ystart + j*yshift + unitholes[0][1];
-	      holes[2*i*lat_width + 2*j][2] = AD_rad;
-	       
-	      holes[2*i*lat_width + 2*j + 1][0] = xstart + i*xshift + unitholes[1][0];
-	      holes[2*i*lat_width + 2*j + 1][1] = ystart + j*yshift + unitholes[1][1];
-	      holes[2*i*lat_width + 2*j + 1][2] = AD_rad;
+	      for(k=0; k <holes_per_cell; k++)
+	      {
+		holes[holes_per_cell*i*lat_width + holes_per_cell*j + k][0] = xstart + i*xshift + unitholes[k][0];
+		holes[holes_per_cell*i*lat_width + holes_per_cell*j + k][1] = ystart + j*yshift + unitholes[k][1];
+		holes[holes_per_cell*i*lat_width + holes_per_cell*j + k][2] = AD_rad;
+		
+	      }
 	    }
 	  }
 	  
