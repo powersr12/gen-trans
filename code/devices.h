@@ -38,6 +38,9 @@ typedef struct {
 typedef struct {
 	int buffer_rows;
 	int AD_length;
+	int AD_length2;
+	char *latgeo;
+	char *dotgeo;
 	double AD_rad;
 	int lat_width;
 	int lat_length;

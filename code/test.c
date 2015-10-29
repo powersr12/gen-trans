@@ -12,7 +12,7 @@
 #define eta 1.0e-4
 
 
-
+//squareGALbranch
 //remove unneeded
 
 main(int argc, char *argv[])
@@ -218,9 +218,11 @@ main(int argc, char *argv[])
 	//disorder / system config default parameters - for sublattice
 	  double suba_conc=1.0, suba_pot=0.062, subb_conc=1.0, subb_pot=-0.062;
 	//disorder / system config parameters - for antidots overwrites some of the above...
-	  int AD_length=5, lat_width=1, lat_length=2;
+	  int AD_length=5, AD_length2=5, lat_width=1, lat_length=2;
 	  double AD_rad=1.0;
-	  
+	  char latgeo[24], dotgeo[24];
+	  sprintf(latgeo, "trig");
+	  sprintf(dotgeo, "circ");
 	  
 	//lead info
 	  int num_leads=2;
@@ -282,9 +284,12 @@ main(int argc, char *argv[])
 		    
 		    adotp.buffer_rows = buffer_rows;
 		    adotp.AD_length = AD_length;
+		    adotp.AD_length2 = AD_length2;
+		    adotp.latgeo = latgeo;
 		    adotp.AD_rad = AD_rad;
 		    adotp.lat_width = lat_width;
 		    adotp.lat_length = lat_length;
+		    adotp.dotgeo = dotgeo;
 		    adotp.seed = conf_num;
 		    
 		    //check for command line arguments which vary these
@@ -293,6 +298,10 @@ main(int argc, char *argv[])
 		      if(strcmp("-ADlength", argv[i]) == 0)
 		      {
 			  sscanf(argv[i+1], "%d", &(adotp.AD_length));
+		      }
+		      if(strcmp("-ADlength2", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%d", &(adotp.AD_length2));
 		      }
 		      if(strcmp("-ADrad", argv[i]) == 0)
 		      {
@@ -309,6 +318,14 @@ main(int argc, char *argv[])
 		      if(strcmp("-bufferrows", argv[i]) == 0)
 		      {
 			  sscanf(argv[i+1], "%d", &(adotp.buffer_rows));
+		      }
+		      if(strcmp("-latgeo", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%s", latgeo);
+		      }
+		      if(strcmp("-dotgeo", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%s", dotgeo);
 		      }
 		      
 		    }
@@ -332,7 +349,7 @@ main(int argc, char *argv[])
 		    SysPara = &adotp;
 		    
 		    //set filename info? (circ and triglat to be generalised later!)
-		    sprintf(sysinfo, "circ_triglat_L%d_R%.1lf_%dx%d", (adotp.AD_length), (adotp.AD_rad), (adotp.lat_width),  (adotp.lat_length)); 
+		    sprintf(sysinfo, "%s_%s_lat_L%d_R%.1lf_%dx%d", (adotp.dotgeo), (adotp.latgeo),(adotp.AD_length), (adotp.AD_rad), (adotp.lat_width),  (adotp.lat_length)); 
 		}
 		
 		
