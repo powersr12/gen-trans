@@ -11,7 +11,7 @@
 
 #define eta 1.0e-4
 
-
+//master branch
 
 //remove unneeded
 
@@ -420,7 +420,7 @@ main(int argc, char *argv[])
             char command[256];
 	    
 	//Create directory and filenaming convention
-	    sprintf(direcname, "res/%s_%s/%s%d_%s", systemtype, peritype, geotype, length1, sysinfo);
+	    sprintf(direcname, "../res/%s_%s/%s%d_%s", systemtype, peritype, geotype, length1, sysinfo);
 	    sprintf(command, "mkdir -p %s", direcname);
 	    system(command);
 	    
@@ -433,7 +433,7 @@ main(int argc, char *argv[])
 	    fclose(output);
 
 	    
-			  printf("#%s\n", systemtype);
+ 			  printf("#%s\n", systemtype);
 	  	  	  printf("#loop type %s \n", loop_type);
 
 	    
