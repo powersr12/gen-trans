@@ -350,6 +350,24 @@ main(int argc, char *argv[])
 
 		    }
 		    
+		    if(strcmp("rotrig", latgeo) == 0)
+		    {
+		      if(geo==0)
+		      {
+			length1= 2*((adotp.AD_length)+1)*(adotp.lat_width); 
+			length2=  ((adotp.AD_length) + 1)*(adotp.lat_length) + 2*(adotp.buffer_rows);
+		      }
+		      
+		      if(geo==1)
+		      {
+			length1=(2*(adotp.AD_length) + 2)*(adotp.lat_width) ; 
+			length2= ((adotp.AD_length)+1)*(adotp.lat_length) + 2*(adotp.buffer_rows);
+		      }
+		      
+		      sprintf(sysinfo, "%s_lat_L_%d_%s_dot_R_%.1lf_%dx%d", (adotp.latgeo),(adotp.AD_length), (adotp.dotgeo), (adotp.AD_rad), (adotp.lat_width),  (adotp.lat_length)); 
+
+		    }
+		    
 		    if(strcmp("rect", latgeo) == 0)
 		    {
 		      if(geo==0)
@@ -385,6 +403,8 @@ main(int argc, char *argv[])
 		    SysPara = NULL;
 		    
 		    //set filename info?
+		    	sprintf(sysinfo, "clean");
+
 		}
 		
 	  

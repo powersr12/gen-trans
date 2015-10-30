@@ -581,6 +581,11 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 	    holes_per_cell=2;
 	  }
 	  
+	  if(strcmp("rotrig", latgeo) == 0)
+	  {
+	    holes_per_cell=2;
+	  }
+	  
 	  if(strcmp("rect", latgeo) == 0)
 	  {
 	    holes_per_cell=1;
@@ -625,6 +630,46 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 		  unitholes[0][0] = (sqrt(3)/2.0) * (int) (AD_length /2.0)  - 1 /(2*sqrt(3)) ;
 		  unitholes[1][1] = unitholes[0][1] - 1.5*AD_length;
 		  unitholes[1][0] = unitholes[0][0] + sqrt(3)*AD_length/2.0;
+
+		  
+		  
+		}
+	  }
+	  
+	  
+	  //rotated triangular lattice
+	  if(strcmp("rotrig", latgeo) == 0)
+	  {
+	  
+		//zigzag ribbon
+		if(geo==0)
+		{
+		  xstart = buffer_rows*1.0;
+		  ystart = 0.0;
+		  xshift = 3.0*AD_length;
+		  yshift = sqrt(3)*AD_length;
+		  
+		  unitholes[0][0] = (2*AD_length+1)*0.5 - ((int)(AD_length/4))*1.0 - 0.5; 
+		  unitholes[0][1] = (((int)(AD_length/4)) +0.5)*sqrt(3) + sqrt(3)/2;
+		  unitholes[1][0] = unitholes[0][0] - (AD_length+1)*0.5  ;
+		  unitholes[1][1] = unitholes[0][1] + (AD_length+1)*sqrt(3)*0.5 ;
+		  
+		}
+		
+		
+		//armchair ribbon 
+		if(geo==1)
+		{
+		  xstart = buffer_rows*sqrt(3);
+		  ystart = 0.0;
+		  xshift = (AD_length+1)*sqrt(3);
+		  yshift = (AD_length + 1)*1.0;
+		  
+	
+		  unitholes[0][1] = ((int)(AD_length/4))*1.0 + 0.5; 
+		  unitholes[0][0] = (((int)(AD_length/4)) +0.5)*sqrt(3) + 1/(sqrt(3));;
+		  unitholes[1][1] = unitholes[0][1] + (AD_length+1)*0.5  ;
+		  unitholes[1][0] = unitholes[0][0] + (AD_length+1)*sqrt(3)*0.5 ;
 
 		  
 		  
