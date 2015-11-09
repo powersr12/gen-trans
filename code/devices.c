@@ -478,6 +478,8 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 	  int lat_length = (params->lat_length);
 	  char *latgeo = (params->latgeo);
 	  char *dotgeo = (params->dotgeo);
+	  int isperiodic = (params->isperiodic);
+
 	  int seed = (params->seed);
 	  int length = SiteArray->length;
 	  int length2 = SiteArray->length2;
@@ -596,6 +598,14 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 	  double unitholes[holes_per_cell][2];
 	  double xshift, yshift;
 	  
+	  double cellyshift;
+	  
+	  if(geo==0)
+	    cellyshift = length * sqrt(3) / 2;
+	  
+	  else if (geo==1)
+	    cellyshift = length * 0.5;
+	  
 	  //unit cell hole positions (centres) and shift vectors
 	  
 	  //triangular lattice
@@ -646,8 +656,8 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 		{
 		  xstart = buffer_rows*1.0;
 		  ystart = 0.0;
-		  xshift = 3.0*AD_length;
-		  yshift = sqrt(3)*AD_length;
+		  xshift = (AD_length + 1)*1.0;
+		  yshift = (AD_length+1)*sqrt(3);
 		  
 		  unitholes[0][0] = (2*AD_length+1)*0.5 - ((int)(AD_length/4))*1.0 - 0.5; 
 		  unitholes[0][1] = (((int)(AD_length/4)) +0.5)*sqrt(3) + sqrt(3)/2;
@@ -769,6 +779,44 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 		      }
 		    }
 		  }
+		  if(isperiodic == 1)
+		  {
+		    for(j=0 ; j< tot_sites ;j++)
+		    {
+		      if(sites[j][0] == 0)
+		      {
+			if(i!=j)
+			{
+			  smalldist = sqrt( pow(site_coords[i][0] - site_coords[j][0], 2) +  pow(site_coords[i][1] - site_coords[j][1] -cellyshift, 2));
+			
+			
+			  if (smalldist < 0.6)
+			  {
+			    tempint++;
+			  }
+			}
+		      }
+		    }
+		  
+		   for(j=0 ; j< tot_sites ;j++)
+		    {
+		      if(sites[j][0] == 0)
+		      {
+			if(i!=j)
+			{
+			  smalldist = sqrt( pow(site_coords[i][0] - site_coords[j][0], 2) +  pow(site_coords[i][1] - site_coords[j][1] +cellyshift, 2));
+			
+			
+			  if (smalldist < 0.6)
+			  {
+			    tempint++;
+			  }
+			}
+		      }
+		    }
+		  }
+		  
+		  
 		  sites[i][1] =tempint;
 		}
 		 

@@ -291,6 +291,7 @@ main(int argc, char *argv[])
 		    adotp.lat_length = lat_length;
 		    adotp.dotgeo = dotgeo;
 		    adotp.seed = conf_num;
+		    adotp.isperiodic = isperiodic;
 		    
 		    //check for command line arguments which vary these
 		    for(i=1; i<argc-1; i++)

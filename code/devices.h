@@ -45,6 +45,7 @@ typedef struct {
 	int lat_width;
 	int lat_length;
 	int seed;
+	int isperiodic;
 }adot_para;
 
 typedef void (generatefn) (RectRedux *, void *, int , char *);
