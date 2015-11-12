@@ -332,7 +332,7 @@ double genConduc5(double _Complex En, RectRedux *DeviceCell, double hopping)
 
 		    
 	  //generate left and right lead SGFs
-	      double elemerr=1.0e-10;
+	      double elemerr=1.0e-15;
 	      int lcount, rcount;
 	      
 
@@ -643,7 +643,7 @@ double genConduc4(double _Complex En,
 		    
 		    
 	//generate left and right lead SGFs
-	      double elemerr=1.0e-8;
+	      double elemerr=1.0e-15;
 	      int lcount, rcount;
 	      
 	
@@ -1357,7 +1357,7 @@ void simple2leads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadCe
 	int geo = (DeviceCell->geo);
 	int i, j, k;
 	int dim1, dim2; 
-  	double elemerr=1.0e-10;
+  	double elemerr=1.0e-15;
 	int lcount, rcount;
 	double _Complex **ginv, **V12, **V21, **g00, **SL, **SR, **VLD, **VDL, **smallSigma, **temp1;
 	int dim1a, dim2a;
@@ -1406,8 +1406,8 @@ void simple2leads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadCe
 // 	  listNonZero(V12, dim2, dim2);
 // 	  listNonZero(V21, dim2, dim2);
 
-	  InvertMatrixGSL(ginv, g00, dim1);
-	  RubioSGF(SR, g00, V12, V21, dim1, &lcount, elemerr*dim2*dim2);
+	  InvertMatrixGSL(ginv, g00, dim2);
+	  RubioSGF(SR, g00, V12, V21, dim2, &lcount, elemerr*dim2*dim2);
 	  FreeMatrix(ginv); FreeMatrix(V12); FreeMatrix(V21); FreeMatrix (g00);
 
  	
