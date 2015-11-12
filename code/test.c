@@ -9,7 +9,7 @@
 //command line version
 #include "test.h"
 
-#define eta 1.0e-4
+#define eta 1.0e-6
 
 
 //remove unneeded
