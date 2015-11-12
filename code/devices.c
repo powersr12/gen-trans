@@ -230,6 +230,300 @@ void genLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, int mode, 
   
 }
 
+
+
+//very general - creates ribbon with sublattice dependent potential interface
+void genSublatticeInterface(RectRedux *SiteArray, void *p, int struc_out, char *filename)
+{  
+	  subint_para *params = (subint_para *)p;
+	  double a_conc1 = (params->a_conc1);
+	  double b_conc1 = (params->b_conc1);
+	  double a_pot1 = (params->a_pot1);
+	  double b_pot1 = (params->b_pot1);
+	  double a_conc2 = (params->a_conc2);
+	  double b_conc2 = (params->b_conc2);
+	  double a_pot2 = (params->a_pot2);
+	  double b_pot2 = (params->b_pot2);
+	  int xory = (params->xory);
+	  double int_pos = (params->int_pos);
+	  double int_width = (params->int_width);
+	  int buffer_rows = (params->buffer_rows);
+	  int seed = (params->seed);
+	  
+	  int length = SiteArray->length;
+	    int length2 = SiteArray->length2;
+	    int geo = SiteArray->geo;
+	    
+	  double smalldist;
+	  FILE *out;
+	  
+	  if(struc_out != 0)
+	  {
+	    out = fopen(filename, "w");
+	    
+	  }
+	    
+	  srand(time(NULL) + seed);
+	  
+	  
+	  //atomic coordinates and the atoms that are in and out, similar to previous cases
+	  int tot_sites = 2*length*length2;
+	  double **site_coords = createNonSquareDoubleMatrix(tot_sites, 3);
+	  double *site_pots = createDoubleArray(tot_sites);
+	  int **siteinfo = createNonSquareIntMatrix(tot_sites, 2);
+	  double xstart, ystart;
+	  int isclean, l, m;
+	  int *Nrem = (SiteArray->Nrem);
+	  int *Ntot = (SiteArray->Ntot);
+	  
+	  *Ntot = tot_sites;
+	  
+	  if(geo==0)
+	  {
+	    for(l=0; l<length2; l++)
+	    {
+	      xstart=l*1.0;
+	      for(m=0; m<length; m++)
+	      {
+		ystart= m*sqrt(3)/2 + 1/(2*sqrt(3));
+		
+		if((m%2) == 0)
+		{
+		    site_coords[l*2*length + 2*m][0] = xstart+0.5;
+		    site_coords[l*2*length + 2*m + 1][0] = xstart;
+		}
+		
+		if((m%2) == 1)
+		{
+		    site_coords[l*2*length + 2*m][0] = xstart;
+		    site_coords[l*2*length + 2*m + 1][0] = xstart+0.5;
+		}
+		
+		    site_coords[l*2*length + 2*m][1] = ystart;
+		    site_coords[l*2*length + 2*m + 1][1] = ystart + 1/(2*sqrt(3));
+		    siteinfo[l*2*length + 2*m][1]=0;
+		    siteinfo[l*2*length + 2*m +1][1]=1;
+
+		  
+	      }
+	    }
+	  }
+	  
+	  if(geo==1)
+	  {
+	      for(l=0; l<length2; l++)
+	      {
+		xstart = l*sqrt(3);
+		for(m=0; m<length; m++)
+		{
+		  if((m%2) == 0)
+		  {
+		    site_coords[l*2*length + m][0] = xstart;
+		    site_coords[l*2*length + length + m][0] = xstart +2 / sqrt(3);
+		    siteinfo[l*2*length + m][1] = 0;
+		    siteinfo[l*2*length + length + m][1] = 1;
+		  }
+		  if((m%2) == 1)
+		  {
+		    site_coords[l*2*length + m][0] = xstart +  1/(2*sqrt(3));
+		    site_coords[l*2*length + length + m][0] = xstart + (sqrt(3))/2;
+		    siteinfo[l*2*length + m][1] = 1;
+		    siteinfo[l*2*length + length + m][1] = 0;
+		  }
+		  
+		  site_coords[l*2*length + m][1] = m*0.5;
+		  site_coords[l*2*length + length + m][1] = m*0.5;
+
+		  
+		}
+		
+		
+	      }
+		
+	  }
+	      
+	      
+	      
+	      //disordery stuff here
+	      //both concentrations & potential vary linearly across the interface
+	      double temprandnum;
+	      double a_conc_temp, b_conc_temp, a_pot_temp, b_pot_temp;
+	      double side1, side2, centre, relpos;
+	      double delta_conca, delta_pota, delta_concb, delta_potb;
+	      side1 = int_pos - (int_width/2);
+	      side2 = int_pos + (int_width/2);
+	      delta_conca = a_conc2 - a_conc1;
+	      delta_concb = b_conc2 - b_conc1;
+	      delta_pota = a_pot2 - a_pot1;
+	      delta_potb = b_pot2 - b_pot1;
+	      
+	      for(l=buffer_rows*2*length; l<2*length*length2 - 2*buffer_rows*length; l++)
+	      {
+		site_pots[l] = 0.0;
+		temprandnum = myRandNum(0.0, 1.0);
+		
+		
+		
+		if(xory==0)
+		{
+		  relpos = (site_coords[l][0] - side1)/int_width;
+		}
+		
+		if(xory==1)
+		{
+		  relpos = (site_coords[l][1] - side1)/int_width;
+		}
+		
+		
+		  
+		  if(relpos <= 0)
+		  {
+		    a_conc_temp = a_conc1;
+		    a_pot_temp = a_pot1;
+		    b_conc_temp = b_conc1;
+		    b_pot_temp = b_pot1;
+		  }
+		  
+		  if(relpos > 0 && relpos < 1)
+		  {
+		    a_conc_temp = a_conc1 + delta_conca*relpos;
+		    b_conc_temp = b_conc1 + delta_concb*relpos;
+		    a_pot_temp = a_pot1 + delta_pota*relpos;
+		    b_pot_temp = b_pot1 + delta_potb*relpos;
+		  }
+		  
+		    if(relpos >=1)
+		  {
+		    a_conc_temp = a_conc2;
+		    a_pot_temp = a_pot2;
+		    b_conc_temp = b_conc2;
+		    b_pot_temp = b_pot2;
+		  }
+		  
+		  
+		  
+		
+		
+		
+		if(siteinfo[l][1] == 0)
+		{
+		  if(temprandnum < a_conc_temp)
+		    site_pots[l] = a_pot_temp;
+		}
+		
+		if(siteinfo[l][1] == 1)
+		{
+		  if(temprandnum < b_conc_temp)
+		    site_pots[l] = b_pot_temp;
+		}
+		//printf("%d	%lf	%d	%lf\n", l, temprandnum, siteinfo[l][1], site_pots[l]);
+	      }
+	      
+	      
+	      
+	      
+	      
+	      //chaininfo needed for conductance calcs (if atoms are missing)
+		      (SiteArray->chaininfo) = createNonSquareIntMatrix(length2, 4);
+		      int tempint=0, tempint2=0;
+	 
+			for(l=0; l<length2; l++)
+			{
+			  tempint=0;
+			  for(m=0; m<2*length; m++)
+			  {
+			    if(siteinfo[l*2*length +m][0] == 0)
+			    {
+			      tempint ++;
+			      tempint2++;
+			    }
+			  }
+			  (SiteArray->chaininfo)[l][0] = tempint;
+			}
+			*Nrem = tempint2;
+			
+			
+			(SiteArray->chaininfo)[0][1] = 0;
+			for(l=1; l<length2; l++)
+			{
+			  (SiteArray->chaininfo)[l][1] = (SiteArray->chaininfo)[l-1][1] + (SiteArray->chaininfo)[l-1][0];
+			}
+
+
+			//are first and last atoms in each chain present?
+			for(l=1; l<length2; l++)
+			{
+			  if(siteinfo[l*2*length][0] == 1)
+			    (SiteArray->chaininfo)[l][2] = 1;
+			  
+			  if(siteinfo[(l+1)*2*length -1][0] == 1)
+			    (SiteArray->chaininfo)[l][3] = 1;
+			}
+	  
+	  
+	  
+			//separates out sublattices and positive and negative potentials by size
+			if(struc_out == 1)
+			{
+
+			  for(l=0; l<2*length*length2; l++)
+			  {
+			    if(siteinfo[l][0] == 0  && siteinfo[l][1] == 0 && site_pots[l] > 0)
+			    {  
+			      fprintf(out, "%lf	%lf	%lf\n", site_coords[l][0], site_coords[l][1], site_pots[l] );
+			    }
+			  }
+			  fprintf(out, "\n");
+			  
+			  for(l=0; l<2*length*length2; l++)
+			  {
+			    if(siteinfo[l][0] == 0  && siteinfo[l][1] == 0 && site_pots[l] < 0)
+			    {  
+			      fprintf(out, "%lf	%lf	%lf\n", site_coords[l][0], site_coords[l][1], site_pots[l] );
+			    }
+			  }
+			  fprintf(out, "\n");
+			  
+			  for(l=0; l<2*length*length2; l++)
+			  {
+			    if(siteinfo[l][0] == 0  && siteinfo[l][1] == 1 && site_pots[l] > 0)
+			    {  
+			      fprintf(out, "%lf	%lf	%lf\n", site_coords[l][0], site_coords[l][1], site_pots[l] );
+			    }
+			  }
+			  fprintf(out, "\n");
+			  
+			  for(l=0; l<2*length*length2; l++)
+			  {
+			    if(siteinfo[l][0] == 0  && siteinfo[l][1] == 1 && site_pots[l] < 0)
+			    {  
+			      fprintf(out, "%lf	%lf	%lf\n", site_coords[l][0], site_coords[l][1], site_pots[l] );
+			    }
+			  }
+			  fprintf(out, "\n");
+			
+			  
+			  if(struc_out != 0)
+			  {
+			    fclose(out);
+			  }
+			}
+			    
+			
+			  
+			  //Fill the array of data structures describing the system
+			  (SiteArray->pos) = site_coords;
+			  (SiteArray->site_pots) = site_pots;
+			  (SiteArray->siteinfo) = siteinfo;
+
+	
+}
+
+
+
+
+
+
 //very general - creates ribbon with sublattice dependent potential
 void genSublatticeDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename)
 {  
@@ -478,6 +772,8 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 	  int lat_length = (params->lat_length);
 	  char *latgeo = (params->latgeo);
 	  char *dotgeo = (params->dotgeo);
+	  int isperiodic = (params->isperiodic);
+
 	  int seed = (params->seed);
 	  int length = SiteArray->length;
 	  int length2 = SiteArray->length2;
@@ -581,6 +877,11 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 	    holes_per_cell=2;
 	  }
 	  
+	  if(strcmp("rotrig", latgeo) == 0)
+	  {
+	    holes_per_cell=2;
+	  }
+	  
 	  if(strcmp("rect", latgeo) == 0)
 	  {
 	    holes_per_cell=1;
@@ -590,6 +891,14 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 	  double holes[tot_holes][3];
 	  double unitholes[holes_per_cell][2];
 	  double xshift, yshift;
+	  
+	  double cellyshift;
+	  
+	  if(geo==0)
+	    cellyshift = length * sqrt(3) / 2;
+	  
+	  else if (geo==1)
+	    cellyshift = length * 0.5;
 	  
 	  //unit cell hole positions (centres) and shift vectors
 	  
@@ -625,6 +934,46 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 		  unitholes[0][0] = (sqrt(3)/2.0) * (int) (AD_length /2.0)  - 1 /(2*sqrt(3)) ;
 		  unitholes[1][1] = unitholes[0][1] - 1.5*AD_length;
 		  unitholes[1][0] = unitholes[0][0] + sqrt(3)*AD_length/2.0;
+
+		  
+		  
+		}
+	  }
+	  
+	  
+	  //rotated triangular lattice
+	  if(strcmp("rotrig", latgeo) == 0)
+	  {
+	  
+		//zigzag ribbon
+		if(geo==0)
+		{
+		  xstart = buffer_rows*1.0;
+		  ystart = 0.0;
+		  xshift = (AD_length + 1)*1.0;
+		  yshift = (AD_length+1)*sqrt(3);
+		  
+		  unitholes[0][0] = (2*AD_length+1)*0.5 - ((int)(AD_length/4))*1.0 - 0.5; 
+		  unitholes[0][1] = (((int)(AD_length/4)) +0.5)*sqrt(3) + sqrt(3)/2;
+		  unitholes[1][0] = unitholes[0][0] - (AD_length+1)*0.5  ;
+		  unitholes[1][1] = unitholes[0][1] + (AD_length+1)*sqrt(3)*0.5 ;
+		  
+		}
+		
+		
+		//armchair ribbon 
+		if(geo==1)
+		{
+		  xstart = buffer_rows*sqrt(3);
+		  ystart = 0.0;
+		  xshift = (AD_length+1)*sqrt(3);
+		  yshift = (AD_length + 1)*1.0;
+		  
+	
+		  unitholes[0][1] = ((int)(AD_length/4))*1.0 + 0.5; 
+		  unitholes[0][0] = (((int)(AD_length/4)) +0.5)*sqrt(3) + 1/(sqrt(3));;
+		  unitholes[1][1] = unitholes[0][1] + (AD_length+1)*0.5  ;
+		  unitholes[1][0] = unitholes[0][0] + (AD_length+1)*sqrt(3)*0.5 ;
 
 		  
 		  
@@ -724,6 +1073,44 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 		      }
 		    }
 		  }
+		  if(isperiodic == 1)
+		  {
+		    for(j=0 ; j< tot_sites ;j++)
+		    {
+		      if(sites[j][0] == 0)
+		      {
+			if(i!=j)
+			{
+			  smalldist = sqrt( pow(site_coords[i][0] - site_coords[j][0], 2) +  pow(site_coords[i][1] - site_coords[j][1] -cellyshift, 2));
+			
+			
+			  if (smalldist < 0.6)
+			  {
+			    tempint++;
+			  }
+			}
+		      }
+		    }
+		  
+		   for(j=0 ; j< tot_sites ;j++)
+		    {
+		      if(sites[j][0] == 0)
+		      {
+			if(i!=j)
+			{
+			  smalldist = sqrt( pow(site_coords[i][0] - site_coords[j][0], 2) +  pow(site_coords[i][1] - site_coords[j][1] +cellyshift, 2));
+			
+			
+			  if (smalldist < 0.6)
+			  {
+			    tempint++;
+			  }
+			}
+		      }
+		    }
+		  }
+		  
+		  
 		  sites[i][1] =tempint;
 		}
 		 
@@ -832,7 +1219,7 @@ void exportRectConf(RectRedux *System, char *filename)
 {
   //printf("%s\n", filename);
   FILE *fileout;
-  char fullname[128];
+  char fullname[200];
   int length = System->length;
   int length2 = System->length2;
   int geo = System->geo;
@@ -889,7 +1276,7 @@ void importRectConf(RectRedux *System, int length, int length2, char *filename)
 {
   //printf("%s	%d\n", filename, numcells);
   FILE *fileout;
-  char fullname[128];
+  char fullname[200];
  // int length = System->length;
  // int length2 = System->length2;
  // int geo = System->geo;

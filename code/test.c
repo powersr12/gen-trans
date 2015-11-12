@@ -79,7 +79,7 @@ main(int argc, char *argv[])
 		  {
 		    hopfn = &simpleTB;   
 		  }
-		  else if(ismagnetic == 0)
+		  else if(ismagnetic == 1)
 		  {
 		    hopfn = &peierlsTB;   
 		  }
@@ -217,6 +217,14 @@ main(int argc, char *argv[])
 	   int buffer_rows=0;
 	//disorder / system config default parameters - for sublattice
 	  double suba_conc=1.0, suba_pot=0.062, subb_conc=1.0, subb_pot=-0.062;
+	  int xory=0;
+	  double interface_width=0.0, interface_position;
+	  
+	  
+	  
+	    
+	  
+	  
 	//disorder / system config parameters - for antidots overwrites some of the above...
 	  int AD_length=5, AD_length2=5, lat_width=1, lat_length=2;
 	  double AD_rad=1.0;
@@ -277,6 +285,127 @@ main(int argc, char *argv[])
 		}
 		
 		
+		subint_para subintp = {};
+		if(strcmp("SUBLATTICEINT", systemtype) == 0)
+		{	
+		    //default values
+		    
+		    subintp.buffer_rows = buffer_rows;
+		    subintp.a_conc1 = suba_conc;
+		    subintp.a_pot1 = suba_pot;
+		    subintp.b_conc1 = subb_conc;
+		    subintp.b_pot1 = subb_pot;
+		    
+		    subintp.xory = xory;
+		    
+		    
+		    subintp.seed = conf_num;
+		    
+		
+
+		    
+		    //check for command line arguments which vary these
+		    for(i=1; i<argc-1; i++)
+		    {
+		      if(strcmp("-subaconc", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(subintp.a_conc1));
+		      }
+		      if(strcmp("-subapot", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(subintp.a_pot1));
+		      }
+		      if(strcmp("-subbconc", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(subintp.b_conc1));
+		      }
+		      if(strcmp("-subbpot", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(subintp.b_pot1));
+		      }
+		       if(strcmp("-intxory", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%d", &(subintp.xory));
+		      }
+		       if(strcmp("-intwidth", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(subintp.int_width));
+		      }
+		      
+		      if(strcmp("-bufferrows", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%d", &(subintp.buffer_rows));
+		      }
+		      
+		    }
+		    
+			//default values of region 2 parameters are swaps of region 1
+			subintp.a_conc2 = subintp.b_conc1;
+			subintp.a_pot2 = subintp.b_pot1;
+			subintp.b_pot2 = subintp.a_pot1;
+			subintp.b_conc2 = subintp.a_conc1;
+			
+			//default interface positions
+			if(geo==0)
+			{
+			  if(subintp.xory==0)
+			    interface_position = (int)(length2/2) *1.0 - 0.5;
+			  
+			  if(subintp.xory==1)
+			    interface_position = (length1*sqrt(3))/4;
+
+			}
+			
+			if(geo==1)
+			{
+			  if(subintp.xory==0)
+			    interface_position = (int)(length2/2) *sqrt(3) - 1/(2*sqrt(3));
+			  
+			  if(subintp.xory==1)
+			    interface_position = (length1 - 1)/4;
+			}
+			
+			subintp.int_pos = interface_position;		
+			
+		    for(i=1; i<argc-1; i++)
+		    {
+		      if(strcmp("-subaconc2", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(subintp.a_conc2));
+		      }
+		      if(strcmp("-subapot2", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(subintp.a_pot2));
+		      }
+		      if(strcmp("-subbconc2", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(subintp.b_conc2));
+		      }
+		      if(strcmp("-subbpot2", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(subintp.b_pot2));
+		      }
+		      
+		        if(strcmp("-intpos", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(subintp.int_pos));
+		      }
+		    }
+		    
+		    
+		    
+		    
+		    
+		    //set functions and params for use below
+		    SysFunction = &genSublatticeInterface;
+		    SysPara = &subintp;
+		    
+		    //set filename info - what to put in filename from these params
+		    sprintf(sysinfo, "BUF_%d_SUBA_%.2lfx%.3lf_SUBB_%.2lfx%.3lf", buffer_rows, (sublp.a_conc), (sublp.a_pot),(sublp.b_conc), (sublp.b_pot)); 
+		}
+		
+		
+		
 		adot_para adotp = {};
 		if(strcmp("ANTIDOTS", systemtype) == 0)
 		{	
@@ -291,6 +420,7 @@ main(int argc, char *argv[])
 		    adotp.lat_length = lat_length;
 		    adotp.dotgeo = dotgeo;
 		    adotp.seed = conf_num;
+		    adotp.isperiodic = isperiodic;
 		    
 		    //check for command line arguments which vary these
 		    for(i=1; i<argc-1; i++)
@@ -350,6 +480,24 @@ main(int argc, char *argv[])
 
 		    }
 		    
+		    if(strcmp("rotrig", latgeo) == 0)
+		    {
+		      if(geo==0)
+		      {
+			length1= 2*((adotp.AD_length)+1)*(adotp.lat_width); 
+			length2=  ((adotp.AD_length) + 1)*(adotp.lat_length) + 2*(adotp.buffer_rows);
+		      }
+		      
+		      if(geo==1)
+		      {
+			length1=(2*(adotp.AD_length) + 2)*(adotp.lat_width) ; 
+			length2= ((adotp.AD_length)+1)*(adotp.lat_length) + 2*(adotp.buffer_rows);
+		      }
+		      
+		      sprintf(sysinfo, "%s_lat_L_%d_%s_dot_R_%.1lf_%dx%d", (adotp.latgeo),(adotp.AD_length), (adotp.dotgeo), (adotp.AD_rad), (adotp.lat_width),  (adotp.lat_length)); 
+
+		    }
+		    
 		    if(strcmp("rect", latgeo) == 0)
 		    {
 		      if(geo==0)
@@ -385,6 +533,8 @@ main(int argc, char *argv[])
 		    SysPara = NULL;
 		    
 		    //set filename info?
+		    	sprintf(sysinfo, "clean");
+
 		}
 		
 	  
@@ -456,14 +606,15 @@ main(int argc, char *argv[])
 
 	//File I/O variables
 	    FILE *output;
-	    char filename[160], filename3[160], filename_temp[128];
-	    char checkname[128], direcname[160], conffile[128], strucfile[128];
-            char command[256];
+	    char filename[160], filename3[160], filename_temp[160];
+	    char checkname[160], direcname[160], conffile[200], strucfile[160];
+            char command[400];
 	    
 	//Create directory and filenaming convention
 	    sprintf(direcname, "../res/%s_%s/%s%d_%s", systemtype, peritype, geotype, length1, sysinfo);
 	    sprintf(command, "mkdir -p %s", direcname);
 	    system(command);
+	    
 	    
 	    sprintf(filename_temp, "%s_%s.conf%02d", loopinfo, job_name, conf_num); 
 	    sprintf(strucfile, "%s/%s.struct", direcname, filename_temp);
@@ -496,7 +647,7 @@ main(int argc, char *argv[])
 
 		
 	
-      
+
 
 
     
@@ -779,7 +930,7 @@ main(int argc, char *argv[])
 		if(numfin == procs)
 		{
 		    sprintf(filename, "%s/.%s", direcname, filename_temp);
-		    sprintf(command, "cat %s.part* | sort -n > %s/%s.dat", filename, direcname, filename_temp);
+ 		    sprintf(command, "cat %s.part* | sort -n > %s/%s.dat", filename, direcname, filename_temp);
 		    system(command);
 		    
 
