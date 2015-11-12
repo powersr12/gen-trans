@@ -37,6 +37,22 @@ typedef struct {
 
 typedef struct {
 	int buffer_rows;
+	double a_conc1;   
+	double a_pot1;
+	double b_conc1;
+	double b_pot1;
+	double a_conc2;
+	double a_pot2;
+	double b_conc2;
+	double b_pot2;
+	int xory;
+	double int_pos;
+	double int_width;
+	int seed;
+}subint_para;
+
+typedef struct {
+	int buffer_rows;
 	int AD_length;
 	int AD_length2;
 	char *latgeo;
@@ -55,6 +71,8 @@ void genLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, int mode, 
 void simpleRibbonGeo (RectRedux *SiteArray, void *p, int struc_out, char *filename);
 
 void genSublatticeDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename);
+void genSublatticeInterface(RectRedux *SiteArray, void *p, int struc_out, char *filename);
+
 void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 
 
