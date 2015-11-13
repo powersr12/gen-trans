@@ -97,8 +97,7 @@ cd \$d
 cp -rf ../code/* .
 make -f cluster.mk clean
 make -f cluster.mk
-cd ../
-exe=\$d/test 	
+exe=./test 	
 
 #NPROCS=\$(wc -l \$PBS_NODEFILE)
 #export OMPI_MCA_mpi_paffinity_alone=1
@@ -163,6 +162,7 @@ done
 for FILENUM in `seq 0 $(($NUMNODES -1))`; do
 cat >> subfiles/$NAME.part_$FILENUM.bat << EOF
 wait
+cd ../
 rm -rf \$d
 EOF
 done
