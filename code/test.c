@@ -694,7 +694,7 @@ main(int argc, char *argv[])
 		  
 		  if(this_proc > 0)
 		  {
-		    sleep(100);
+		    sleep(500);
 		    importRectConf(&System, length1, length2, conffile);
 		  }
 		  
