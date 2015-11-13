@@ -167,12 +167,12 @@ rm -rf \$d
 EOF
 done
 
-# 
-# for FILENUM in `seq 0 $(($NUMNODES -1))`; do
-# qsub subfiles/$NAME.part_$FILENUM.bat
-# done
-# 
-#    
+
+for FILENUM in `seq 0 $(($NUMNODES -1))`; do
+qsub subfiles/$NAME.part_$FILENUM.bat
+done
+
+   
     
     
     
