@@ -614,6 +614,7 @@ main(int argc, char *argv[])
 	    sprintf(direcname, "../res/%s_%s/%s%d_%s", systemtype, peritype, geotype, length1, sysinfo);
 	    sprintf(command, "mkdir -p %s", direcname);
 	    system(command);
+	    printf("directory: %s\n", direcname);
 	    
 	    
 	    sprintf(filename_temp, "%s_%s.conf%02d", loopinfo, job_name, conf_num); 
