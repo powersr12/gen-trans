@@ -95,7 +95,7 @@ trap "rm -rf \$d" SIGINT SIGKILL SIGTERM
 mkdir \$d
 cd \$d
 cp -rf ../code/* .
-make clean
+make -f cluster.mk clean
 make -f cluster.mk
 cd ../
 exe=\$d/test 	
