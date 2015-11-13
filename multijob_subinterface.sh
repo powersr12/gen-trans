@@ -127,7 +127,7 @@ for THISCONF in `seq 0 $(($NUMCONFS -1))`; do
 if [ $THISSUBTASK -ne $(($THISNUMTASKS - 1)) ]
 then
 cat >> subfiles/$NAME.part_$THISSUBMISSION.bat << EOF
-\$exe $CMDFILE $CMDBITS "-confnum $THISCONF -numofprocs $PROCSPCONF -thisproc $THISCONFTASK" &
+\$exe $CMDFILE $CMDBITS -confnum $THISCONF -numofprocs $PROCSPCONF -thisproc $THISCONFTASK &
 EOF
 fi
 
@@ -135,7 +135,7 @@ fi
 if [ $THISSUBTASK -eq $(($THISNUMTASKS - 1)) ]
 then
 cat >> subfiles/$NAME.part_$THISSUBMISSION.bat << EOF
-\$exe $CMDFILE $CMDBITS "-confnum $THISCONF -numofprocs $PROCSPCONF -thisproc $THISCONFTASK" 
+\$exe $CMDFILE $CMDBITS -confnum $THISCONF -numofprocs $PROCSPCONF -thisproc $THISCONFTASK
 EOF
 fi
 
