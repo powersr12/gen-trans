@@ -52,5 +52,5 @@ cubature.o: $(MYLIBDIR)/cubature.c $(MYLIBDIR)/cubature.h
 	
 	
 clean: FRC
-	
+	rm *.o
 FRC: 		
