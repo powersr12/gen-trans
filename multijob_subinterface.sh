@@ -54,7 +54,7 @@ echo ""
 echo "#additional command line variables: " $CMDBITS
 echo ""
 
-CMDFILE=`cat $1`
+CMDFILE=`cat $1 | tr '\n' ' '`
 echo "COMMAND LINE: ./test" $CMDFILE $CMDBITS
 
 THISTASK=0
