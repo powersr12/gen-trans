@@ -95,7 +95,7 @@ mkdir \$d
 cd \$d
 cp -rf ../code/* .
 make clean
-make
+make -f cluster.mk
 cd ../
 exe=\$d/test 	
 
