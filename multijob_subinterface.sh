@@ -91,7 +91,7 @@ date
 cd \$PBS_O_WORKDIR
 
 d=.src_\$PBS_JOBID
-#trap "rm -rf \$d" SIGINT SIGKILL SIGTERM
+trap "rm -rf \$d" SIGINT SIGKILL SIGTERM
 mkdir \$d
 cd \$d
 cp -rf ../code/* .
