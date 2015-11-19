@@ -1011,3 +1011,60 @@ int zzacnnk (RectRedux *DeviceCell, void *rule_params, int a, int b)
     return ans;
 }
 
+
+//This function simply generates the connections present for a generic non periodic graphene system 
+//Works using a separation cut off
+int graph_conn_sep (RectRedux *DeviceCell, void *rule_params, int a, int b)
+{
+    int i, j, k, l, ans;  //set ans =0 if there is a connection
+    ans=1;
+    
+    graph_conn_para *para = (graph_conn_para *) rule_params;
+    double thresh_min = (para->conn_sep_thresh_min);
+    double thresh_max = (para->conn_sep_thresh_max);
+
+    double **pos = (DeviceCell->pos);
+    double cellyshift;
+    int geo = (DeviceCell->geo);
+    int length = DeviceCell->length;
+    
+    double dist= sqrt( pow(pos[b][0] - pos[a][0], 2) + pow(pos[b][1] - pos[a][1], 2));
+    
+    if(dist < thresh_max && dist > thresh_min)
+    {
+      ans = 0;
+    }
+    
+     if(geo==0)
+      cellyshift = length * sqrt(3) / 2;
+    
+     else if (geo==1)
+      cellyshift = length * 0.5;
+    
+    
+    if( (para->periodic) == 1)
+    {
+      dist = sqrt( pow(pos[b][0] - pos[a][0], 2) + pow(pos[b][1] +cellyshift - pos[a][1], 2));
+      
+      if(dist < thresh_max && dist > thresh_min)
+      {
+	ans = 0;
+      }
+      
+      dist = sqrt( pow(pos[b][0] - pos[a][0], 2) + pow(pos[b][1] -cellyshift - pos[a][1], 2));
+      
+      if(dist < thresh_max && dist > thresh_min)
+      {
+	ans = 0;
+      }
+      
+    }
+      
+      
+
+    
+    return ans;
+}
+
+
+

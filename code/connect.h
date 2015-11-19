@@ -27,6 +27,12 @@ typedef struct {
 	int *lead_sites;
 }cellDivision;
 
+typedef struct {
+	double conn_sep_thresh_min;
+	double conn_sep_thresh_max;
+	int periodic;
+}graph_conn_para;
+
 
 
 
@@ -38,5 +44,7 @@ void cellSplitter (RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellin
 
 
 
-int zzacnn (RectRedux *DeviceCell, void *rule_params, int i, int j);
+int zzacnn (RectRedux *DeviceCell, void *rule_params, int a, int b);
 int zzacnnk (RectRedux *DeviceCell, void *rule_params, int a, int b);
+
+int graph_conn_sep (RectRedux *DeviceCell, void *rule_params, int a, int b);

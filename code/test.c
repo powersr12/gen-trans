@@ -93,6 +93,26 @@ main(int argc, char *argv[])
 		    hopfn = &peierlsTB;   
 		  }
 		  
+	//hopping related
+	double t0=-1.0, NNlowdis=0.56, NNhighdis=0.59;
+	
+	//check for command line arguments which vary these
+	    for(i=1; i<argc-1; i++)
+	    {
+	      if(strcmp("-t0", argv[i]) == 0)
+	      {
+		  sscanf(argv[i+1], "%lf", &t0);
+	      }
+	      if(strcmp("-NNlowdis", argv[i]) == 0)
+	      {
+		  sscanf(argv[i+1], "%lf", &NNlowdis);
+	      }
+	      if(strcmp("-NNhighdis", argv[i]) == 0)
+	      {
+		  sscanf(argv[i+1], "%lf", &NNhighdis);
+	      }
+	    }	  
+		  
 		    
 	
 	
@@ -206,9 +226,17 @@ main(int argc, char *argv[])
 	    }
 	    
 	    cnxRulesFn *connectrules;
+	    graph_conn_para cnxpara;
+	    cnxpara.conn_sep_thresh_min = NNlowdis;
+	    cnxpara.conn_sep_thresh_max = NNhighdis;
+	    
+
+	    
+	    
 	      if(isperiodic==0)
 	      {
-		connectrules = &zzacnn;
+		connectrules = &graph_conn_sep;
+		cnxpara.periodic = 0;
 		sprintf(peritype, "RIBBON");
 		kpts = 1;
 
@@ -216,6 +244,7 @@ main(int argc, char *argv[])
 	      if(isperiodic==1)
 	      {
 		connectrules = &zzacnnk;
+		cnxpara.periodic = 1;
 		sprintf(peritype, "PERIODIC");
 	      }
 		
@@ -575,25 +604,7 @@ main(int argc, char *argv[])
 		
 	  
 
-	//hopping related
-		double t0=-1.0, NNlowdis=0.56, NNhighdis=0.59;
-		
-		//check for command line arguments which vary these
-		    for(i=1; i<argc-1; i++)
-		    {
-		      if(strcmp("-t0", argv[i]) == 0)
-		      {
-			  sscanf(argv[i+1], "%lf", &t0);
-		      }
-		      if(strcmp("-NNlowdis", argv[i]) == 0)
-		      {
-			  sscanf(argv[i+1], "%lf", &NNlowdis);
-		      }
-		      if(strcmp("-NNhighdis", argv[i]) == 0)
-		      {
-			  sscanf(argv[i+1], "%lf", &NNhighdis);
-		      }
-		    }
+
 	  
 	  
 	//misc  
@@ -742,12 +753,12 @@ main(int argc, char *argv[])
 
 	  cnxProfile cnxp;
 	  cnxp.max_neigh=max_neigh;
-	  device_connectivity (&System, connectrules, NULL, &cnxp);
+	  device_connectivity (&System, connectrules, &cnxpara, &cnxp);
 	  
 		time = clock() - time;
 		printf("#made connection profile in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		time = clock();
-   	  //printConnectivity (&System, &cnxp);
+   	 // printConnectivity (&System, &cnxp);
 	  
 	  //in theory cell Division could write to lead_para, so its defined here
 	  lead_para leadp={};
