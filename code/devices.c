@@ -1099,6 +1099,22 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 			{
 			  sites[i][0] = 1;
 			}
+			
+			if(isperiodic==1)
+			{
+			  if(sqrt( pow( site_coords[i][0] - holes[j][0], 2) + pow( site_coords[i][1] - (holes[j][1]-cellyshift), 2)) < holes[j][2])
+			  {
+			    sites[i][0] = 1;
+			  }
+			  
+			  if(sqrt( pow( site_coords[i][0] - holes[j][0], 2) + pow( site_coords[i][1] - (holes[j][1]+cellyshift), 2)) < holes[j][2])
+			  {
+			    sites[i][0] = 1;
+			  }
+			  
+			}
+			
+			
 		    }
 		    
 		    if(strcmp("rect", dotgeo) == 0)
@@ -1126,6 +1142,31 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 			fprintf(out, "%lf	%lf\n\n", polyx[0], polyy[0]);
 		      }
 			  
+		      
+		      if(isperiodic==1)
+		      {
+			for(k=0; k<rad_per_hole; k++)
+			{
+			  polyy[k] = polyy[k] - cellyshift;
+			}
+			
+			if(pnpoly(rad_per_hole, polyx, polyy, site_coords[i][0], site_coords[i][1]))
+			{
+			  sites[i][0] = 1;
+			}
+		      
+			for(k=0; k<rad_per_hole; k++)
+			{
+			  polyy[k] = polyy[k] + 2*cellyshift;
+			}
+		      
+			if(pnpoly(rad_per_hole, polyx, polyy, site_coords[i][0], site_coords[i][1]))
+			{
+			  sites[i][0] = 1;
+			}
+		      }
+		      
+		   
 			
 		      
 		    }
@@ -1179,6 +1220,31 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 			fprintf(out, "%lf	%lf\n\n", polyx[0], polyy[0]);
 		      }
 		      
+		      if(isperiodic==1)
+		      {
+			for(k=0; k<rad_per_hole; k++)
+			{
+			  polyy[k] = polyy[k] - cellyshift;
+			}
+			
+			if(pnpoly(rad_per_hole, polyx, polyy, site_coords[i][0], site_coords[i][1]))
+			{
+			  sites[i][0] = 1;
+			}
+		      
+			for(k=0; k<rad_per_hole; k++)
+			{
+			  polyy[k] = polyy[k] + 2*cellyshift;
+			}
+		      
+			if(pnpoly(rad_per_hole, polyx, polyy, site_coords[i][0], site_coords[i][1]))
+			{
+			  sites[i][0] = 1;
+			}
+		      }
+		      
+		      
+		      
 		    }
 		    
 		    
@@ -1230,6 +1296,29 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 			  fprintf(out, "%lf	%lf\n", polyx[k], polyy[k]);
 			}
 			fprintf(out, "%lf	%lf\n\n", polyx[0], polyy[0]);
+		      }
+		      
+		         if(isperiodic==1)
+		      {
+			for(k=0; k<rad_per_hole; k++)
+			{
+			  polyy[k] = polyy[k] - cellyshift;
+			}
+			
+			if(pnpoly(rad_per_hole, polyx, polyy, site_coords[i][0], site_coords[i][1]))
+			{
+			  sites[i][0] = 1;
+			}
+		      
+			for(k=0; k<rad_per_hole; k++)
+			{
+			  polyy[k] = polyy[k] + 2*cellyshift;
+			}
+		      
+			if(pnpoly(rad_per_hole, polyx, polyy, site_coords[i][0], site_coords[i][1]))
+			{
+			  sites[i][0] = 1;
+			}
 		      }
 		      
 		    }
