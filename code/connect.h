@@ -2,6 +2,8 @@
 #include "devices.h"
 
 typedef int (cnxRulesFn) (RectRedux *, void *, int, int);
+typedef int (cnxRulesFn2) (RectRedux *, RectRedux *, void *, int, int);
+
 
 //says whether or not two atoms are connected, NOT the hopping value
 typedef struct {
@@ -34,6 +36,13 @@ typedef struct {
 }graph_conn_para;
 
 
+typedef struct {
+  cnxRulesFn2 *rule;
+  void *rule_params;
+  int num_leads;
+  RectRedux **Leads;
+}gen_start_params;
+  
 
 
 void device_connectivity (RectRedux *DeviceCell, cnxRulesFn *rule, void *rule_params, cnxProfile *cnxp);
@@ -48,3 +57,5 @@ int zzacnn (RectRedux *DeviceCell, void *rule_params, int a, int b);
 int zzacnnk (RectRedux *DeviceCell, void *rule_params, int a, int b);
 
 int graph_conn_sep (RectRedux *DeviceCell, void *rule_params, int a, int b);
+int graph_conn_sep2 (RectRedux *DeviceCell, RectRedux *LeadCell, void *rule_params, int a, int b);
+

@@ -57,12 +57,15 @@ void printConnectivity (RectRedux *DeviceCell, cnxProfile *cnxp)
 //depending on number of sweeps it can be the first or last actual cell
 //for a simple transport sweep, it is the cell connecting to the final (RHS) lead
 //also generates some of the arrays in cellDivision structure
+
+//config = 3 reads a lead file, and a connectivity rule, and puts anything 
+//nearer than that to a lead atom into the starting cell
 void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config, void *start_params)
 {
     //cellinfo->num_cells = 2;
     int i, j, k, l, m, n;
     int dim = *(DeviceCell->Nrem);
-    int alldim =2*(DeviceCell->length)*(DeviceCell->length2);
+    int alldim =*(DeviceCell->Ntot);
     double xmin, xmax;
     //printf("%d	%d\n", dim, alldim);
     //cellDivision.cells_site_order =
@@ -386,45 +389,64 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
       }
       
       
+    }
+    
+    else if (config == 3) //based on lead site positions and connection rule
+    {
+      gen_start_params *sps = (gen_start_params *) start_params;
+      
+      j=0;
+      cellinfo->num_leads=sps->num_leads;
+      cellinfo->lead_dims=createIntArray(cellinfo->num_leads);
+      RectRedux **Leads = sps->Leads;
       
       
+      //count total sites connecting to leads, and each lead
+      
+      for(i=0; i<cellinfo->num_leads; i++)
+      {
+	for(k=0; k<*(Leads[i]->Ntot); k++)
+	{
+	  if( (Leads[i]->siteinfo)[k][0] == 0)
+	  {
+	    for(l=0; l<alldim; l++)
+	    {
+	      if( (DeviceCell->siteinfo)[l][0] == 0)
+	      {
+		if((sps->rule)(DeviceCell, Leads[i], sps->rule_params, l, k) == 0)
+		{
+		  (cellinfo->cells_site_order)[j] = l;
+		  j++;
+		  (cellinfo->sites_by_cell)[l] = 0;
+		}
+	      }
+	    }
+	  }
+	}
+	if(i==0)
+	  (cellinfo->lead_dims)[i] = j;
+	
+	if(i>0)
+	  (cellinfo->lead_dims)[i] = j- (cellinfo->lead_dims)[i-1];
+	
+      }
+      cellinfo->cell1dim = j;  
+      
+      cellinfo->group_dim = 0;
+	
+	cellinfo->lead_sites = createIntArray( cellinfo->cell1dim );
+	
+	for(l=0; l<cellinfo->cell1dim ; l++)
+	{
+	  cellinfo->lead_sites[l] = (cellinfo->cells_site_order)[l];
+	}
       
     }
     
     
     
     
-    
-//     else if(config==1) //test run with both sides
-//     {
-//       j=0;
-//       
-//       for(i=0; i< 2*(DeviceCell->length); i++)
-//       {
-// 	if( (DeviceCell->siteinfo)[i][0] == 0)
-// 	{
-// 	    (cellinfo->cells_site_order)[j] = i;
-// 	    j++;
-// 	    
-// 	    (cellinfo->sites_by_cell)[i] = 0;
-// 	}
-// 	
-//       }
-//       
-//       for(i=0; i< 2*(DeviceCell->length); i++)
-//       {
-// 	if( (DeviceCell->siteinfo)[alldim - 2*(DeviceCell->length) + i][0] == 0)
-// 	{
-// 	    (cellinfo->cells_site_order)[j] = alldim - 2*(DeviceCell->length) + i;
-// 	    j++;
-// 	    
-// 	    (cellinfo->sites_by_cell)[alldim - 2*(DeviceCell->length) + i] = 0;
-// 	}
-// 	
-//       }
-//       
-//       cellinfo->cell1dim = j;
-//     }
+
     
     else
       exit(1);
@@ -437,7 +459,7 @@ void cellSplitter (RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellin
   
   
   int dim = *(DeviceCell->Nrem);
-  int alldim =2*(DeviceCell->length)*(DeviceCell->length2);
+  int alldim = *(DeviceCell->Ntot);
   //int *sites_left = createIntArray(dim);
   //int *sites_still_left = createIntArray(dim);
   int num_sites_left=0, num_sites_still_left=0;
@@ -561,14 +583,14 @@ void cellSplitter (RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellin
 // 	printf("\n");
 //       }
 
-//     for(i=0;i<(cellinfo->num_cells);i++)
-//     {
-//       for(j=0; j<(cellinfo->cell_dims)[i]; j++)
-//       {
-// 	printf("%lf	%lf\n", (DeviceCell->pos)[(cellinfo->cells_site_order)[(cellinfo->starting_index)[i] + j]][0], (DeviceCell->pos)[(cellinfo->cells_site_order)[(cellinfo->starting_index)[i] + j]][1]);
-//       }
-//       printf("\n");
-//     }
+    for(i=0;i<(cellinfo->num_cells);i++)
+    {
+      for(j=0; j<(cellinfo->cell_dims)[i]; j++)
+      {
+	printf("%lf	%lf\n", (DeviceCell->pos)[(cellinfo->cells_site_order)[(cellinfo->starting_index)[i] + j]][0], (DeviceCell->pos)[(cellinfo->cells_site_order)[(cellinfo->starting_index)[i] + j]][1]);
+      }
+      printf("\n");
+    }
     
   
 }
@@ -1066,5 +1088,61 @@ int graph_conn_sep (RectRedux *DeviceCell, void *rule_params, int a, int b)
     return ans;
 }
 
+//This function simply generates the connections present for a generic non periodic graphene system 
+//Works using a separation cut off
+//version with two possible device cells
+int graph_conn_sep2 (RectRedux *DeviceCell, RectRedux *LeadCell, void *rule_params, int a, int b)
+{
+    int i, j, k, l, ans;  //set ans =0 if there is a connection
+    ans=1;
+    
+    graph_conn_para *para = (graph_conn_para *) rule_params;
+    double thresh_min = (para->conn_sep_thresh_min);
+    double thresh_max = (para->conn_sep_thresh_max);
+
+    double **pos = (DeviceCell->pos);
+    double **lpos = (LeadCell->pos);
+
+    double cellyshift;
+    int geo = (DeviceCell->geo);
+    int length = DeviceCell->length;
+    
+    double dist= sqrt( pow(lpos[b][0] - pos[a][0], 2) + pow(lpos[b][1] - pos[a][1], 2));
+    
+    if(dist < thresh_max && dist > thresh_min)
+    {
+      ans = 0;
+    }
+    
+     if(geo==0)
+      cellyshift = length * sqrt(3) / 2;
+    
+     else if (geo==1)
+      cellyshift = length * 0.5;
+    
+    
+    if( (para->periodic) == 1)
+    {
+      dist = sqrt( pow(lpos[b][0] - pos[a][0], 2) + pow(lpos[b][1] +cellyshift - pos[a][1], 2));
+      
+      if(dist < thresh_max && dist > thresh_min)
+      {
+	ans = 0;
+      }
+      
+      dist = sqrt( pow(lpos[b][0] - pos[a][0], 2) + pow(lpos[b][1] -cellyshift - pos[a][1], 2));
+      
+      if(dist < thresh_max && dist > thresh_min)
+      {
+	ans = 0;
+      }
+      
+    }
+      
+      
+
+    
+    return ans;
+}
 
 

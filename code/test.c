@@ -27,7 +27,7 @@ main(int argc, char *argv[])
 	      int length1=2, length2=3*length1, geo=0, isperiodic=1, ismagnetic=0;
 	      int output_type=1;   //=0 no structure output, =1  atoms / holes
 	      double eta = 1.0E-6;
-	      
+	      int ishallbar=0;
 	  
 	      //check for command line arguments which vary these
 		  for(i=1; i<argc-1; i++)
@@ -63,6 +63,10 @@ main(int argc, char *argv[])
 		     if(strcmp("-eta", argv[i]) == 0)
 		    {
 			sscanf(argv[i+1], "%lf", &eta);
+		    }
+		     if(strcmp("-hallbar", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &ishallbar);
 		    }
 		    
 		  }
@@ -165,7 +169,16 @@ main(int argc, char *argv[])
 		      }
 		    }
 
-	  
+		    int buffer_rows=0;
+		    for(i=1; i<argc-1; i++)
+		    {
+			if(strcmp("-bufferrows", argv[i]) == 0)
+			{
+			    sscanf(argv[i+1], "%d", &buffer_rows);
+			}
+		    }
+		    
+		    
 	//energy and magfield loop related doubles 
 	  double realE=0.0, Emax=0.9, Emin=-0.9;
 	  double Bfield=0.0, Bmax=20.0, Bmin=0.0;
@@ -231,7 +244,8 @@ main(int argc, char *argv[])
 	    cnxpara.conn_sep_thresh_max = NNhighdis;
 	    
 
-	    
+	    //lead info
+	  int num_leads=2;
 	    
 	      if(isperiodic==0)
 	      {
@@ -243,16 +257,28 @@ main(int argc, char *argv[])
 	      }
 	      if(isperiodic==1)
 	      {
-		connectrules = &zzacnnk;
+		connectrules = &graph_conn_sep;
 		cnxpara.periodic = 1;
 		sprintf(peritype, "PERIODIC");
 	      }
+		
+	      //being a hall bar overwrites other settings which may be incorrect!
+		double geo_renorm=2;
+		int hall_denom=6, hall_rel_width=1, hall_start=1;
+		int hall_second_start = hall_denom - hall_start - hall_rel_width; 
+		int ntop=2, nbot=2;
+		int hall_num_y_cells=3;
+	      
+	      	hallbpara hallp={};
+	
+	      
+	     
 		
 	  
 	  
 	    
 	  
-	   int buffer_rows=0;
+	
 	//disorder / system config default parameters - for sublattice
 	  double suba_conc=1.0, suba_pot=0.062, subb_conc=1.0, subb_pot=-0.062;
 	  int xory=0;
@@ -270,8 +296,9 @@ main(int argc, char *argv[])
 	  sprintf(latgeo, "trig");
 	  sprintf(dotgeo, "circ");
 	  
-	//lead info
-	  int num_leads=2;
+	
+	  
+	  
 	  
 	  
 	  //specific device settings, generation functions & parameters
@@ -515,7 +542,7 @@ main(int argc, char *argv[])
 		      
 		    }
 		    
-		    
+// 		    printf("#BUFFERS %d %d\n", buffer_rows, adotp.buffer_rows);
 		    //antidot system sizes calculated from lattice details
 		    if(strcmp("trig", latgeo) == 0)
 		    {
@@ -610,6 +637,80 @@ main(int argc, char *argv[])
 	//misc  
 	  
 	  double cond2;
+	  
+	  
+	  
+	  //standard hall ssettings
+	   if(ishallbar==1)
+	      {
+		connectrules = &graph_conn_sep;
+		isperiodic=0;
+		cnxpara.periodic = 0;
+		kpts = 1;
+		
+		 for(i=1; i<argc-1; i++)
+		 {
+		    if(strcmp("-ntop", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &ntop);
+		    }
+		    if(strcmp("-nbot", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &nbot);
+		    }
+		    if(strcmp("-halldenom", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &hall_denom);
+		    }
+		    if(strcmp("-hallrelwidth", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &hall_rel_width);
+		    }
+		    if(strcmp("-hallstart", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &hall_start);
+		    }
+		    hall_second_start = hall_denom - hall_start - hall_rel_width;
+		    //possibilities for fancier more probe geometries here
+		    if(strcmp("-hallsecstart", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &hall_second_start);
+		    }
+		    if(strcmp("-hallycells", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &hall_num_y_cells);
+		    }
+		
+		 }
+		  num_leads =2 + ntop + nbot;
+		  
+		  sprintf(peritype, "HALLBAR_%d_%d_rw_%d", ntop, nbot, hall_denom);
+
+		  
+		  hallp.num_top_probes=ntop, hallp.num_bot_probes=nbot;
+		  hallp.toppx = createIntArray(ntop);
+		  hallp.toppw = createIntArray(ntop);
+		  hallp.toppc = createIntArray(ntop);
+		  hallp.botpx = createIntArray(nbot);
+		  hallp.botpw = createIntArray(nbot);
+		  hallp.botpc = createIntArray(nbot);
+		  
+		  //THIS ASSUMES ntop and nbot = 2
+		  //NEEDS TO BE GENERALISED IF USED FOR OTHER CASES!
+		  hallp.toppx[0] = (int) ((hall_start)*(length2-2*buffer_rows)/hall_denom) + buffer_rows;
+		  hallp.toppw[0] = (int) (hall_rel_width*geo_renorm*(length2-2*buffer_rows)/hall_denom) ;
+		  hallp.toppx[1] = (int) ((hall_second_start)*(length2-2*buffer_rows)/hall_denom) + buffer_rows;
+		  hallp.toppw[1] = (int) (hall_rel_width*geo_renorm*(length2-2*buffer_rows)/hall_denom) ;
+		  hallp.botpx[0] = (int) ((hall_start)*(length2-2*buffer_rows)/hall_denom) + buffer_rows;
+		  hallp.botpw[0] = (int) (hall_rel_width*geo_renorm*(length2-2*buffer_rows)/hall_denom) ;
+		  hallp.botpx[1] = (int) ((hall_second_start)*(length2-2*buffer_rows)/hall_denom) + buffer_rows;
+		  hallp.botpw[1] = (int) (hall_rel_width*geo_renorm*(length2-2*buffer_rows)/hall_denom) ;
+		  
+		  hallp.toppc[0] = hall_num_y_cells; hallp.toppc[1] = hall_num_y_cells;
+		  hallp.botpc[0] = hall_num_y_cells; hallp.botpc[1] = hall_num_y_cells;
+		
+	      }
+	  
 
 
 	  //loop info
@@ -749,7 +850,44 @@ main(int argc, char *argv[])
 	    int **siteinfo = System.siteinfo;
 	    double *site_pots = System.site_pots;
 	    
-	    
+	     //in theory cell Division could write to lead_para, so its defined here
+	  lead_para leadp={};
+	  
+	  
+
+	  	  int halloutput;
+		  
+	  if(ishallbar == 1)
+	  {
+		if(output_type == 1 && this_proc == 0)
+		  halloutput = 1;
+		
+		else
+		  output_type = 0;
+		
+		
+		HallBarify (&System, LeadCells, &hallp, &leadp, halloutput, strucfile);
+		
+			time = clock() - time;
+		printf("#converted to Hall Bar in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
+		time = clock();
+
+	  }
+
+		
+	  
+	  
+	  
+	  if(ishallbar != 1)
+	  {
+	    genLeads(&System, LeadCells, num_leads, 0, &leadp);
+	  }
+	  
+
+  
+	  
+	  
+	  
 
 	  cnxProfile cnxp;
 	  cnxp.max_neigh=max_neigh;
@@ -760,12 +898,19 @@ main(int argc, char *argv[])
 		time = clock();
    	 // printConnectivity (&System, &cnxp);
 	  
-	  //in theory cell Division could write to lead_para, so its defined here
-	  lead_para leadp={};
 
+	  gen_start_params start_p ={};
+	  start_p.rule = &graph_conn_sep2;
+	  start_p.rule_params = &cnxpara;
+	  start_p.num_leads = num_leads;
+	  start_p.Leads = LeadCells;
+	  
 		
 	  cellDivision cellinfo;
-	  genStartingCell(&System, &cellinfo, 2, NULL);
+	 // genStartingCell(&System, &cellinfo, 2, NULL);
+	  
+	  	  genStartingCell(&System, &cellinfo, 3, &start_p);
+
 	  
 		time = clock() - time;
 		printf("#generated starting cell in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
@@ -777,8 +922,13 @@ main(int argc, char *argv[])
 		printf("#split cells in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		time = clock();
 
-
+exit(0);
+		
+		
 	  //hopping parameters and gauge info
+
+//GAUGE NEEDS TO BE GENERALISED FOR HALL BAR CASE
+//TIDY THIS UP IN GENERAL TO ALLOW FIELD IN LEADS
 	  gen_hop_params hoppara={};
 	  hoppara.t0=t0;
 	  hoppara.isperiodic=isperiodic;
@@ -814,7 +964,6 @@ main(int argc, char *argv[])
 	  double **transmissions = createNonSquareDoubleMatrix(num_leads, num_leads);
 
 	  tpara.transmissions = transmissions;
-	  genLeads(&System, LeadCells, 2, 0, &leadp);
 
 	  double kavg;
 	  

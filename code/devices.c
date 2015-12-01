@@ -202,7 +202,8 @@ void genLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, int mode, 
     (params->shift_vecs)[0][1] = 0;
     (params->shift_vecs)[1][1] = 0;
     
-    
+    if(numleads != 2)
+      exit(1);
     
     //shift leads accordingly to desired positions
     for(i=0; i<*(Leads[0]->Ntot); i++)
@@ -1620,3 +1621,349 @@ void importRectConf(RectRedux *System, int length, int length2, char *filename)
 
 
 }
+
+
+void HallBarify (RectRedux *System, RectRedux **Leads, hallbpara *hall_para, lead_para *params, int struc_out, char *filename)
+{
+  int geo = (System->geo);
+  int length = (System->length);
+  int length2 = (System->length2);
+  int **siteinfo = (System->siteinfo);		
+  double **pos = (System->pos);
+  double *site_pots = (System->site_pots);
+//   int **chaininfo = (System->chaininfo);
+  int *Nrem = (System->Nrem);
+  int *Ntot = (System->Ntot);
+  
+  
+  int ntop = hall_para->num_top_probes;
+  int nbot = hall_para->num_bot_probes;
+  int *toppx = hall_para->toppx;
+  int *toppw = hall_para->toppw;
+  int *toppc = hall_para->toppc;
+  int *botpx = hall_para->botpx;
+  int *botpw = hall_para->botpw;
+  int *botpc = hall_para->botpc;
+  
+  
+  int Nnew, i, j, k;
+  int tbgeo;
+  double ybot, ytop, y_cell_diff;
+  double xleft, xright, x_cell_diff;
+  
+  FILE *out;
+	  
+  if(struc_out != 0)
+  {
+    out = fopen(filename, "w");
+  }
+  
+  
+  //will be ropey for odd integer ZGNRs
+  if(geo == 0)
+  {
+    tbgeo=1;
+    ybot = 1/(2*sqrt(3)) - sqrt(3);
+    ytop = 1/(2*sqrt(3)) + length * sqrt(3)/2;
+    xleft = 0.5;
+    xright = length2*1.0 - 0.5;
+    x_cell_diff = 1.0;
+    y_cell_diff = sqrt(3);
+  }
+  
+  if(geo == 1)
+  {
+    tbgeo=0;
+    
+    ybot = -1.0;
+    ytop = 0.5*length;
+    xleft = -1/(2*sqrt(3)) + sqrt(3)/2;
+    xright = -1/(2*sqrt(3))+ sqrt(3)/2 + (length2-1)*sqrt(3);
+    x_cell_diff = sqrt(3);
+    y_cell_diff = 1.0;
+    
+  }
+  
+//   printf("#ntop %d, nbot %d, num y %d\n", ntop, nbot, toppw[0]);
+  
+      RectRedux *CellSecs[ntop + nbot];
+      for(i=0; i < ntop; i++)
+      {
+	CellSecs[i] = (RectRedux *)malloc(sizeof(RectRedux));
+	(CellSecs[i]->geo) = tbgeo;
+	(CellSecs[i]->length) = toppw[i];
+	(CellSecs[i]->length2) = 1;
+	(CellSecs[i]->Nrem) = (int *)malloc(sizeof(int));
+	(CellSecs[i]->Ntot) = (int *)malloc(sizeof(int));
+	simpleRibbonGeo (CellSecs[i], NULL, 0, NULL);
+	
+	swapxy((CellSecs[i]->pos), *(CellSecs[i]->Ntot));
+	
+	
+	//shift probe positions
+	for(j=0; j< *(CellSecs[i]->Ntot); j++)
+	{
+	 (CellSecs[i]->pos)[j][0] += (xleft + toppx[i]*x_cell_diff);
+	 (CellSecs[i]->pos)[j][1] += (ytop);
+//   	 printf("%lf	%lf\n", (CellSecs[i]->pos)[j][0], (CellSecs[i]->pos)[j][1]);
+	}
+	
+      }
+      
+      for(i=0; i < nbot; i++)
+      {
+	CellSecs[ntop+i] = (RectRedux *)malloc(sizeof(RectRedux));
+	(CellSecs[ntop+i]->geo) = tbgeo;
+	(CellSecs[ntop+i]->length) = botpw[i];
+	(CellSecs[ntop+i]->length2) = 1;
+	(CellSecs[ntop+i]->Nrem) = (int *)malloc(sizeof(int));
+	(CellSecs[ntop+i]->Ntot) = (int *)malloc(sizeof(int));
+	simpleRibbonGeo (CellSecs[ntop+i], NULL, 0, NULL);
+	
+	swapxy((CellSecs[ntop+i]->pos), *(CellSecs[ntop+i]->Ntot));
+
+	
+	//shift probe positions
+	for(j=0; j< *(CellSecs[ntop+i]->Ntot); j++)
+	{
+	 (CellSecs[ntop+i]->pos)[j][0] += (xleft + botpx[i]*x_cell_diff);
+	 (CellSecs[ntop+i]->pos)[j][1] += (ybot);
+	 
+//   	 printf("%lf	%lf\n", (CellSecs[ntop+i]->pos)[j][0], (CellSecs[ntop+i]->pos)[j][1]);
+	}
+	
+      }
+      
+      int *cell_dims = createIntArray(ntop + nbot);
+      int tot_new_dim=0;
+      int rem_new_dim=0;
+      for(i=0; i<ntop; i++)
+      {
+	cell_dims[i] = (*(CellSecs[i]->Ntot))*toppc[i];
+	tot_new_dim += cell_dims[i];
+	rem_new_dim += (*(CellSecs[i]->Nrem))*toppc[i];
+      }
+      for(i=0; i<nbot; i++)
+      {
+	cell_dims[ntop+i] = (*(CellSecs[ntop+i]->Ntot))*botpc[i];
+	tot_new_dim += cell_dims[ntop+i];
+	rem_new_dim += (*(CellSecs[ntop+i]->Nrem))*botpc[i];
+      }
+      
+      
+//       printf("#tot new sites: %d\n", tot_new_dim);
+      int Nremnew = *Nrem + tot_new_dim;
+      int Ntotnew = *Ntot + tot_new_dim;
+      
+      int **newsiteinfo = createNonSquareIntMatrix(Ntotnew, 2);
+      double **newpos = createNonSquareDoubleMatrix(Ntotnew, 3);
+      double *newpots = createDoubleArray(Ntotnew);
+
+      int tempcount=0;
+      
+      for(i=0; i<*Ntot; i++)
+      {
+	newsiteinfo[i][0] = siteinfo[i][0];
+	newsiteinfo[i][1] = siteinfo[i][1];
+	newpos[i][0] = pos[i][0];
+	newpos[i][1] = pos[i][1];
+	newpos[i][2] = pos[i][2];
+	newpots[i] = site_pots[i];
+      }
+      tempcount=*Ntot;
+      for(i=0; i<ntop; i++)
+      {
+	for(j=0; j<toppc[i]; j++)
+	{
+	  for(k=0; k<*(CellSecs[i]->Ntot); k++)
+	  {
+	    newsiteinfo[tempcount][0] = (CellSecs[i]->siteinfo)[k][0];
+	    newsiteinfo[tempcount][1] = (CellSecs[i]->siteinfo)[k][1];
+	    
+	    newpos[tempcount][0] = (CellSecs[i]->pos)[k][0];
+	    newpos[tempcount][1] = (CellSecs[i]->pos)[k][1] + j *y_cell_diff;
+	    newpos[tempcount][2] = (CellSecs[i]->pos)[k][2];
+	    
+	    newpots[tempcount] = (CellSecs[i]->site_pots)[k];
+
+	    tempcount++;
+	  }
+	}
+      }
+      
+      for(i=0; i<nbot; i++)
+      {
+	for(j=0; j<botpc[i]; j++)
+	{
+	  for(k=0; k<*(CellSecs[ntop+i]->Ntot); k++)
+	  {
+	    newsiteinfo[tempcount][0] = (CellSecs[ntop+i]->siteinfo)[k][0];
+	    newsiteinfo[tempcount][1] = (CellSecs[ntop+i]->siteinfo)[k][1];
+	    
+	    newpos[tempcount][0] = (CellSecs[ntop+i]->pos)[k][0];
+	    newpos[tempcount][1] = (CellSecs[ntop+i]->pos)[k][1] - j *y_cell_diff;
+	    newpos[tempcount][2] = (CellSecs[ntop+i]->pos)[k][2];
+	    
+	    newpots[tempcount] = (CellSecs[ntop+i]->site_pots)[k];
+
+	    tempcount++;
+	  }
+	}
+      }
+      
+      //printf("# Nrem  %d    Nremnew %d    tempcount %d\n", *Nrem, Nremnew, tempcount);
+	if(struc_out != 0)
+	{
+	  for(i=0; i<Ntotnew; i++)
+	  {
+	    if(newsiteinfo[i][0] == 0 && newsiteinfo[i][1] == 0)
+	    {
+	      fprintf(out, "%lf	%lf\n", newpos[i][0], newpos[i][1]);
+	    }
+	  }
+	  fprintf(out, "\n");
+	  for(i=0; i<Ntotnew; i++)
+	  {
+	    if(newsiteinfo[i][0] == 0 && newsiteinfo[i][1] == 1)
+	    {
+	      fprintf(out, "%lf	%lf\n", newpos[i][0], newpos[i][1]);
+	    }
+	  }
+	}
+
+      free(siteinfo[0]); free(siteinfo);
+      free(pos[0]); free(pos);
+      free(site_pots);
+      
+      *Nrem = Nremnew;
+      *Ntot = Ntotnew;
+      
+      (System->pos) = newpos;
+      (System->site_pots) = newpots;
+      (System->siteinfo) = newsiteinfo;
+      
+      
+      //LEAD STRUCTURE!
+      int num_leads = 2 + ntop + nbot;    
+      
+	      //left and right leads
+	      for(i=0; i < 2; i++)
+	      {
+		Leads[i] = (RectRedux *)malloc(sizeof(RectRedux));
+		(Leads[i]->geo) = (System->geo);
+		(Leads[i]->length) = (System->length);
+		(Leads[i]->length2) = 1;
+		(Leads[i]->Nrem) = (int *)malloc(sizeof(int));
+		(Leads[i]->Ntot) = (int *)malloc(sizeof(int));
+		simpleRibbonGeo (Leads[i], NULL, 0, NULL);
+	      }
+	      
+	      //top probes
+	      for(i=2; i < 2 + ntop; i++)
+	      {
+		Leads[i] = (RectRedux *)malloc(sizeof(RectRedux));
+		(Leads[i]->geo) = tbgeo;
+		(Leads[i]->length) = toppw[i-2];
+		(Leads[i]->length2) = 1;
+		(Leads[i]->Nrem) = (int *)malloc(sizeof(int));
+		(Leads[i]->Ntot) = (int *)malloc(sizeof(int));
+		simpleRibbonGeo (Leads[i], NULL, 0, NULL);
+		
+		swapxy((Leads[i]->pos), *(Leads[i]->Ntot));
+		
+		
+		for(j=0; j< *(Leads[i]->Ntot); j++)
+		{
+		(Leads[i]->pos)[j][0] += (xleft + toppx[i-2]*x_cell_diff);
+		(Leads[i]->pos)[j][1] += (ytop + toppc[i-2]*y_cell_diff);
+		}
+		
+		
+	      }
+	      
+	      //bottom probes
+	      for(i=2 + ntop; i < 2 + ntop + nbot; i++)
+	      {
+		Leads[i] = (RectRedux *)malloc(sizeof(RectRedux));
+		(Leads[i]->geo) = tbgeo;
+		(Leads[i]->length) = botpw[i-2-ntop];
+		(Leads[i]->length2) = 1;
+		(Leads[i]->Nrem) = (int *)malloc(sizeof(int));
+		(Leads[i]->Ntot) = (int *)malloc(sizeof(int));
+		simpleRibbonGeo (Leads[i], NULL, 0, NULL);
+		
+		swapxy((Leads[i]->pos), *(Leads[i]->Ntot));
+		
+		for(j=0; j< *(Leads[i]->Ntot); j++)
+		{
+		  (Leads[i]->pos)[j][0] += (xleft + botpx[i-2-ntop]*x_cell_diff);
+		  (Leads[i]->pos)[j][1] += (ybot - botpc[i-2-ntop]*y_cell_diff);
+		}
+		
+	      }
+	      
+	      //shift vectors for left and right leads
+	      (params->shift_vecs) = createNonSquareDoubleMatrix(num_leads, 3);
+	      (params->shift_vecs)[0][0] = -((System->pos)[2*(System->length)][0] - (System->pos)[0][0]);
+	      (params->shift_vecs)[1][0] = (System->pos)[2*(System->length)][0] - (System->pos)[0][0];
+	      (params->shift_vecs)[0][1] = 0;
+	      (params->shift_vecs)[1][1] = 0;
+	      
+	      //shift vectors for top and bottom leads
+	      for(i=2; i < 2 + ntop; i++)
+	      {
+		(params->shift_vecs)[i][0] = 0;
+		(params->shift_vecs)[i][1] = y_cell_diff;
+	      }
+	      
+	      for(i=2 + ntop; i < 2 + ntop + nbot; i++)
+	      {
+		(params->shift_vecs)[i][0] = 0;
+		(params->shift_vecs)[i][1] = -y_cell_diff;
+	      }
+	      
+	      //shift left and right leads accordingly to desired positions
+	      for(i=0; i<*(Leads[0]->Ntot); i++)
+	      {
+		(Leads[0]->pos)[i][0] += (params->shift_vecs)[0][0];      
+	      }
+	      
+	      for(i=0; i<*(Leads[1]->Ntot); i++)
+	      {
+		(Leads[1]->pos)[i][0] += (System->length2)*(params->shift_vecs)[1][0];      
+	      }
+    
+	if(struc_out != 0)
+	{
+	  	  fprintf(out, "\n");
+		  fprintf(out, "\n");
+
+		      for(i=0; i<num_leads; i++)
+		      {
+			for(j=0; j<*(Leads[i]->Ntot); j++)
+			{
+			  fprintf(out, "%lf	%lf\n", (Leads[i]->pos)[j][0], (Leads[i]->pos)[j][1]);
+			}
+			fprintf(out, "\n");
+		      }
+// 		      	  	  fprintf(out, "\n");
+// 
+// 		       for(i=0; i<num_leads; i++)
+// 		      {
+// 			for(j=0; j<*(Leads[i]->Ntot); j++)
+// 			{
+// 			  fprintf(out, "%lf	%lf\n", (Leads[i]->pos)[j][0] + (params->shift_vecs)[i][0], (Leads[i]->pos)[j][1]  + (params->shift_vecs)[i][1]);
+// 			}
+// 			fprintf(out, "\n");
+// 		      }
+		      
+	}
+  
+  
+  if(struc_out != 0)
+  {
+    fclose(out);
+  }
+  
+}
+
