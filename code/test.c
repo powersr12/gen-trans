@@ -922,7 +922,7 @@ main(int argc, char *argv[])
 		printf("#split cells in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		time = clock();
 
-exit(0);
+//exit(0);
 		
 		
 	  //hopping parameters and gauge info
@@ -941,7 +941,7 @@ exit(0);
 	      int *res = createIntArray(2);
 	      res[0] = 1;
 	      res[1] = 0; 
-	      double **reslimits = createNonSquareDoubleMatrix(2, 2);
+	      double **reslimits = createNonSquareDoubleMatrix(4, 2);
 	      reslimits[0][0] = pos[0][0];
 	      reslimits[0][1] = pos[Ntot-1][0];
 	

@@ -583,14 +583,14 @@ void cellSplitter (RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellin
 // 	printf("\n");
 //       }
 
-    for(i=0;i<(cellinfo->num_cells);i++)
-    {
-      for(j=0; j<(cellinfo->cell_dims)[i]; j++)
-      {
-	printf("%lf	%lf\n", (DeviceCell->pos)[(cellinfo->cells_site_order)[(cellinfo->starting_index)[i] + j]][0], (DeviceCell->pos)[(cellinfo->cells_site_order)[(cellinfo->starting_index)[i] + j]][1]);
-      }
-      printf("\n");
-    }
+//     for(i=0;i<(cellinfo->num_cells);i++)
+//     {
+//       for(j=0; j<(cellinfo->cell_dims)[i]; j++)
+//       {
+// 	printf("%lf	%lf\n", (DeviceCell->pos)[(cellinfo->cells_site_order)[(cellinfo->starting_index)[i] + j]][0], (DeviceCell->pos)[(cellinfo->cells_site_order)[(cellinfo->starting_index)[i] + j]][1]);
+//       }
+//       printf("\n");
+//     }
     
   
 }

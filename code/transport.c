@@ -1336,7 +1336,7 @@ double _Complex graphenePeierlsPhase(double x1, double y1, double x2, double y2,
   {
    // phase = beta*(y*delx + 0.5*delx*dely);
    //phase = beta*(y*delx );
-        phase = beta*yb*delx;
+        phase = -beta*yb*delx;
 
     
   }
@@ -1346,6 +1346,116 @@ double _Complex graphenePeierlsPhase(double x1, double y1, double x2, double y2,
   
   
 }
+
+
+
+//returns peierls phase factor for two sites in graphene lattice in a Hall bar setup
+//note assumes the graphene lattice constant, so should be generalised for nongraphene
+//there is a twist in the gauge to allow periodic leads in both directions
+//gauge = 3 -> fields in leads
+//gauge = 4 -> no fields in leads
+double _Complex grapheneHallPhase(double x1, double y1, double x2, double y2, int gauge, double BTesla, int *res, double **limits)
+{
+ 
+  double xb, yb, delx, dely, midx, midy;
+  double beta = BTesla * 1.46262E-5;
+  double phase, weight;
+  dely=y2-y1; delx=x2-x1;
+  midx=x1 + delx/2; midy = y1+dely/2;
+  
+
+  if(gauge == 3)
+  {
+    if(midx <= limits[0][0])
+    {
+      weight = 0.0;
+    }
+    if(midx > limits[0][0] && midx < limits[0][1])
+    {
+      weight = (midx - limits[0][0])/(limits[0][1] - limits[0][0]);
+    }
+    if(midx >= limits[0][1] && midx <= limits[0][2])
+    {
+      weight = 1.0;
+    }
+    if(midx > limits[0][2] && midx < limits[0][3])
+    {
+      weight = 1.0 - (midx - limits[0][2])/(limits[0][3] - limits[0][2]);
+    }
+    if(midx >= limits[0][3])
+    {
+      weight = 0.0;
+    }
+    phase = beta*( (weight -1)*midy*delx + weight*midx*dely);
+  }
+    
+  if(gauge == 4)
+  {
+      
+      //x-limits
+      xb=midx;
+      if(xb<limits[0][0])
+      {
+	xb=limits[0][0]  ;
+      }
+      if(xb>limits[0][3])
+      {
+	xb=limits[0][3]  ;
+      }
+    
+ 
+  
+      //ylimits  -limits[1][3] and [1][2] not used in this code, but indices consistent with x limits
+      yb=midy;
+      if(yb<limits[1][0])
+      {
+	yb=limits[1][0];
+      }
+      if(yb>limits[1][3])
+      {
+	yb=limits[1][3];
+      }
+      
+      
+      if(midx <= limits[0][0])
+      {
+	weight = 0.0;
+      }
+      if(midx > limits[0][0] && midx < limits[0][1])
+      {
+	weight = (midx - limits[0][0])/(limits[0][1] - limits[0][0]);
+      }
+      if(midx >= limits[0][1] && midx <= limits[0][2])
+      {
+	weight = 1.0;
+      }
+      if(midx > limits[0][2] && midx < limits[0][3])
+      {
+	weight = 1.0 - (midx - limits[0][2])/(limits[0][3] - limits[0][2]);
+      }
+      if(midx >= limits[0][3])
+      {
+	weight = 0.0;
+      }
+      phase = beta*( (weight -1)*midx*dely + weight*midy*delx);
+      
+      
+  
+  }
+    
+  
+//  printf("# %lf (%lf,  %lf) phase %+e\n", x, delx, dely, phase);
+  
+  return cexp(2 * M_PI * I * phase);  
+  
+  
+}
+
+
+
+
+
+
 
 
 //simplest way to generate sigmas
