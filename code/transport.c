@@ -301,6 +301,272 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 
 
 
+//generates bands/projections/weighted band struc assuming a system periodic in x
+//mode indicates either bands only (mode=0), projections at given k (mode=1), or an attempt at an unfolded weighted bandstructure (mode=3)
+//(mode=2) for double sweep with reversed sweeping directions (for broken time-reversal symmetry cases)
+void genKXbandproj(RectRedux *DeviceCell,  hoppingfunc *hoppingfn, void *hoppingparams, int mode,
+		      double kx, double *bands, double **projs, double **weights)
+{
+  
+  int geo = (DeviceCell->geo);
+  int Nrem = *(DeviceCell->Nrem);
+    int Ntot = *(DeviceCell->Ntot);
+      int length2 = (DeviceCell->length2);
+      int length1 = (DeviceCell->length);
+
+
+  double _Complex **g_old,  **g00inv, **V12, **V21, **smallSigma, **temp1, **temp2;
+  int i, j, k, l, index1, index2, this0, last0;
+  
+  double *bshifts = createDoubleArray(3);
+  
+  int *rem_tot_mapping = createIntArray(Nrem);
+  int **unit_cell_map = createNonSquareIntMatrix(Nrem, 2);
+  double _Complex **Ham = createSquareMatrix(Nrem);
+  
+  double cell_sep;
+  if(geo==0)
+  {
+    cell_sep = 1.0 * length2;
+  }
+  if(geo==1)
+  {
+    cell_sep = sqrt(3) * length2;
+  }
+  
+  
+  if(mode == 0 || mode == 1)
+  {
+  
+  }
+  
+  //create mapping of indices
+  j=0;
+  for(i=0; i <Ntot; i++)
+  {
+    if((DeviceCell->siteinfo)[i][0] == 0)
+    {
+      rem_tot_mapping[j] = i;
+      unit_cell_map[j][0] = (i / (2*length1));
+      unit_cell_map[j][1] = (i % (2*length1));
+      // printf("%d	%d	%d	%d\n", i, j, unit_cell_map[j][0], unit_cell_map[j][1]);
+      j++;
+    }
+  }
+  
+  
+    
+  
+  
+  for(i=0; i<Nrem; i++)
+  {
+    //onsites (& hopping corrections to these)
+    k=rem_tot_mapping[i];
+    Ham[i][i] = (DeviceCell->site_pots)[k];   
+		  //check that the onsite correction here works properly at some stage
+    
+    //intra and inter -cell hoppings - this should also fix onsite hopping corrections
+    for(j=0; j< Nrem; j++)
+    {
+      l = rem_tot_mapping[j];
+      bshifts[0] = 0;
+      //Ham[i][j] += hoppingfn(DeviceCell, DeviceCell, k, l, bshifts, hoppingparams)* cexp(I*kx* (DeviceCell->pos[l][0] + bshifts[0] -DeviceCell->pos[k][0] ) );
+      Ham[i][j] += hoppingfn(DeviceCell, DeviceCell, k, l, bshifts, hoppingparams);
+      
+      //connections to other cells
+      bshifts[0] = -cell_sep;
+      Ham[i][j] += hoppingfn(DeviceCell, DeviceCell, k, l, bshifts, hoppingparams) * cexp(I*kx*length2); 
+       // Ham[i][j] += hoppingfn(DeviceCell, DeviceCell, k, l, bshifts, hoppingparams) * cexp(I*kx* (DeviceCell->pos[l][0] + bshifts[0] -DeviceCell->pos[k][0] ) );
+      
+      
+      bshifts[0] = cell_sep;
+      //Ham[i][j] += hoppingfn(DeviceCell, DeviceCell, k, l, bshifts, hoppingparams) * cexp(I*kx* (DeviceCell->pos[l][0] + bshifts[0] -DeviceCell->pos[k][0] ) ); 
+      Ham[i][j] += hoppingfn(DeviceCell, DeviceCell, k, l, bshifts, hoppingparams) * cexp(-I*kx*length2); 
+    }
+  }
+  
+//    printEMatrix(Ham, Nrem);
+    
+   double _Complex *evalues, **evecs, **weight, **projects;
+    
+    evalues = createCompArray(Nrem);
+    if(mode ==0)
+    {
+	EigenvaluesGSL(Ham, evalues, Nrem);
+	
+ 	for(i=0; i< Nrem; i++)
+	{
+	  bands[i] = evalues[i];
+	}
+    }
+    
+    if(mode==1 || mode ==2)
+    {
+      evecs = createSquareMatrix(Nrem);
+      EigenvectorsGSL(Ham, evalues, evecs, Nrem);
+      
+      for(i=0; i< Nrem; i++)
+	{
+	  bands[i] = evalues[i];
+	}
+    }
+    
+    double kprime;
+    
+    if(mode==1 || mode ==2)
+    {
+	projects = createSquareMatrix(Nrem);
+	//band index
+	for(j=0; j< Nrem; j++)
+	{
+	  //site
+	  for(k=0; k<Nrem; k++)
+	  {
+	    projects[j][k] = evecs[j][k]  * conj(evecs[j][k]);
+	    projs[j][k] = creal(projects[j][k]);
+	  }
+	}
+	
+    }
+	 
+    
+    if(mode == 2)
+    {
+      weight = createNonSquareMatrix(Nrem, length2);
+      
+      //loop over G vectors to other BZs
+      for(i=0; i<length2; i++)
+      {
+	kprime = kx + i* (2*M_PI/(length2));
+	
+	//loop over band index
+	for(j=0; j< Nrem; j++)
+	{
+	  weight[j][i] = 0.0;
+	  for(k=0; k<Nrem; k++)
+	  {
+	      for(l=0; l<Nrem; l++)
+	      {
+		if(unit_cell_map[k][1] == unit_cell_map[l][1])
+		{
+		    weight[j][i] += conj(evecs[j][k]) * evecs[j][l] * cexp(- I * kprime * 1.0 *(unit_cell_map[k][0] - unit_cell_map[l][0])) / length2;
+		  
+		}
+		
+		
+	      }
+	    
+	  }
+	  weights[j][i] = creal(weight[j][i]);
+	  
+	  
+	}
+	
+      }
+	
+      
+      
+    }
+   
+
+    
+    
+  free(rem_tot_mapping);  
+  FreeMatrix(Ham);  
+  free(bshifts);
+  free(evalues);
+  free(unit_cell_map[0]);
+  free(unit_cell_map);
+  
+  if(mode==1 || mode ==2)
+  {
+    FreeMatrix(evecs);
+  }
+  if(mode ==2)
+  {
+    FreeMatrix(weight);
+  }
+  if(mode ==1 || mode ==2)
+  {
+    FreeMatrix(projects);
+  }
+  
+// 	dim = (cellinfo->cell_dims)[this_cell];
+// 	g00inv = createSquareMatrix(dim);
+// 	
+// 	this0=(cellinfo->starting_index)[this_cell];
+// 	if(it_count>0)
+// 	{
+// 	  last0=(cellinfo->starting_index)[this_cell-cell_iter];
+// 	  
+// 	  V21 = createNonSquareMatrix(dim, dim_old);
+// 	  V12 = createNonSquareMatrix(dim_old, dim);
+// 	}
+// 	
+// 	
+// 	//onsites
+// 	for(i=0; i<dim; i++)
+// 	{
+// 	  index1 = (cellinfo->cells_site_order)[this0 +i];
+// 	  
+// 	  g00inv[i][i] = En - (DeviceCell->site_pots)[index1];
+// 	  
+// 	}
+// 
+// 	//internal (& external?) hoppings
+// 	for(i=0; i<dim; i++)
+// 	{
+// 	  
+// 	  index1 = (cellinfo->cells_site_order)[this0 +i];
+// 	  for(j=0; j<(cnxp->site_cnxnum)[index1]; j++)
+// 	  {
+// 	    index2 = (cnxp->site_cnx)[index1][j];
+// 	    
+// 	    //is this neighbour in the same cell?
+// 	    if( (cellinfo->sites_by_cell)[index2] == this_cell)
+// 	    {
+// 		//what is its index within the cell?
+// 		k=0;
+// 		for(l=0; l<dim; l++)
+// 		{
+// 		  if( index2 == (cellinfo->cells_site_order)[this0 +l])
+// 		  {
+// 		    k=l;
+// 		  }
+// 		}
+// 		//printf("neighbours	%d	%d\n", i, k);
+//  		g00inv[i][k] -= hoppingfn(DeviceCell, DeviceCell, index1, index2, bshifts, hoppingparams);
+// 	      
+// 	    }
+// 	    
+// 	    
+// 	    //is this neighbour in the previous cell?
+// 	    if( (cellinfo->sites_by_cell)[index2] == (this_cell-cell_iter))
+// 	    {
+// 		//what is its index within the cell?
+// 		k=0;
+// 		for(l=0; l<dim_old; l++)
+// 		{
+// 		  if( index2 == (cellinfo->cells_site_order)[last0 +l])
+// 		  {
+// 		    k=l;
+// 		  }
+// 		}
+//  		V21[i][k] = hoppingfn(DeviceCell, DeviceCell, index1, index2, bshifts, hoppingparams);
+// 		V12[k][i] = hoppingfn(DeviceCell, DeviceCell, index2, index1, bshifts, hoppingparams);
+// 	      
+// 	    }
+// 	    
+// 	    
+// 	  }
+// 	}
+	
+
+      	  
+
+      
+}
+
 
 
 

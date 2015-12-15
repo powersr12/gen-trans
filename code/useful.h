@@ -3,3 +3,4 @@
 
 int max(int num1, int num2);
 double myRandNum (double min, double max);
+int mymin(int num1, int num2);

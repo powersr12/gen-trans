@@ -645,7 +645,7 @@ void genSublatticeDevice(RectRedux *SiteArray, void *p, int struc_out, char *fil
 		  if(temprandnum < b_conc)
 		    site_pots[l] = b_pot;
 		}
-		//printf("%d	%lf	%d	%lf\n", l, temprandnum, siteinfo[l][1], site_pots[l]);
+// 		printf("%d	%lf	%d	%lf\n", l, temprandnum, siteinfo[l][1], site_pots[l]);
 	      }
 	      
 	      	      

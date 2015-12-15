@@ -55,3 +55,8 @@ void lead_prep(double _Complex En, RectRedux *LeadCell, int leadindex, lead_para
 void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Leads, cnxProfile *cnxp, 
 		      cellDivision *cellinfo, hoppingfunc *hoppingfn, void *hoppingparams,
 		      lead_para *leadsparams, trans_params *tpara);
+
+
+
+void genKXbandproj(RectRedux *DeviceCell,  hoppingfunc *hoppingfn, void *hoppingparams, int mode,
+		      double kx, double *bands, double **projs, double **weights);

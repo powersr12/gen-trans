@@ -25,6 +25,7 @@ main(int argc, char *argv[])
 	      char geotype[32], peritype[32], leadtype[32], sysinfo[64], loopinfo[64];
 	      sprintf(systemtype, "SUBLATTICEPOT");
 	      int length1=2, length2=3*length1, geo=0, isperiodic=1, ismagnetic=0;
+	      int makebands = 0, unfold=0, project=0, kxpoints=51, bandsonly=0, bandsminset=0, bandsmaxset=100000;
 	      
 	      
 	  
@@ -51,11 +52,38 @@ main(int argc, char *argv[])
 		    {
 			sscanf(argv[i+1], "%d", &isperiodic);
 		    }
-		     if(strcmp("-magnetic", argv[i]) == 0)
+		    if(strcmp("-magnetic", argv[i]) == 0)
 		    {
 			sscanf(argv[i+1], "%d", &ismagnetic);
 		    }
-		    
+		    if(strcmp("-makebands", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &makebands);
+		    }
+		    if(strcmp("-unfold", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &unfold);
+		    }
+		    if(strcmp("-project", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &project);
+		    }
+		    if(strcmp("-kxpoints", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &kxpoints);
+		    }
+		    if(strcmp("-bandsonly", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &bandsonly);
+		    }
+		    if(strcmp("-bandsminset", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &bandsminset);
+		    }
+		      if(strcmp("-bandsmaxset", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &bandsmaxset);
+		    }
 		  }
 	  
 	  
@@ -608,18 +636,34 @@ main(int argc, char *argv[])
 	    FILE *output;
 	    char filename[160], filename3[160], filename_temp[160];
 	    char checkname[160], direcname[160], conffile[200], strucfile[160];
+	    char bandname1[160], bandname2[160], bandname3[160];
             char command[400];
+	    FILE *bandfile;
 	    
 	//Create directory and filenaming convention
 	    sprintf(direcname, "../res/%s_%s/%s%d_%s", systemtype, peritype, geotype, length1, sysinfo);
 	    sprintf(command, "mkdir -p %s", direcname);
 	    system(command);
-	    printf("directory: %s\n", direcname);
+	    printf("# directory: %s\n", direcname);
 	    
 	    
 	    sprintf(filename_temp, "%s_%s.conf%02d", loopinfo, job_name, conf_num); 
+
 	    sprintf(strucfile, "%s/%s.struct", direcname, filename_temp);
 	    sprintf(filename, "%s/.%s.part%02d", direcname, filename_temp, this_proc);
+	    
+	    sprintf(bandname1, "%s/%s.bands", direcname, filename_temp);
+	    sprintf(bandname3, "%s/%s.wbands", direcname, filename_temp);
+	    if(makebands ==1)
+	    {
+	      bandfile = fopen(bandname1, "w"); fclose(bandfile);
+	      if(unfold==1)
+	      {
+		bandfile = fopen(bandname3, "w"); fclose(bandfile);
+	      }
+	    }
+	    
+
 	
 	//Create main output file
 	    output =fopen(filename, "w");
@@ -739,15 +783,15 @@ main(int argc, char *argv[])
 	  hoppara.kpar=kmin;
 	  hoppara.NN_lowdis=NNlowdis;
 	  hoppara.NN_highdis=NNhighdis;
-	  hoppara.gauge=0;
+	  hoppara.gauge=1;
 	  
 	    //mag field cut off
 	      int *res = createIntArray(2);
-	      res[0] = 1;
+	      res[0] = 0;
 	      res[1] = 0; 
 	      double **reslimits = createNonSquareDoubleMatrix(2, 2);
-	      reslimits[0][0] = pos[0][0];
-	      reslimits[0][1] = pos[Ntot-1][0];
+// 	      reslimits[0][0] = pos[0][0];
+// 	      reslimits[0][1] = pos[Ntot-1][0];
 	
 	  hoppara.restrics = res;
 	  hoppara.limits = reslimits;
@@ -768,9 +812,112 @@ main(int argc, char *argv[])
 	  double **transmissions = createNonSquareDoubleMatrix(num_leads, num_leads);
 
 	  tpara.transmissions = transmissions;
-	  genLeads(&System, LeadCells, 2, 0, &leadp);
+// 	  genLeads(&System, LeadCells, 2, 0, &leadp);
 
 	  double kavg;
+	  
+	  double kxl;
+	  double *bands = createDoubleArray(Nrem);
+	  double **weights = createNonSquareDoubleMatrix(Nrem, length2);
+	  double **projections = createNonSquareDoubleMatrix(Nrem, Nrem);
+	  int bandmode=0;
+	  double kxstep = (2*M_PI/length2)/(kxpoints -1);
+
+	  
+	 if(makebands == 1)
+	 {
+	   
+	    if(ismagnetic == 1)
+	    {
+	      hoppara.Btes=Bmin;
+	    }
+	    
+	    
+	      for(kxl=0; kxl< 2*M_PI/length2; kxl += kxstep)
+	      {
+      //  	   kxl=0.2;
+		 
+		  
+		  
+		  if(project == 1)
+		  {
+		      
+		      bandmode=1;
+		  }
+		  
+		  if(unfold == 1)
+		  {
+		      bandmode =2;
+		  }
+			  
+		  genKXbandproj(&System, hopfn, &hoppara, bandmode, kxl, bands, projections, weights);
+      // 	    printf("%lf\t", kxl);
+      // 	    
+      // 	    for (i=0; i<Nrem; i++)
+      // 	    {
+      // 	      printf("%e\t", bands[i]);
+      // 	    }
+      // 	    printf("\n");
+		  
+		  bandfile = fopen(bandname1, "a"); 
+		  fprintf(bandfile, "%lf\t", kxl);
+		  for (i=0; i<Nrem; i++)
+		  {
+		    fprintf(bandfile, "%e\t", bands[i]);
+		  }
+		  fprintf(bandfile, "\n");
+		  fclose(bandfile);
+		  
+		  if(unfold ==1)
+		  {
+		    bandfile = fopen(bandname3, "a"); 
+		    for(j=0; j<length2; j++)
+		    {
+		      for (i=0; i<Nrem; i++)
+		      {
+			fprintf(bandfile, "%lf \t %e	%e\n",  kxl + j*2*M_PI/length2, bands[i], weights[i][j]);
+		      }
+		    }
+		    fclose(bandfile);
+		  }
+		  
+		  if(project==1)
+		  {
+		      for (i=bandsminset; i<mymin(bandsmaxset, Nrem); i++)
+		      {
+			sprintf(bandname2, "%s/%s.proj_kx_%.2lf_%d", direcname, filename_temp, kxl, i);
+			bandfile = fopen(bandname2, "w"); 
+			
+		      		      
+			for (j=0; j<Nrem; j++)
+			{
+			  fprintf(bandfile, "%lf	%lf	%e\n", pos[j][0], pos[j][1], projections[i][j]);
+			}
+			
+			fclose(bandfile);
+		      }
+		    
+		  }
+		  
+		  
+	      }
+	      
+	      
+		if(bandsonly == 1)
+		{
+		  
+		  //delete temporary files
+		  if(conf_num != 0)
+		    {
+		      sprintf(command, "rm %s/.%s.*", direcname, filename_temp);
+		      system(command);
+		    }
+		  exit(0);
+		}
+		
+		
+		
+	 }
 	  
 	  
 	  for(en=0; en<loop_pts_temp; en++)
