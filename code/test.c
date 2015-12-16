@@ -9,7 +9,7 @@
 //command line version
 #include "test.h"
 
-#define eta 1.0e-6
+// #define eta 1.0e-6
 
 
 //remove unneeded
@@ -22,11 +22,13 @@ main(int argc, char *argv[])
 	  
 	  //general system inputs and default values
 	      char systemtype[32];
-	      char geotype[32], peritype[32], leadtype[32], sysinfo[64], loopinfo[64];
+	      char geotype[32], peritype[32], leadtype[32], sysinfo[80], loopinfo[64];
 	      sprintf(systemtype, "SUBLATTICEPOT");
 	      int length1=2, length2=3*length1, geo=0, isperiodic=1, ismagnetic=0;
 	      int makebands = 0, unfold=0, project=0, kxpoints=51, bandsonly=0, bandsminset=0, bandsmaxset=100000;
 	      
+	      int output_type=1;   //=0 no structure output, =1  atoms / holes
+	      double eta = 1.0E-6;
 	      
 	  
 	      //check for command line arguments which vary these
@@ -84,6 +86,15 @@ main(int argc, char *argv[])
 		    {
 			sscanf(argv[i+1], "%d", &bandsmaxset);
 		    }
+		     if(strcmp("-output", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &output_type);
+		    }
+		     if(strcmp("-eta", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%lf", &eta);
+		    }
+		    
 		  }
 	  
 	  
@@ -255,7 +266,7 @@ main(int argc, char *argv[])
 	  
 	//disorder / system config parameters - for antidots overwrites some of the above...
 	  int AD_length=5, AD_length2=5, lat_width=1, lat_length=2;
-	  double AD_rad=1.0;
+	  double AD_rad=1.0, xyfluc=0.0, radfluc=0.0;
 	  char latgeo[24], dotgeo[24];
 	  sprintf(latgeo, "trig");
 	  sprintf(dotgeo, "circ");
@@ -309,7 +320,7 @@ main(int argc, char *argv[])
 		    SysPara = &sublp;
 		    
 		    //set filename info - what to put in filename from these params
-		    sprintf(sysinfo, "BUF_%d_SUBA_%.2lfx%.3lf_SUBB_%.2lfx%.3lf", buffer_rows, (sublp.a_conc), (sublp.a_pot),(sublp.b_conc), (sublp.b_pot)); 
+		    sprintf(sysinfo, "L2_%d_BUF_%d_SUBA_%.2lfx%.3lf_SUBB_%.2lfx%.3lf", length2, buffer_rows, (sublp.a_conc), (sublp.a_pot),(sublp.b_conc), (sublp.b_pot)); 
 		}
 		
 		
@@ -429,12 +440,13 @@ main(int argc, char *argv[])
 		    SysPara = &subintp;
 		    
 		    //set filename info - what to put in filename from these params
-		    sprintf(sysinfo, "BUF_%d_SUBA_%.2lfx%.3lf_SUBB_%.2lfx%.3lf", buffer_rows, (sublp.a_conc), (sublp.a_pot),(sublp.b_conc), (sublp.b_pot)); 
+		    sprintf(sysinfo, "L2_%d_BUF_%d_SUBA_%.2lfx%.3lf_SUBB_%.2lfx%.3lf", length2, buffer_rows, (sublp.a_conc), (sublp.a_pot),(sublp.b_conc), (sublp.b_pot)); 
 		}
 		
 		
 		
 		adot_para adotp = {};
+		char lattice_info[35], dot_info[45];
 		if(strcmp("ANTIDOTS", systemtype) == 0)
 		{	
 		    //default values
@@ -444,11 +456,14 @@ main(int argc, char *argv[])
 		    adotp.AD_length2 = AD_length2;
 		    adotp.latgeo = latgeo;
 		    adotp.AD_rad = AD_rad;
+		    adotp.AD_rad2 = AD_rad;
 		    adotp.lat_width = lat_width;
 		    adotp.lat_length = lat_length;
 		    adotp.dotgeo = dotgeo;
 		    adotp.seed = conf_num;
 		    adotp.isperiodic = isperiodic;
+		    adotp.xyfluc = xyfluc;
+		    adotp.radfluc = radfluc;
 		    
 		    //check for command line arguments which vary these
 		    for(i=1; i<argc-1; i++)
@@ -464,6 +479,11 @@ main(int argc, char *argv[])
 		      if(strcmp("-ADrad", argv[i]) == 0)
 		      {
 			  sscanf(argv[i+1], "%lf", &(adotp.AD_rad));
+			  adotp.AD_rad2 = adotp.AD_rad;
+		      }
+		       if(strcmp("-ADrad2", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(adotp.AD_rad2));
 		      }
 		      if(strcmp("-latw", argv[i]) == 0)
 		      {
@@ -479,11 +499,19 @@ main(int argc, char *argv[])
 		      }
 		      if(strcmp("-latgeo", argv[i]) == 0)
 		      {
-			  sscanf(argv[i+1], "%s", latgeo);
+			  sscanf(argv[i+1], "%s",  latgeo);
 		      }
 		      if(strcmp("-dotgeo", argv[i]) == 0)
 		      {
 			  sscanf(argv[i+1], "%s", dotgeo);
+		      }
+		      if(strcmp("-xyfluc", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(adotp.xyfluc));
+		      }
+		      if(strcmp("-radfluc", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(adotp.radfluc));
 		      }
 		      
 		    }
@@ -504,7 +532,7 @@ main(int argc, char *argv[])
 			length2= (adotp.AD_length)*(adotp.lat_length) + 2*(adotp.buffer_rows);
 		      }
 		      
-		      sprintf(sysinfo, "%s_lat_L_%d_%s_dot_R_%.1lf_%dx%d", (adotp.latgeo),(adotp.AD_length), (adotp.dotgeo), (adotp.AD_rad), (adotp.lat_width),  (adotp.lat_length)); 
+		      sprintf(lattice_info, "%s_lat_L_%d", (adotp.latgeo),(adotp.AD_length)); 
 
 		    }
 		    
@@ -522,8 +550,7 @@ main(int argc, char *argv[])
 			length2= ((adotp.AD_length)+1)*(adotp.lat_length) + 2*(adotp.buffer_rows);
 		      }
 		      
-		      sprintf(sysinfo, "%s_lat_L_%d_%s_dot_R_%.1lf_%dx%d", (adotp.latgeo),(adotp.AD_length), (adotp.dotgeo), (adotp.AD_rad), (adotp.lat_width),  (adotp.lat_length)); 
-
+		      sprintf(lattice_info, "%s_lat_L_%d", (adotp.latgeo),(adotp.AD_length)); 
 		    }
 		    
 		    if(strcmp("rect", latgeo) == 0)
@@ -539,11 +566,22 @@ main(int argc, char *argv[])
 			length1=2*(adotp.lat_width)*(adotp.AD_length2) ; 
 			length2= (adotp.AD_length)*(adotp.lat_length) + 2*(adotp.buffer_rows);
 		      }
-		      sprintf(sysinfo, "%s_lat_L_%d_%d_%s_dot_R_%.1lf_%dx%d", (adotp.latgeo),(adotp.AD_length), (adotp.AD_length2) , (adotp.dotgeo), (adotp.AD_rad), (adotp.lat_width),  (adotp.lat_length)); 
+		      sprintf(lattice_info, "%s_lat_L_%d_%d", (adotp.latgeo),(adotp.AD_length), (adotp.AD_length2)); 
 
 		    }
 		    
+		    if(strcmp("circ", dotgeo) == 0 || strcmp("hexAC", dotgeo) == 0 || strcmp("hexZZ", dotgeo) == 0)
+		    {
+		      sprintf(dot_info, "%s_dot_R_%.1lf_%dx%d_xyf_%.1lf_rf_%.1lf", (adotp.dotgeo), (adotp.AD_rad), (adotp.lat_width),  (adotp.lat_length), (adotp.xyfluc), (adotp.radfluc)); 
+		    }
 		    
+		    if(strcmp("rect", dotgeo) == 0 )
+		    {
+		      sprintf(dot_info, "%s_dot_R_%.1lf_%.1lf_%dx%d_xyf_%.1lf_rf_%.1lf", (adotp.dotgeo), (adotp.AD_rad), (adotp.AD_rad2), (adotp.lat_width),  (adotp.lat_length), (adotp.xyfluc), (adotp.radfluc)); 
+		    }
+
+		    
+		    sprintf(sysinfo, "%s_%s", lattice_info, dot_info);
 		    
 		    //set functions and params for use below
 		    SysFunction = &genAntidotDevice;
@@ -590,7 +628,6 @@ main(int argc, char *argv[])
 	  
 	//misc  
 	  
-	  int output_type=1;   //=0 no structure output, =1 just atoms by sublattice, =2 atoms and connectors
 	  double cond2;
 
 
@@ -641,7 +678,7 @@ main(int argc, char *argv[])
 	    FILE *bandfile;
 	    
 	//Create directory and filenaming convention
-	    sprintf(direcname, "../res/%s_%s/%s%d_%s", systemtype, peritype, geotype, length1, sysinfo);
+	    sprintf(direcname, "../res/%s_%s_%.0e/%s%d_%s", systemtype, peritype, eta, geotype, length1, sysinfo);
 	    sprintf(command, "mkdir -p %s", direcname);
 	    system(command);
 	    printf("# directory: %s\n", direcname);
@@ -687,7 +724,7 @@ main(int argc, char *argv[])
 			check = fopen(checkname, "w");
 			fprintf(check, "%d", 0);
 			fclose(check);
-			output_type=1;
+			//output_type=1;
 		}
 
 		
@@ -722,7 +759,7 @@ main(int argc, char *argv[])
 		
 		if(this_proc==0)
 		{
-		  (SysFunction) ( &System, SysPara, 1, strucfile);
+		  (SysFunction) ( &System, SysPara, output_type, strucfile);
 		  //export the disorder configuration for the other processes calculating the same configuration
 		  if(procs>0)
 		  {
@@ -738,7 +775,7 @@ main(int argc, char *argv[])
 		  
 		  if(this_proc > 0)
 		  {
-		    sleep(5*length1);
+		    sleep(8*length1);
 		    importRectConf(&System, length1, length2, conffile);
 		  }
 		  

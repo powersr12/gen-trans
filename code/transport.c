@@ -33,7 +33,6 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 	 (leadfn)(En, DeviceCell, Leads, cellinfo, leadsparams, SigmaR);
 	 
 
-
       //calculate retarded GF of system 
          genDeviceGF(En, DeviceCell, cnxp, cellinfo, hoppingfn, hoppingparams, 0, g_sys_r, NULL, SigmaR);
       
@@ -138,7 +137,7 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
     cell_end = 0;
     cell_iter = -1;
   }
-    
+
   
   //calculate system GF	
   //backwards recursive sweep!

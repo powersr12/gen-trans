@@ -58,10 +58,13 @@ typedef struct {
 	char *latgeo;
 	char *dotgeo;
 	double AD_rad;
+	double AD_rad2;
 	int lat_width;
 	int lat_length;
 	int seed;
 	int isperiodic;
+	double radfluc;
+	double xyfluc;
 }adot_para;
 
 typedef void (generatefn) (RectRedux *, void *, int , char *);
