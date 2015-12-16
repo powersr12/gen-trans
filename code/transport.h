@@ -17,11 +17,12 @@ typedef void (leadfunction) (double _Complex, RectRedux *, RectRedux **, cellDiv
 // }simpleTB_params;
 
 typedef struct {
-	double t0;		
+	int num_neigh;
+	double _Complex *hops;		
 	int isperiodic;
 	double kpar;
-	double NN_lowdis;
-	double NN_highdis;
+	double *NN_lowdis;
+	double *NN_highdis;
 	int gauge;
 	double Btes;
 	int *restrics;	//are there limits on x, y with field

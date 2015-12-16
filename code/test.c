@@ -98,7 +98,10 @@ main(int argc, char *argv[])
 		  }
 		  
 	//hopping related
-	double t0=-1.0, NNlowdis=0.56, NNhighdis=0.59;
+	int NNN=1;
+	double t0=-1.0, NNlowdis=0.56, NNhighdis=0.59, onsitec=0.0;
+	double t1=-1.0, NNlowdis1=0.56, NNhighdis1=0.59, onsitec1=0.0;
+	double t2=-1.0, NNlowdis2=0.56, NNhighdis2=0.59, onsitec2=0.0;
 	
 	//check for command line arguments which vary these
 	    for(i=1; i<argc-1; i++)
@@ -930,11 +933,16 @@ main(int argc, char *argv[])
 //GAUGE NEEDS TO BE GENERALISED FOR HALL BAR CASE
 //TIDY THIS UP IN GENERAL TO ALLOW FIELD IN LEADS
 	  gen_hop_params hoppara={};
-	  hoppara.t0=t0;
+	  hoppara.num_neigh = 1;
+	  hoppara.hops=createCompArray(hoppara.num_neigh);
+	  hoppara.hops[0]=t0;
+// 	  hoppara.t0=t0;
 	  hoppara.isperiodic=isperiodic;
 	  hoppara.kpar=kmin;
-	  hoppara.NN_lowdis=NNlowdis;
-	  hoppara.NN_highdis=NNhighdis;
+	  hoppara.NN_lowdis=createDoubleArray(hoppara.num_neigh);
+	  hoppara.NN_lowdis[0] = NNlowdis;
+	  hoppara.NN_highdis=createDoubleArray(hoppara.num_neigh);
+	  hoppara.NN_highdis[0] = NNhighdis;
 	  hoppara.gauge=0;
 	  
 	    //mag field cut off
