@@ -812,7 +812,7 @@ main(int argc, char *argv[])
 	  double **transmissions = createNonSquareDoubleMatrix(num_leads, num_leads);
 
 	  tpara.transmissions = transmissions;
-// 	  genLeads(&System, LeadCells, 2, 0, &leadp);
+ 	  genLeads(&System, LeadCells, 2, 0, &leadp);
 
 	  double kavg;
 	  
