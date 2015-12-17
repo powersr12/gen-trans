@@ -1352,7 +1352,7 @@ double _Complex peierlsTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a,
 //returns peierls phase factor for two sites in graphene lattice
 //note assumes the graphene lattice constant, so should be generalised for nongraphene
 //gauge = 0 -> phase along x
-//gauge = 0 -> phase along y
+//gauge = 1 -> phase along y
 
 //gauges 3 and 4 returns peierls phase factor for two sites in graphene lattice in a Hall bar setup
 //there is a twist in the gauge to allow periodic leads in both directions

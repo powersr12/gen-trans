@@ -943,11 +943,11 @@ main(int argc, char *argv[])
 	  hoppara.NN_lowdis[0] = NNlowdis;
 	  hoppara.NN_highdis=createDoubleArray(hoppara.num_neigh);
 	  hoppara.NN_highdis[0] = NNhighdis;
-	  hoppara.gauge=0;
+	  hoppara.gauge=1;
 	  
 	    //mag field cut off
 	      int *res = createIntArray(2);
-	      res[0] = 1;
+	      res[0] = 0;
 	      res[1] = 0; 
 	      double **reslimits = createNonSquareDoubleMatrix(4, 2);
 	      reslimits[0][0] = pos[0][0];
