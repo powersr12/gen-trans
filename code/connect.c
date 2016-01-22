@@ -391,46 +391,57 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
       
     }
     
+    
+
     else if (config == 3) //based on lead site positions and connection rule
     {
       gen_start_params *sps = (gen_start_params *) start_params;
       
-      j=0;
+      j=0, m=0;
       cellinfo->num_leads=sps->num_leads;
       cellinfo->lead_dims=createIntArray(cellinfo->num_leads);
       RectRedux **Leads = sps->Leads;
       
       
       //count total sites connecting to leads, and each lead
+      //problem if sites connect to more than one other site ->temp array fixes this
+                int *temparray = createIntArray(alldim);
+
       
       for(i=0; i<cellinfo->num_leads; i++)
       {
+	m=0;
 	for(k=0; k<*(Leads[i]->Ntot); k++)
 	{
 	  if( (Leads[i]->siteinfo)[k][0] == 0)
 	  {
 	    for(l=0; l<alldim; l++)
 	    {
-	      if( (DeviceCell->siteinfo)[l][0] == 0)
+	      if( (DeviceCell->siteinfo)[l][0] == 0 && temparray[l]==0)
 	      {
 		if((sps->rule)(DeviceCell, Leads[i], sps->rule_params, l, k) == 0)
 		{
 		  (cellinfo->cells_site_order)[j] = l;
-		  j++;
+		  j++; m++;
 		  (cellinfo->sites_by_cell)[l] = 0;
+ 		  temparray[l]=1;
 		}
 	      }
 	    }
 	  }
 	}
-	if(i==0)
-	  (cellinfo->lead_dims)[i] = j;
+// 	if(i==0)
+// 	  (cellinfo->lead_dims)[i] = j;
+// 	
+// 	if(i>0)
+// 	  (cellinfo->lead_dims)[i] = j- (cellinfo->lead_dims)[i-1];
+	(cellinfo->lead_dims)[i] = m;
 	
-	if(i>0)
-	  (cellinfo->lead_dims)[i] = j- (cellinfo->lead_dims)[i-1];
+//  	printf("#lead %d, dim %d\n", i, (cellinfo->lead_dims)[i]);
 	
       }
       cellinfo->cell1dim = j;  
+//       printf("#cell1dim %d\n", j);
       
       cellinfo->group_dim = 0;
 	
@@ -441,8 +452,9 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
 	  cellinfo->lead_sites[l] = (cellinfo->cells_site_order)[l];
 	}
       
+          free(temparray);
+
     }
-    
     
     
     

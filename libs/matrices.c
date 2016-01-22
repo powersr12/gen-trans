@@ -383,6 +383,19 @@
 			}
 		}
 	}
+	
+		//Function to set a matrix fully to zero
+	void EmptyDoubleMatrix(double  **MatrixA, int dim1, int dim2)
+	{
+		int i, j;
+		for(i=0; i<dim1;i++)
+		{
+			for(j=0; j<dim2; j++)
+			{
+				MatrixA[i][j] = 0.0 ;
+			}
+		}
+	}
 
 
 

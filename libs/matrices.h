@@ -32,6 +32,8 @@ void MatrixSubtract(double _Complex **MatrixA, double _Complex **MatrixB, double
 void MatrixSubtractNS(double _Complex **MatrixA, double _Complex **MatrixB, double _Complex **MatrixAminusB, int dim1, int dim2);
 
 void EmptyMatrix(double _Complex **MatrixA, int dim);
+	void EmptyDoubleMatrix(double  **MatrixA, int dim1, int dim2);
+
 void InvertMatrixGSL(double _Complex **origMatrix, double _Complex **InvMatrix, int dim);
 double _Complex GetDeterminantGSL(double _Complex **origMatrix, int dim);
 void EigenvaluesGSL(double _Complex **origMatrix, double _Complex *evals, int dim);
