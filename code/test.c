@@ -1341,6 +1341,8 @@ main(int argc, char *argv[])
 // 	      
 // 	      
 	       //define this process as finished, and check how many others are
+	       srand(this_proc);
+	        sleep(myRandNum(0.0, 10.0));
 		check = fopen(checkname, "r");
 		fscanf(check, "%d", &numfin);
 		fclose(check);
