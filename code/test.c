@@ -29,7 +29,19 @@ main(int argc, char *argv[])
 	      
 	      int output_type=1;   //=0 no structure output, =1  atoms / holes
 	      double eta = 1.0E-6;
+	      int ishallbar=0;
+	      int nngm = 1;	//default assumption is Nearest Neighbour graphene hopping parameters and lattice, 
+				//changing this to 2 or 3 uses 2NN or 3NN models
+				//future change - making this 0 should allow custom parameterisation somehow
 	      
+	      
+	      int magsetup = 0;	//this indicates whether the magnetic field is present in the leads or not
+				//(if the system is magnetic)
+				//0 means no field in leads
+				//1 means field everywhere
+				//the correct gauge is then chosen depending on whether we have
+				//a simple system or a hall bar
+	      int gauge = 0; 	//default gauge choice, phase is along x
 	  
 	      //check for command line arguments which vary these
 		  for(i=1; i<argc-1; i++)
@@ -94,7 +106,18 @@ main(int argc, char *argv[])
 		    {
 			sscanf(argv[i+1], "%lf", &eta);
 		    }
-		    
+		     if(strcmp("-hallbar", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &ishallbar);
+		    }
+		    if(strcmp("-NNmodel", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &nngm);
+		    }
+		    if(strcmp("-magsetup", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &magsetup);
+		    }
 		  }
 	  
 	  
@@ -102,10 +125,29 @@ main(int argc, char *argv[])
 		  if(geo==0)
 		  {
 		    sprintf(geotype, "ZZ");
+		    if(nngm==2)
+		    {
+		      sprintf(geotype, "ZZ2N_");
+		    }
+		    if(nngm==3)
+		    {
+		      sprintf(geotype, "ZZ3N_");
+		    }
+		    
 		  }
 		  if(geo==1)
 		  {
 		    sprintf(geotype, "AC");
+		    
+		      if(nngm==2)
+		      {
+			sprintf(geotype, "AC2N_");
+		      }
+		      if(nngm==3)
+		      {
+			sprintf(geotype, "AC3N_");
+		      }
+		    
 		  }
 		  
 	  
@@ -123,6 +165,33 @@ main(int argc, char *argv[])
 		    hopfn = &peierlsTB;   
 		  }
 		  
+	//hopping related
+	int NNN=1;
+	double t0=-1.0, NNlowdis=0.56, NNhighdis=0.59, onsitec=0.0;
+	
+	//another one for onsites should be added for 2NN
+	
+	//check for command line arguments which vary these
+	    for(i=1; i<argc-1; i++)
+	    {
+	      if(strcmp("-t0", argv[i]) == 0)
+	      {
+		  sscanf(argv[i+1], "%lf", &t0);
+	      }
+	      if(strcmp("-NNlowdis", argv[i]) == 0)
+	      {
+		  sscanf(argv[i+1], "%lf", &NNlowdis);
+	      }
+	      if(strcmp("-NNhighdis", argv[i]) == 0)
+	      {
+		  sscanf(argv[i+1], "%lf", &NNhighdis);
+	      }
+	    }	  
+	    
+
+	    double t1=0.0740741*t0, NNlowdis1=0.98, NNhighdis1=1.02, onsitec1=3*t1;
+	    double t2=0.0666667*t0, NNlowdis2=1.13, NNhighdis2=1.17, onsitec2=0.0; 
+	    //these can possibly be adjusted by command line later
 		    
 	
 	
@@ -130,7 +199,12 @@ main(int argc, char *argv[])
 	  int Ntot, Nrem;
 	  
 	//connectivity related constants
-	  int max_neigh=3;
+	  int max_neigh=3;  //for graphene NN_shifts
+	  if(nngm == 2)
+	    max_neigh = 9;
+	  if(nngm == 3)
+	    max_neigh = 12;
+	  
 	
 	//processor and energy/magnetic loop related integers
 	  int procs=1, this_proc=0, remainder, en, numfin, conf_num=0;
@@ -175,7 +249,16 @@ main(int argc, char *argv[])
 		      }
 		    }
 
-	  
+		    int buffer_rows=0;
+		    for(i=1; i<argc-1; i++)
+		    {
+			if(strcmp("-bufferrows", argv[i]) == 0)
+			{
+			    sscanf(argv[i+1], "%d", &buffer_rows);
+			}
+		    }
+		    
+		    
 	//energy and magfield loop related doubles 
 	  double realE=0.0, Emax=0.9, Emin=-0.9;
 	  double Bfield=0.0, Bmax=20.0, Bmin=0.0;
@@ -236,32 +319,63 @@ main(int argc, char *argv[])
 	    }
 	    
 	    cnxRulesFn *connectrules;
+	    graph_conn_para cnxpara;
+	    
+	    cnxpara.conn_sep_thresh_min = NNlowdis;
+	    cnxpara.conn_sep_thresh_max = NNhighdis;
+	    
+	    if(nngm==2)
+	    {
+	      cnxpara.conn_sep_thresh_max = NNhighdis1;
+	    }
+	     if(nngm==3)
+	    {
+	      cnxpara.conn_sep_thresh_max = NNhighdis2;
+	    }
+	    
+	    
+
+	    //lead info
+	  int num_leads=2;
+	    
 	      if(isperiodic==0)
 	      {
-		connectrules = &zzacnn;
+		connectrules = &graph_conn_sep;
+		cnxpara.periodic = 0;
 		sprintf(peritype, "RIBBON");
 		kpts = 1;
 
 	      }
 	      if(isperiodic==1)
 	      {
-		connectrules = &zzacnnk;
+		connectrules = &graph_conn_sep;
+		cnxpara.periodic = 1;
 		sprintf(peritype, "PERIODIC");
 	      }
+		
+	      //being a hall bar overwrites other settings which may be incorrect!
+	      //these settings are used later for standard hall probe placements
+		double geo_renorm=2;
+		int hall_denom=6, hall_rel_width=1, hall_start=1;
+		int hall_second_start = hall_denom - hall_start - hall_rel_width; 
+		int ntop=2, nbot=2;
+		int hall_num_y_cells=3;
+	      
+	      	hallbpara hallp={};
+	
+	      
+	     
 		
 	  
 	  
 	    
 	  
-	   int buffer_rows=0;
+	
 	//disorder / system config default parameters - for sublattice
 	  double suba_conc=1.0, suba_pot=0.062, subb_conc=1.0, subb_pot=-0.062;
 	  int xory=0;
 	  double interface_width=0.0, interface_position;
 	  
-	  
-	  
-	    
 	  
 	  
 	//disorder / system config parameters - for antidots overwrites some of the above...
@@ -271,8 +385,9 @@ main(int argc, char *argv[])
 	  sprintf(latgeo, "trig");
 	  sprintf(dotgeo, "circ");
 	  
-	//lead info
-	  int num_leads=2;
+	
+	  
+	  
 	  
 	  
 	  //specific device settings, generation functions & parameters
@@ -516,7 +631,7 @@ main(int argc, char *argv[])
 		      
 		    }
 		    
-		    
+// 		    printf("#BUFFERS %d %d\n", buffer_rows, adotp.buffer_rows);
 		    //antidot system sizes calculated from lattice details
 		    if(strcmp("trig", latgeo) == 0)
 		    {
@@ -605,30 +720,86 @@ main(int argc, char *argv[])
 		
 	  
 
-	//hopping related
-		double t0=-1.0, NNlowdis=0.56, NNhighdis=0.59;
-		
-		//check for command line arguments which vary these
-		    for(i=1; i<argc-1; i++)
-		    {
-		      if(strcmp("-t0", argv[i]) == 0)
-		      {
-			  sscanf(argv[i+1], "%lf", &t0);
-		      }
-		      if(strcmp("-NNlowdis", argv[i]) == 0)
-		      {
-			  sscanf(argv[i+1], "%lf", &NNlowdis);
-		      }
-		      if(strcmp("-NNhighdis", argv[i]) == 0)
-		      {
-			  sscanf(argv[i+1], "%lf", &NNhighdis);
-		      }
-		    }
+
 	  
 	  
 	//misc  
 	  
 	  double cond2;
+	  
+	  
+	  
+	  //standard hall ssettings
+	   if(ishallbar==1)
+	      {
+		connectrules = &graph_conn_sep;
+		isperiodic=0;
+		cnxpara.periodic = 0;
+		kpts = 1;
+		
+		 for(i=1; i<argc-1; i++)
+		 {
+		    if(strcmp("-ntop", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &ntop);
+		    }
+		    if(strcmp("-nbot", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &nbot);
+		    }
+		    if(strcmp("-halldenom", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &hall_denom);
+		    }
+		    if(strcmp("-hallrelwidth", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &hall_rel_width);
+		    }
+		    if(strcmp("-hallstart", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &hall_start);
+		    }
+		    hall_second_start = hall_denom - hall_start - hall_rel_width;
+		    //possibilities for fancier more probe geometries here
+		    if(strcmp("-hallsecstart", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &hall_second_start);
+		    }
+		    if(strcmp("-hallycells", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &hall_num_y_cells);
+		    }
+		
+		 }
+		  num_leads =2 + ntop + nbot;
+		  
+		  sprintf(peritype, "HALLBAR_%d_%d_rw_%d", ntop, nbot, hall_denom);
+
+		  
+		  hallp.num_top_probes=ntop, hallp.num_bot_probes=nbot;
+		  hallp.toppx = createIntArray(ntop);
+		  hallp.toppw = createIntArray(ntop);
+		  hallp.toppc = createIntArray(ntop);
+		  hallp.botpx = createIntArray(nbot);
+		  hallp.botpw = createIntArray(nbot);
+		  hallp.botpc = createIntArray(nbot);
+		  
+		  //THIS ASSUMES ntop and nbot = 2
+		  //NEEDS TO BE GENERALISED IF USED FOR OTHER CASES!
+		  hallp.toppx[0] = (int) ((hall_start)*(length2-2*buffer_rows)/hall_denom) + buffer_rows;
+		  hallp.toppw[0] = (int) (hall_rel_width*geo_renorm*(length2-2*buffer_rows)/hall_denom) ;
+		  hallp.toppx[1] = (int) ((hall_second_start)*(length2-2*buffer_rows)/hall_denom) + buffer_rows;
+		  hallp.toppw[1] = (int) (hall_rel_width*geo_renorm*(length2-2*buffer_rows)/hall_denom) ;
+		  hallp.botpx[0] = (int) ((hall_start)*(length2-2*buffer_rows)/hall_denom) + buffer_rows;
+		  hallp.botpw[0] = (int) (hall_rel_width*geo_renorm*(length2-2*buffer_rows)/hall_denom) ;
+		  hallp.botpx[1] = (int) ((hall_second_start)*(length2-2*buffer_rows)/hall_denom) + buffer_rows;
+		  hallp.botpw[1] = (int) (hall_rel_width*geo_renorm*(length2-2*buffer_rows)/hall_denom) ;
+		  
+		  hallp.toppc[0] = hall_num_y_cells; hallp.toppc[1] = hall_num_y_cells;
+		  hallp.botpc[0] = hall_num_y_cells; hallp.botpc[1] = hall_num_y_cells;
+		
+	      }
+	  
 
 
 	  //loop info
@@ -784,23 +955,93 @@ main(int argc, char *argv[])
 	    int **siteinfo = System.siteinfo;
 	    double *site_pots = System.site_pots;
 	    
+	     //in theory cell Division could write to lead_para, so its defined here
+	  lead_para leadp={};
+	  
+	  
+
+	  	  int halloutput;
+		  
 	    
+		  
+	  if(magsetup==0)
+	  {
+	    gauge = 0;
+	  }
+	  if(magsetup==1)
+	  {
+	    gauge = 1;
+	  }
+		  
+		  
+	  if(ishallbar == 1)
+	  {
+		if(output_type == 1 && this_proc == 0)
+		  halloutput = 1;
+		
+		else
+		  output_type = 0;
+		
+		
+		HallBarify (&System, LeadCells, &hallp, &leadp, halloutput, strucfile);
+		
+			time = clock() - time;
+		printf("#converted to Hall Bar in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
+		time = clock();
+		
+		if(magsetup==0)
+		{
+		  gauge = 3;
+		}
+		if(magsetup==1)
+		{
+		  gauge = 2;
+		}
+		
+		
+		pos = System.pos;
+		
+
+	  }
+
+		
+	  
+	  
+	  
+	  if(ishallbar != 1)
+	  {
+	    genLeads(&System, LeadCells, num_leads, 0, &leadp);
+	  }
+	  
+
+  
+	  
+	  
+	  
 
 	  cnxProfile cnxp;
 	  cnxp.max_neigh=max_neigh;
-	  device_connectivity (&System, connectrules, NULL, &cnxp);
+	  device_connectivity (&System, connectrules, &cnxpara, &cnxp);
 	  
 		time = clock() - time;
 		printf("#made connection profile in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		time = clock();
-   	  //printConnectivity (&System, &cnxp);
+   	 // printConnectivity (&System, &cnxp);
 	  
-	  //in theory cell Division could write to lead_para, so its defined here
-	  lead_para leadp={};
-
+		
+		
+	  gen_start_params start_p ={};
+	  start_p.rule = &graph_conn_sep2;
+	  start_p.rule_params = &cnxpara;
+	  start_p.num_leads = num_leads;
+	  start_p.Leads = LeadCells;
+	  
 		
 	  cellDivision cellinfo;
-	  genStartingCell(&System, &cellinfo, 2, NULL);
+	 // genStartingCell(&System, &cellinfo, 2, NULL);
+	  
+	  	  genStartingCell(&System, &cellinfo, 3, &start_p);
+
 	  
 		time = clock() - time;
 		printf("#generated starting cell in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
@@ -812,21 +1053,104 @@ main(int argc, char *argv[])
 		printf("#split cells in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		time = clock();
 
-
+// exit(0);
+		
+		
 	  //hopping parameters and gauge info
+
+//GAUGE NEEDS TO BE GENERALISED FOR HALL BAR CASE
+//TIDY THIS UP IN GENERAL TO ALLOW FIELD IN LEADS
 	  gen_hop_params hoppara={};
-	  hoppara.t0=t0;
+	  hoppara.num_neigh = nngm;
+	  hoppara.hops=createCompArray(hoppara.num_neigh);
+	  hoppara.NN_lowdis=createDoubleArray(hoppara.num_neigh);
+	  hoppara.NN_highdis=createDoubleArray(hoppara.num_neigh);
+	  hoppara.NN_shifts=createDoubleArray(hoppara.num_neigh);
+	  
+	  hoppara.hops[0]=t0;
+	  hoppara.NN_lowdis[0] = NNlowdis;
+	  hoppara.NN_highdis[0] = NNhighdis;
+	  
+	  if(nngm>1)
+	  {
+	    hoppara.hops[1]=t1;
+	    hoppara.NN_lowdis[1]=NNlowdis1;
+	    hoppara.NN_highdis[1]=NNhighdis1;
+	    hoppara.NN_shifts[1]= onsitec1;
+	  }
+	    
+	  if(nngm>2)
+	  {
+	    hoppara.hops[2]=t2;
+	    hoppara.NN_lowdis[2]=NNlowdis2;
+	    hoppara.NN_highdis[2]=NNhighdis2;
+	    hoppara.NN_shifts[2]= onsitec2;
+	    
+	  }
+// 	  hoppara.t0=t0;
 	  hoppara.isperiodic=isperiodic;
 	  hoppara.kpar=kmin;
-	  hoppara.NN_lowdis=NNlowdis;
-	  hoppara.NN_highdis=NNhighdis;
-	  hoppara.gauge=1;
+// <<<<<<< HEAD
+// 	  hoppara.NN_lowdis=NNlowdis;
+// 	  hoppara.NN_highdis=NNhighdis;
+// 	  hoppara.gauge=1;
+// 	  
+// 	    //mag field cut off
+// 	      int *res = createIntArray(2);
+// 	      res[0] = 0;
+// 	      res[1] = 0; 
+// 	      double **reslimits = createNonSquareDoubleMatrix(2, 2);
+// =======
 	  
-	    //mag field cut off
-	      int *res = createIntArray(2);
-	      res[0] = 0;
-	      res[1] = 0; 
-	      double **reslimits = createNonSquareDoubleMatrix(2, 2);
+	  hoppara.gauge=gauge;
+	  int *res = createIntArray(2);
+	  double **reslimits = createNonSquareDoubleMatrix(2, 4);
+	  
+	  
+	  //mag field cut offs
+	  if(gauge==0)
+	  {
+	      res[0] = 1;
+	      reslimits[0][0] = pos[0][0];
+	      reslimits[0][1] = pos[Ntot-1][0];
+	  }
+	      
+	  
+	  //this assumes bottom and top probes are collinear, I guess is can be generalised later
+	  if(gauge == 2 || gauge == 3)
+	  {
+	    reslimits[0][0] = pos[2*length1*buffer_rows][0];
+	    reslimits[0][1] = pos[2*length1*(hallp.toppx[0] -1)][0];
+	    reslimits[0][2] = pos[2*length1*(hallp.toppx[1] + (int)((hallp.toppw[1]+1)/2)  +1)][0];
+	    reslimits[0][3] = pos[2*length1*(length2 -buffer_rows - 1)][0];
+	    
+	  }
+	  
+	  if(gauge == 3)
+	  {
+// 	    reslimits[1][0] = (LeadCells[4]->pos)[*(LeadCells[4]->Ntot) -1][1]   ;
+// 	    reslimits[1][3] = (LeadCells[2]->pos)[0][1];
+	    
+	    reslimits[1][0] = pos[2*length1*length2 + 2*(hallp.toppc[0]*hallp.toppw[0] +  hallp.toppc[1]*hallp.toppw[1] + hallp.botpc[0]*hallp.botpw[0])-1 ][1];
+	    reslimits[1][3] = pos[2*length1*length2 + 2*hallp.toppc[0]*hallp.toppw[0]  -1][1];
+
+	    
+	    /*
+	    printf("%lf	%lf\n%lf	%lf\n", 0.0, reslimits[1][0], length2*1.0, reslimits[1][0]);
+	    printf("%lf	%lf\n%lf	%lf\n", 0.0, reslimits[1][3], length2*1.0, reslimits[1][3]);*/
+	    
+	  }
+	  
+// 	      printf("# GAUGE %d\n", gauge);
+// 	      for(i=0;i<2;i++)
+// 	      {
+// 		for(j=0; j<4; j++)
+// 		{
+// 		  printf("# limits %d	%d %lf\n", i, j, reslimits[i][j]);
+// 		}
+// 	      }
+	      
+// >>>>>>> hallbars
 // 	      reslimits[0][0] = pos[0][0];
 // 	      reslimits[0][1] = pos[Ntot-1][0];
 	
@@ -841,15 +1165,23 @@ main(int argc, char *argv[])
 	  leadp.hopfn = hopfn;
 	  leadp.hoppara = &hoppara;
 // 	  
-	  leadp.leadsfn = &simple2leads;
+	 // leadp.leadsfn = &simple2leads;
+	  	  leadp.leadsfn = &multipleLeads;
+
 	  
 	  trans_params tpara = {};
 	  tpara.num_leads=num_leads;
 	  tpara.TRsym=ismagnetic;
 	  double **transmissions = createNonSquareDoubleMatrix(num_leads, num_leads);
+	  double **ttildas=createNonSquareDoubleMatrix(num_leads, num_leads);
+	  double **mtrans = createNonSquareDoubleMatrix(num_leads-1, num_leads-1);
+	  double *vecx = createDoubleArray(num_leads-1);
+	  double *vecb = createDoubleArray(num_leads-1);
+	  
 
 	  tpara.transmissions = transmissions;
- 	  genLeads(&System, LeadCells, 2, 0, &leadp);
+// <<<<<<< HEAD
+//  	  genLeads(&System, LeadCells, 2, 0, &leadp);
 
 	  double kavg;
 	  
@@ -956,6 +1288,11 @@ main(int argc, char *argv[])
 		
 	 }
 	  
+// =======
+
+// 	  double kavg;
+//  	  exit(0);
+// >>>>>>> hallbars
 	  
 	  for(en=0; en<loop_pts_temp; en++)
 	  {
@@ -986,21 +1323,93 @@ main(int argc, char *argv[])
 	      }
 	      
 	      output =fopen(filename, "a");
-	      if(strcmp("E", loop_type) == 0)
+	      
+	      if(ishallbar == 0)
 	      {
-		fprintf(output, "%lf	%e\n", realE, kavg);
-		printf( "%lf	%e\n", realE, kavg);
+		if(strcmp("E", loop_type) == 0)
+		{
+		  fprintf(output, "%lf	%e\n", realE, kavg);		
+  // 		printf("%lf	%e	%e	%e	%e	%e\n", realE, transmissions[0][1], transmissions[0][2], transmissions[0][3], transmissions[0][4], transmissions[0][5]);
 
+		  //printf( "%lf	%e\n", realE, kavg);
+
+		}
+		if(strcmp("B", loop_type) == 0)
+		{
+		  fprintf(output, "%lf	%e\n", Bfield, kavg);
+  // 		printf("%lf	%e	%e	%e	%e	%e\n", Bfield, transmissions[0][1], transmissions[0][2], transmissions[0][3], transmissions[0][4], transmissions[0][5]);
+		}
 	      }
-	      if(strcmp("B", loop_type) == 0)
+	      
+	      if (ishallbar==1)
 	      {
-		fprintf(output, "%lf	%e\n", Bfield, kavg);
-		printf("%lf	%e\n", Bfield, kavg);
+		EmptyDoubleMatrix(ttildas, num_leads, num_leads);
+		EmptyDoubleMatrix(mtrans, num_leads-1, num_leads-1);
+		
+		for(i=0; i<num_leads; i++)
+		{
+		  for(j=0; j<num_leads; j++)
+		  {
+		    if(i!=j)
+		    {
+			    ttildas[i][i] += transmissions[j][i] ; 
+			    ttildas[i][j] = -transmissions[i][j] ;
+		    }
+		  }
+		}
+		
+		mtrans[0][0] = 1 / transmissions[0][0];
+		
+		for(i=1; i<num_leads-1; i++)
+		{
+		    mtrans[0][i] = - ttildas[0][i+1] / ttildas[0][0];
+		    mtrans[i][0] = ttildas[i+1][0] / ttildas[0][0];
+		    
+		    for(j=1; j< num_leads-1; j++)
+		    {
+		      mtrans[i][j] = ttildas[i+1][j+1] - (ttildas[i+1][0] * ttildas[0][j+1])/ttildas[0][0] ;
+		      
+		    }
+		}
+		vecb[0] = 1.0;
+		
+		LinEqnDouble (mtrans, vecb, vecx, num_leads-1);
+		
+		
+		
+		if(strcmp("E", loop_type) == 0)
+		{
+		  fprintf(output, "%lf	%e	%e	%e\n", realE, (vecx[1]-vecx[3])/vecx[0], (vecx[1]-vecx[2])/vecx[0], kavg);		
+  // 		printf("%lf	%e	%e	%e	%e	%e\n", realE, transmissions[0][1], transmissions[0][2], transmissions[0][3], transmissions[0][4], transmissions[0][5]);
+
+		  //printf( "%lf	%e\n", realE, kavg);
+
+		}
+		if(strcmp("B", loop_type) == 0)
+		{
+		  fprintf(output, "%lf	%e	%e	%e\n", Bfield, (vecx[1]-vecx[3])/vecx[0], (vecx[1]-vecx[2])/vecx[0], kavg);		
+  // 		printf("%lf	%e	%e	%e	%e	%e\n", Bfield, transmissions[0][1], transmissions[0][2], transmissions[0][3], transmissions[0][4], transmissions[0][5]);
+		}
+		
+		
+// 		trs3[0][0] = - 1 / trs2[0][0];
+// 		for(i=1; i<5; i++)
+// 		{
+// 			trs3[0][i] = - trs2[0][i+1] / trs2[0][0] ;
+// 			trs3[i][0] = - trs2[i+1][0] / trs2[0][0] ;
+// 
+// 			for(j=1; j<5; j++)
+// 			{
+// 				trs3[i][j] =  trs2[i+1][j+1] - (trs2[i+1][0] * trs2[0][j+1]) / (trs2[0][0]) ;
+// 			}
+// 		}
+// 		vecb[0] = 1.0;
+		
 	      }
 	      
 	      fclose(output);
 
-	    
+//  	    exit(0);
 	  }
 			
 //  	for(realE=0.002; realE<0.5; realE+=0.2)
@@ -1100,6 +1509,8 @@ main(int argc, char *argv[])
 // 	      
 // 	      
 	       //define this process as finished, and check how many others are
+	       srand(this_proc);
+	        sleep(myRandNum(0.0, 10.0));
 		check = fopen(checkname, "r");
 		fscanf(check, "%d", &numfin);
 		fclose(check);

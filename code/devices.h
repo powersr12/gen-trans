@@ -67,9 +67,22 @@ typedef struct {
 	double xyfluc;
 }adot_para;
 
+typedef struct {
+  int num_top_probes;
+  int num_bot_probes;
+  int *toppx;
+  int *toppw;
+  int *toppc;
+  int *botpx;
+  int *botpw;
+  int *botpc;
+}hallbpara;
+
+
 typedef void (generatefn) (RectRedux *, void *, int , char *);
 
 void genLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, int mode, lead_para *params);
+void HallBarify (RectRedux *System, RectRedux **Leads, hallbpara *hall_para, lead_para *params, int struc_out, char *filename);
 
 void simpleRibbonGeo (RectRedux *SiteArray, void *p, int struc_out, char *filename);
 

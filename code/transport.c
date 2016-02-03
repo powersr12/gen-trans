@@ -64,6 +64,7 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 	      Gamma[i][j] = I*(SigmaR[i][j] - SigmaA[i][j]);
 	    }
 	  }
+//   	  listNonZero(SigmaR, cell1dim, cell1dim);
       FreeMatrix(SigmaR); FreeMatrix(SigmaA); 
       
       s1=0; 
@@ -131,6 +132,9 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
   int dim1  = (cellinfo->cell_dims)[0];
   double *bshifts = createDoubleArray(3);
   
+ 
+  
+  
   if(mode == 0 || mode == 1)
   {
     cell_start = num_cells-1;
@@ -166,7 +170,9 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 	{
 	  index1 = (cellinfo->cells_site_order)[this0 +i];
 	  
-	  g00inv[i][i] = En - (DeviceCell->site_pots)[index1];
+	  g00inv[i][i] = En - (DeviceCell->site_pots)[index1] - hoppingfn(DeviceCell, DeviceCell, index1, index1, bshifts, hoppingparams);;
+	  
+	  
 	  
 	}
 
@@ -1418,7 +1424,13 @@ double genConduc4(double _Complex En,
 double _Complex simpleTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, int b, double *bshifts, void *hoppingparams)
 {
   gen_hop_params *para = (gen_hop_params *)hoppingparams; 
-  double t0 = para->t0;
+  int num_neigh = para->num_neigh;
+  double _Complex *hops = para->hops;
+  double  *NN_lowdis = para->NN_lowdis;
+  double  *NN_highdis = para->NN_highdis;
+  double  *NN_shifts = para->NN_shifts;
+
+  double t0;
   double kpar = para->kpar;
   double _Complex ans=0.0;
   double x1 = (aDeviceCell->pos)[a][0], y1 = (aDeviceCell->pos)[a][1];
@@ -1427,14 +1439,26 @@ double _Complex simpleTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, 
   
   double dist = sqrt(pow(x2-x1, 2.0) + pow(y2-y1, 2.0));
   double ycelldist;
-  
+  int i;
   //if((para->isperiodic)==0)
   //{
-    if(dist > (para->NN_lowdis) && dist < (para->NN_highdis))
+  
+    //which coupling to use
+    t0=0.0;
+    for(i=0; i< num_neigh; i++)
     {
-     ans=t0;     
+      if(dist > (para->NN_lowdis[i]) && dist < (para->NN_highdis[i]))
+      {
+           t0 = hops[i];
+      }
+      
+      if(dist == 0.0)
+      {
+	t0 += NN_shifts[i];
+      }
     }
-  //}
+    ans=t0;
+ 
   
 
       //note the += to allow more than one connection between the same atoms (or their images)
@@ -1456,20 +1480,40 @@ double _Complex simpleTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, 
     y2p = y2 + ycelldist;
     distp= sqrt(pow(x2-x1, 2.0) + pow(y2p-y1, 2.0));
     
-    if(distp > (para->NN_lowdis) && distp < (para->NN_highdis))
+//     if(distp > (para->NN_lowdis) && distp < (para->NN_highdis))
+//     {
+//      ans+=t0*cexp(-I*kpar);    
+//     }
+    
+    t0=0.0;
+    for(i=0; i< num_neigh; i++)
     {
-     ans+=t0*cexp(-I*kpar);    
+      if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
+      {
+           t0 = hops[i];
+      }
     }
+    ans+=t0*cexp(-I*kpar); 
+    
     
     //check if b is in cell below
     y2p = y2 - ycelldist;
     distp= sqrt(pow(x2-x1, 2.0) + pow(y2p-y1, 2.0));
     
-    if(distp > (para->NN_lowdis) && distp < (para->NN_highdis))
-    {
-     ans+=t0*cexp(I*kpar); 
-    }
+//     if(distp > (para->NN_lowdis) && distp < (para->NN_highdis))
+//     {
+//      ans+=t0*cexp(I*kpar); 
+//     }
     
+    t0=0.0;
+    for(i=0; i< num_neigh; i++)
+    {
+      if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
+      {
+           t0 = hops[i];
+      }
+    }
+    ans+=t0*cexp(I*kpar); 
     
   }
   //printf("# hopping %d	%d: %lf	%lf\n", a, b, ans, dist);
@@ -1482,7 +1526,13 @@ double _Complex simpleTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, 
 double _Complex peierlsTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, int b, double *bshifts, void *hoppingparams)
 {
   gen_hop_params *para = (gen_hop_params *)hoppingparams; 
-  double t0 = para->t0;
+  int num_neigh = para->num_neigh;
+  double _Complex *hops = para->hops;
+  double  *NN_lowdis = para->NN_lowdis;
+  double  *NN_highdis = para->NN_highdis;
+  double  *NN_shifts = para->NN_shifts;
+
+  double t0;
   double kpar = para->kpar;
   double _Complex ans=0.0;
   double x1 = (aDeviceCell->pos)[a][0], y1 = (aDeviceCell->pos)[a][1];
@@ -1491,14 +1541,37 @@ double _Complex peierlsTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a,
   
   double dist = sqrt(pow(x2-x1, 2.0) + pow(y2-y1, 2.0));
   double ycelldist;
+  int i;
   
   //if((para->isperiodic)==0)
   //{
-    if(dist > (para->NN_lowdis) && dist < (para->NN_highdis))
+//     if(dist > (para->NN_lowdis) && dist < (para->NN_highdis))
+//     {
+//      ans=t0*graphenePeierlsPhase(x1, y1, x2, y2, para->gauge, para->Btes, para->restrics, para->limits);     
+//     }
+//   //}
+  
+    //which coupling to use
+    t0=0.0;
+    for(i=0; i< num_neigh; i++)
     {
-     ans=t0*graphenePeierlsPhase(x1, y1, x2, y2, para->gauge, para->Btes, para->restrics, para->limits);     
+      if(dist > (para->NN_lowdis[i]) && dist < (para->NN_highdis[i]))
+      {
+           t0 = hops[i];
+      }
+      
+      if(dist == 0.0)
+      {
+	t0 += NN_shifts[i];
+      }
+      
+      
     }
-  //}
+    ans=t0*graphenePeierlsPhase(x1, y1, x2, y2, para->gauge, para->Btes, para->restrics, para->limits);     
+
+  
+  
+  
   
 
       //note the += to allow more than one connection between the same atoms (or their images)
@@ -1520,19 +1593,42 @@ double _Complex peierlsTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a,
     y2p = y2 + ycelldist;
     distp= sqrt(pow(x2-x1, 2.0) + pow(y2p-y1, 2.0));
     
-    if(distp > (para->NN_lowdis) && distp < (para->NN_highdis))
+//     if(distp > (para->NN_lowdis) && distp < (para->NN_highdis))
+//     {
+//      ans+=t0*graphenePeierlsPhase(x1, y1, x2, y2p, para->gauge, para->Btes, para->restrics, para->limits)*cexp(-I*kpar);    
+//     }
+    
+    t0=0.0;
+    for(i=0; i< num_neigh; i++)
     {
-     ans+=t0*graphenePeierlsPhase(x1, y1, x2, y2p, para->gauge, para->Btes, para->restrics, para->limits)*cexp(-I*kpar);    
+      if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
+      {
+           t0 = hops[i];
+      }
     }
+    ans+=t0*graphenePeierlsPhase(x1, y1, x2, y2p, para->gauge, para->Btes, para->restrics, para->limits)*cexp(-I*kpar);    
+    
+    
     
     //check if b is in cell below
     y2p = y2 - ycelldist;
     distp= sqrt(pow(x2-x1, 2.0) + pow(y2p-y1, 2.0));
     
-    if(distp > (para->NN_lowdis) && distp < (para->NN_highdis))
+//     if(distp > (para->NN_lowdis) && distp < (para->NN_highdis))
+//     {
+//      ans+=t0*graphenePeierlsPhase(x1, y1, x2, y2p, para->gauge, para->Btes, para->restrics, para->limits)*cexp(I*kpar);    
+//     }
+//     
+    t0=0.0;
+    for(i=0; i< num_neigh; i++)
     {
-     ans+=t0*graphenePeierlsPhase(x1, y1, x2, y2p, para->gauge, para->Btes, para->restrics, para->limits)*cexp(I*kpar);    
+      if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
+      {
+           t0 = hops[i];
+      }
     }
+    ans+=t0*graphenePeierlsPhase(x1, y1, x2, y2p, para->gauge, para->Btes, para->restrics, para->limits)*cexp(I*kpar);    
+    
     
     
   }
@@ -1543,52 +1639,62 @@ double _Complex peierlsTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a,
 
 //returns peierls phase factor for two sites in graphene lattice
 //note assumes the graphene lattice constant, so should be generalised for nongraphene
+//gauge = 0 -> phase along x
+//gauge = 1 -> phase along y
+
+//gauges 2 and 3 returns peierls phase factor for two sites in graphene lattice in a Hall bar setup
+//there is a twist in the gauge to allow periodic leads in both directions
+//gauge = 2 -> fields in leads - phase along y initially
+//gauge = 3 -> no fields in leads - phase along x initially
+
 double _Complex graphenePeierlsPhase(double x1, double y1, double x2, double y2, int gauge, double BTesla, int *res, double **limits)
 {
  
   double xb, yb, delx, dely, midx, midy;
   double beta = BTesla * 1.46262E-5;
-  double phase;
+  double phase, weight;
   dely=y2-y1; delx=x2-x1;
   midx=x1 + delx/2; midy = y1+dely/2;
   
 
-  
-  
-  if(res[0] == 0)
+  //limits for gauge=0 and gauge=1 if finite cutoff
+  if (gauge == 0 || gauge == 1)
   {
-    xb=midx;
-  }
-  else if(res[0] == 1)
-  {
-    xb=midx;
-    if(xb<limits[0][0])
-    {
-      xb=limits[0][0]  ;
-    }
-    if(xb>limits[0][1])
-    {
-      xb=limits[0][1]  ;
-    }
-    
-  }
-  //printf("#x %lf	%lf\n", x, x1);
-  
-  if(res[1] == 0)
-  {
-    yb=midy;
-  }
-  else if(res[0] == 1)
-  {
-    yb=midy;
-    if(yb<limits[1][0])
-    {
-      yb=limits[1][0];
-    }
-    if(yb>limits[1][1])
-    {
-      yb=limits[1][1];
-    }
+	if(res[0] == 0)
+	{
+	  xb=midx;
+	}
+	else if(res[0] == 1)
+	{
+	  xb=midx;
+	  if(xb<limits[0][0])
+	  {
+	    xb=limits[0][0]  ;
+	  }
+	  if(xb>limits[0][1])
+	  {
+	    xb=limits[0][1]  ;
+	  }
+	  
+	}
+	//printf("#x %lf	%lf\n", x, x1);
+	
+	if(res[1] == 0)
+	{
+	  yb=midy;
+	}
+	else if(res[0] == 1)
+	{
+	  yb=midy;
+	  if(yb<limits[1][0])
+	  {
+	    yb=limits[1][0];
+	  }
+	  if(yb>limits[1][1])
+	  {
+	    yb=limits[1][1];
+	  }
+	}
   }
   
   if(gauge == 0)
@@ -1602,15 +1708,294 @@ double _Complex graphenePeierlsPhase(double x1, double y1, double x2, double y2,
   {
    // phase = beta*(y*delx + 0.5*delx*dely);
    //phase = beta*(y*delx );
-        phase = beta*yb*delx;
-
+        phase = -beta*yb*delx;
     
   }
+  
+  if(gauge == 2)
+  {
+    if(midx <= limits[0][0])
+    {
+      weight = 0.0;
+    }
+    if(midx > limits[0][0] && midx < limits[0][1])
+    {
+      weight = (midx - limits[0][0])/(limits[0][1] - limits[0][0]);
+    }
+    if(midx >= limits[0][1] && midx <= limits[0][2])
+    {
+      weight = 1.0;
+    }
+    if(midx > limits[0][2] && midx < limits[0][3])
+    {
+      weight = 1.0 - (midx - limits[0][2])/(limits[0][3] - limits[0][2]);
+    }
+    if(midx >= limits[0][3])
+    {
+      weight = 0.0;
+    }
+    phase = beta*( (weight -1)*midy*delx + weight*midx*dely);
+  }
+    
+  if(gauge == 3)
+  {
+      
+      //x-limits
+      xb=midx;
+      if(xb<limits[0][0])
+      {
+	xb=limits[0][0]  ;
+      }
+      if(xb>limits[0][3])
+      {
+	xb=limits[0][3]  ;
+      }
+    
+ 
+  
+      //ylimits  -limits[1][1]? and [1][2] not used in this code, but indices consistent with x limits
+      yb=midy;
+      if(yb<limits[1][0])
+      {
+	yb=limits[1][0];
+      }
+      if(yb>limits[1][3])
+      {
+	yb=limits[1][3];
+      }
+      
+      
+      if(midx <= limits[0][0])
+      {
+	weight = 0.0;
+      }
+      if(midx > limits[0][0] && midx < limits[0][1])
+      {
+	weight = (midx - limits[0][0])/(limits[0][1] - limits[0][0]);
+      }
+      if(midx >= limits[0][1] && midx <= limits[0][2])
+      {
+	weight = 1.0;
+      }
+      if(midx > limits[0][2] && midx < limits[0][3])
+      {
+	weight = 1.0 - (midx - limits[0][2])/(limits[0][3] - limits[0][2]);
+      }
+      if(midx >= limits[0][3])
+      {
+	weight = 0.0;
+      }
+      phase = beta*( (weight -1)*midx*dely + weight*midy*delx);
+      
+      
+  
+  }
+  
+  
+  
+  
+  
+  
 //  printf("# %lf (%lf,  %lf) phase %+e\n", x, delx, dely, phase);
   
   return cexp(2 * M_PI * I * phase);  
   
   
+}
+
+
+
+//returns peierls phase factor for two sites in graphene lattice in a Hall bar setup
+//note assumes the graphene lattice constant, so should be generalised for nongraphene
+//there is a twist in the gauge to allow periodic leads in both directions
+//gauge = 3 -> fields in leads
+//gauge = 4 -> no fields in leads
+double _Complex grapheneHallPhase(double x1, double y1, double x2, double y2, int gauge, double BTesla, int *res, double **limits)
+{
+ 
+  double xb, yb, delx, dely, midx, midy;
+  double beta = BTesla * 1.46262E-5;
+  double phase, weight;
+  dely=y2-y1; delx=x2-x1;
+  midx=x1 + delx/2; midy = y1+dely/2;
+  
+
+  if(gauge == 3)
+  {
+    if(midx <= limits[0][0])
+    {
+      weight = 0.0;
+    }
+    if(midx > limits[0][0] && midx < limits[0][1])
+    {
+      weight = (midx - limits[0][0])/(limits[0][1] - limits[0][0]);
+    }
+    if(midx >= limits[0][1] && midx <= limits[0][2])
+    {
+      weight = 1.0;
+    }
+    if(midx > limits[0][2] && midx < limits[0][3])
+    {
+      weight = 1.0 - (midx - limits[0][2])/(limits[0][3] - limits[0][2]);
+    }
+    if(midx >= limits[0][3])
+    {
+      weight = 0.0;
+    }
+    phase = beta*( (weight -1)*midy*delx + weight*midx*dely);
+  }
+    
+  if(gauge == 4)
+  {
+      
+      //x-limits
+      xb=midx;
+      if(xb<limits[0][0])
+      {
+	xb=limits[0][0]  ;
+      }
+      if(xb>limits[0][3])
+      {
+	xb=limits[0][3]  ;
+      }
+    
+ 
+  
+      //ylimits  -limits[1][3] and [1][2] not used in this code, but indices consistent with x limits
+      yb=midy;
+      if(yb<limits[1][0])
+      {
+	yb=limits[1][0];
+      }
+      if(yb>limits[1][3])
+      {
+	yb=limits[1][3];
+      }
+      
+      
+      if(midx <= limits[0][0])
+      {
+	weight = 0.0;
+      }
+      if(midx > limits[0][0] && midx < limits[0][1])
+      {
+	weight = (midx - limits[0][0])/(limits[0][1] - limits[0][0]);
+      }
+      if(midx >= limits[0][1] && midx <= limits[0][2])
+      {
+	weight = 1.0;
+      }
+      if(midx > limits[0][2] && midx < limits[0][3])
+      {
+	weight = 1.0 - (midx - limits[0][2])/(limits[0][3] - limits[0][2]);
+      }
+      if(midx >= limits[0][3])
+      {
+	weight = 0.0;
+      }
+      phase = beta*( (weight -1)*midx*dely + weight*midy*delx);
+      
+      
+  
+  }
+    
+  
+//  printf("# %lf (%lf,  %lf) phase %+e\n", x, delx, dely, phase);
+  
+  return cexp(2 * M_PI * I * phase);  
+  
+  
+}
+
+
+//generalised lead Sigmas (based on simple2leads)
+void multipleLeads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadCells, cellDivision *cellinfo, lead_para *params, double _Complex **Sigma)
+{
+  
+    int leadloop, dim1, dim1a,  dimcounta=0, lcount;
+    double _Complex **ginv, **V12, **V21, **g00, **SL, **SR, **VLD, **VDL, **smallSigma, **temp1;
+    double elemerr=1.0e-15;
+
+    int num_leads = (cellinfo->num_leads);
+    int i, j, k;
+  
+    double *bshifts0 = createDoubleArray(3);
+    hoppingfunc *hopfn = (hoppingfunc *)(params->hopfn);
+    
+    
+    for(leadloop=0; leadloop < num_leads; leadloop++)
+    {
+  
+      //generate leads SGFs
+  
+	  dim1 = *(LeadCells[leadloop]->Nrem);
+	  ginv = createSquareMatrix(dim1);
+	  V12 = createSquareMatrix(dim1);
+	  V21 = createSquareMatrix(dim1);
+	  g00 = createSquareMatrix(dim1);
+
+	  SL = createSquareMatrix(dim1);
+
+	  //generate the info required for Rubio method
+	  lead_prep(En, LeadCells[leadloop], leadloop, params, ginv, V12, V21);
+	  
+
+	  InvertMatrixGSL(ginv, g00, dim1);
+	  RubioSGF(SL, g00, V12, V21, dim1, &lcount, elemerr*dim1*dim1);
+// 	    if(leadloop==0)
+// 	  {
+// // 	    printf("DIM %d\n", dim1);
+// 	    listNonZero(ginv, dim1, dim1);
+// 	    listNonZero(V12, dim1, dim1);
+// 	    listNonZero(V21, dim1, dim1);
+// 	  }
+	  FreeMatrix(ginv); FreeMatrix(V12); FreeMatrix(V21); FreeMatrix (g00);
+	
+
+  
+  //connections of leads to device
+	  //leads are connected to the device using the hopping rules of the lead region, 
+	  //not the device region (if different)
+	  
+	  dim1a = (cellinfo->lead_dims)[leadloop];
+// 	            printf("#lead %d    dim %d %d\n",leadloop, dim1, dim1a);
+
+	  
+	  VLD = createNonSquareMatrix(dim1, dim1a);
+	  VDL = createNonSquareMatrix(dim1a, dim1);
+	  
+	  for(i=0; i <dim1; i++)
+	  {
+	    for(j=0; j<dim1a; j++)
+	    {
+		k=(cellinfo->lead_sites)[dimcounta + j];
+		VLD[i][j] =  (hopfn)(LeadCells[leadloop], DeviceCell, i, k, bshifts0, (params->hoppara) );
+	      	VDL[j][i] =  (hopfn)(DeviceCell, LeadCells[leadloop], k, i, bshifts0, (params->hoppara) );
+	      	//VDL[j][i] =  conj(VLD[i][j] );
+
+	    }
+		  
+	  }
+//  	  listNonZero(VLD, dim1, dim1a);
+//    	  listNonZero(VDL, dim1a, dim1);
+
+	  temp1 = createNonSquareMatrix(dim1a, dim1);
+	  MatrixMultNS(VDL, SL, temp1, dim1a, dim1, dim1);
+	  smallSigma = createSquareMatrix(dim1a);
+
+	  MatrixMultNS(temp1, VLD, smallSigma, dim1a, dim1, dim1a);
+
+	  FreeMatrix(temp1); FreeMatrix(VLD); FreeMatrix(VDL);
+	  
+	  MatrixCopyPart(smallSigma, Sigma, 0, 0, dimcounta, dimcounta, dim1a, dim1a);
+	  FreeMatrix(smallSigma); FreeMatrix(SL);
+	  
+	  dimcounta += dim1a;
+	  
+    }
+// 	      	  listNonZero(Sigma, dimcounta, dimcounta);
+
+    free(bshifts0);
 }
 
 
@@ -1758,7 +2143,7 @@ void lead_prep(double _Complex En, RectRedux *LeadCell, int leadindex, lead_para
     //g00
     for(i=0; i <dim; i++)
     {
-      ginv[i][i] = En - (LeadCell->site_pots[i]);
+      ginv[i][i] = En - (LeadCell->site_pots[i]) - (hopfn)(LeadCell, LeadCell, i, i, bshifts, (params->hoppara) ) ;
       
       for(j=0; j<dim; j++)
       {
@@ -1768,8 +2153,15 @@ void lead_prep(double _Complex En, RectRedux *LeadCell, int leadindex, lead_para
 	}
 	
       }
+      
             
     }
+   
+//   if(leadindex ==0)
+//   {
+//      printf("GINV %d\n", dim);
+// 	listNonZero(ginv, dim, dim);
+//   }
 
       //Vs
     for(i=0; i<3; i++)
