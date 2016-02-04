@@ -893,14 +893,14 @@ main(int argc, char *argv[])
 		if(this_proc ==0)
 		{
 			check = fopen(checkname, "w");
-			fprintf(check, "%d", 0);
+			fprintf(check, "%d", -1);
 			fclose(check);
 			//output_type=1;
 		}
 
 		
 	
-
+		srand(this_proc);
 
 
     
@@ -924,6 +924,8 @@ main(int argc, char *argv[])
 	    clock_t time;
 	    time = clock();
 	    
+	    int can_start_yet=-1;
+	    
 
 	    //generate, or read in, disorder configuration
 		sprintf(conffile, "%s/.%s", direcname, filename_temp);
@@ -936,21 +938,34 @@ main(int argc, char *argv[])
 		  {
 		    exportRectConf(&System, conffile);
 		  }
+		  
+		  check = fopen(checkname, "w");
+		  fprintf(check, "%d", 0);
+		  fclose(check);
+		  
 		}
 		
 
 		
-		time = clock() - time;
-	  printf("#generated geometry in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
-		time = clock();
+		
 		  
 		  if(this_proc > 0)
 		  {
-		    sleep(8*length1);
+		    while(can_start_yet<0)
+		    {
+		      	sleep(myRandNum(1.0*length1, 3.0*length1));
+			check = fopen(checkname, "r");
+			fscanf(check, "%d", &can_start_yet);
+		    }
+		    
 		    importRectConf(&System, length1, length2, conffile);
 		  }
 		  
 
+		  time = clock() - time;
+		  printf("#generated geometry in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
+		  time = clock();
+		  
 	    double **pos = System.pos;
 	    int **siteinfo = System.siteinfo;
 	    double *site_pots = System.site_pots;
@@ -1288,11 +1303,6 @@ main(int argc, char *argv[])
 		
 	 }
 	  
-// =======
-
-// 	  double kavg;
-//  	  exit(0);
-// >>>>>>> hallbars
 	  
 	  for(en=0; en<loop_pts_temp; en++)
 	  {
@@ -1392,109 +1402,13 @@ main(int argc, char *argv[])
 		}
 		
 		
-// 		trs3[0][0] = - 1 / trs2[0][0];
-// 		for(i=1; i<5; i++)
-// 		{
-// 			trs3[0][i] = - trs2[0][i+1] / trs2[0][0] ;
-// 			trs3[i][0] = - trs2[i+1][0] / trs2[0][0] ;
-// 
-// 			for(j=1; j<5; j++)
-// 			{
-// 				trs3[i][j] =  trs2[i+1][j+1] - (trs2[i+1][0] * trs2[0][j+1]) / (trs2[0][0]) ;
-// 			}
-// 		}
-// 		vecb[0] = 1.0;
-		
+
 	      }
 	      
 	      fclose(output);
 
-//  	    exit(0);
 	  }
 			
-//  	for(realE=0.002; realE<0.5; realE+=0.2)
-// 	{
-//  	realE=0.8;
-// 	    genTransmissions(realE+eta*I, &System, LeadCells, &cnxp, &cellinfo, &simpleTB, &hoppara, &leadp, &tpara);
-// 	    kavg=0.0;
-// 
-// 	   for(k=0; k<kpts; k++)
-// 	   {
-// 	     	     hoppara.kpar = kmin + k*kstep;
-// 
-// 	     genTransmissions(realE+eta*I, &System, LeadCells, &cnxp, &cellinfo, hopfn, &hoppara, &leadp, &tpara);
-// 	     kavg += (transmissions[0][1]/kpts);
-// 	     	    printf("%lf	%e	\n", maghoppara.kpar, transmissions[0][1]);
-// 
-// 	   }
-// 	   printf("#%lf	%e	%e	%e	%e\n", realE, transmissions[0][0], transmissions[0][1], transmissions[1][0], transmissions[1][1]);
-// 	    printf("%lf	%e	\n", realE, kavg);
-// 
-// 	}
-	  
-// 	      double *ldoses = createDoubleArray(*(System.Nrem));
-// 	      double **conds = createNonSquareDoubleMatrix(*(System.Nrem), 3);
-// 
-// 	      int *indices = createIntArray(2*System.length*System.length2);
-// 	      int **neigh = createNonSquareIntMatrix(2*System.length*System.length2, 3);
-	      
-// 	      for(en=0; en < Epts_temp; en++)
-// 	      {
-// 
-// 		      realE =  Emin_temp + en*Estep;
-// 		      sprintf(filename3, "%s/%s.en_%.3lf", direcname, filename_temp, realE);
-// 
-// 		      if(mappings == 0)
-// 		      {
-// 			cond2 = genConduc5(realE + eta*I, &System, -1.0);
-// 		      }
-// 		      
-// 		      if(mappings > 0)
-// 		      {
-// 			if((en % mappings) == 0)
-// 			{
-// 			  cond2 = genConduc4(realE + eta*I, &System, ldoses, conds, indices, neigh, -1.0);
-// 			  CurrentMapOut(&System, conds, indices, neigh, filename3);
-// 			  LDOSMapOut(&System, ldoses, filename3);
-// 			}
-// 			if((en % mappings) != 0)
-// 			{
-// 			  cond2 = genConduc5(realE + eta*I, &System, -1.0);
-// 			}
-// 		      }
-// 		      
-// 		      if(mappings < 0)
-// 		      {
-// 			if((en % mappings) == 0 && conf_num == 0)
-// 			{
-// 			  cond2 = genConduc4(realE + eta*I, &System, ldoses, conds, indices, neigh, -1.0);
-// 			  CurrentMapOut(&System, conds, indices, neigh, filename3);
-// 			  LDOSMapOut(&System, ldoses, filename3);
-// 			}
-// 			if((en % mappings) != 0 || conf_num != 0)
-// 			{
-// 			  cond2 = genConduc5(realE + eta*I, &System, -1.0);
-// 			}
-// 		      }
-// 		      
-// 		  //    printf("%lf	%e\n", realE,  genConduc5(realE + eta*I, &System, -1.0));
-// 			
-// 		      //cond2 =genConduc5(realE + eta*I, &System, -1.0);
-// 		      
-// 			//    printf("%lf	%e	%e\n", realE, genConduc5(realE + eta*I, &System, -1.0),genConduc4(realE + eta*I, &System, ldoses, conds, indices, neigh, -1.0) );
-// 			    
-// 		      output =fopen(filename, "a");
-// 		      fprintf(output, "%lf	%e\n", realE, cond2);
-// 		      fclose(output);
-// 
-// 		      //printf("%lf	%lf\n", realE, cond2);
-// 
-// 
-//  	      }
-	      
-	      
-
-
 
 
 // 	      
@@ -1509,7 +1423,6 @@ main(int argc, char *argv[])
 // 	      
 // 	      
 	       //define this process as finished, and check how many others are
-	       srand(this_proc);
 	        sleep(myRandNum(0.0, 10.0));
 		check = fopen(checkname, "r");
 		fscanf(check, "%d", &numfin);
