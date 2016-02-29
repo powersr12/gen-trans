@@ -42,8 +42,8 @@ double genConduc4(double _Complex En, RectRedux *DeviceCell, double *ldoses, dou
 double genConduc5(double _Complex En, RectRedux *DeviceCell, double hopping);
 
 void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp, 
-		      cellDivision *cellinfo, hoppingfunc *hoppingfn, void *hoppingparams, int mode, 
-		      double _Complex **Gon, double _Complex **Goff, double _Complex **Sigma);
+		      cellDivision *cellinfo, hoppingfunc *hoppingfn, void *hoppingparams, int mode, int mode2, 
+		      double _Complex **Gon, double _Complex *Gdiags, double _Complex **Goff, double _Complex **Sigma);
 
 double _Complex simpleTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, int b, double *bshifts, void *hoppingparams);
 double _Complex peierlsTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, int b, double *bshifts, void *hoppingparams);
@@ -57,7 +57,7 @@ void simple2leads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadCe
 void lead_prep(double _Complex En, RectRedux *LeadCell, int leadindex, lead_para *params, double _Complex **ginv, double _Complex **V12, double _Complex **V21);
 void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Leads, cnxProfile *cnxp, 
 		      cellDivision *cellinfo, hoppingfunc *hoppingfn, void *hoppingparams,
-		      lead_para *leadsparams, trans_params *tpara);
+		      lead_para *leadsparams, trans_params *tpara, int mode, double *ldoses, double ***currents);
 
 
 

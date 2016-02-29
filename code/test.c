@@ -212,7 +212,9 @@ main(int argc, char *argv[])
 	  char loop_type[4];
 	  sprintf(loop_type, "E"); //= 'E'; //E for energy loop, B for Bfield loop
 	  
-	  int mappings=0;
+	  int mappings=0, mapnow=0, mapmode=0;
+	  int map_all_leads=1, map_lead=0;
+	  
 	  char job_name[64] = "";	//an addendum to folder names to 
 
 	  
@@ -822,8 +824,18 @@ main(int argc, char *argv[])
 
 	      }
 
-		loop_step = (loopmax-loopmin)/(loop_pts - 1);
-		remainder = (loop_pts % procs);
+		if(loop_pts>1)
+		{
+		  loop_step = (loopmax-loopmin)/(loop_pts - 1);
+		  remainder = (loop_pts % procs);
+		}
+		if(loop_pts==1)
+		{
+		   loop_step=0.0;
+		   remainder=0;
+		}
+		
+		
 		
 	      
 	      if(remainder != 0 && this_proc < remainder)
@@ -1201,15 +1213,32 @@ main(int argc, char *argv[])
 	  double kavg;
 	  
 	  double kxl;
-	  double *bands = createDoubleArray(Nrem);
-	  double **weights = createNonSquareDoubleMatrix(Nrem, length2);
-	  double **projections = createNonSquareDoubleMatrix(Nrem, Nrem);
-	  int bandmode=0;
-	  double kxstep = (2*M_PI/length2)/(kxpoints -1);
+	  double *bands;
+	  double **weights;
+	  double **projections;
+	  int bandmode;
+	  double kxstep;
+	  
+	  double *ldoses = createDoubleArray(Ntot);
+	  double ***currents = (double ***)malloc(num_leads * sizeof(double **));
+	  for(i=0; i<num_leads; i++)
+	  {
+	    currents[i] = createNonSquareDoubleMatrix(Ntot, 2);
+	  }
+	  
+	  
+	  
+	  
 
 	  
 	 if(makebands == 1)
 	 {
+	   bands = createDoubleArray(Nrem);
+	   weights = createNonSquareDoubleMatrix(Nrem, length2);
+	   projections = createNonSquareDoubleMatrix(Nrem, Nrem);
+	   bandmode=0;
+	   kxstep = (2*M_PI/length2)/(kxpoints -1);
+	   
 	   
 	    if(ismagnetic == 1)
 	    {
@@ -1309,13 +1338,13 @@ main(int argc, char *argv[])
 	      if(strcmp("E", loop_type) == 0)
 	      {
 		realE =  loop_min_temp + en*loop_step;
-		sprintf(filename3, "%s/%s.en_%.3lf", direcname, filename_temp, realE);
+// 		sprintf(filename3, "%s/%s.en_%.3lf", direcname, filename_temp, realE);
 	      }
 	      
 	      if(strcmp("B", loop_type) == 0)
 	      {
 		Bfield =  loop_min_temp + en*loop_step;
-		sprintf(filename3, "%s/%s.bf_%.3lf", direcname, filename_temp, Bfield);
+// 		sprintf(filename3, "%s/%s.bf_%.3lf", direcname, filename_temp, Bfield);
 
 	      }
 	    
@@ -1328,7 +1357,7 @@ main(int argc, char *argv[])
 	      {
 		hoppara.kpar = kmin + k*kstep;
 		
-		genTransmissions(realE+eta*I, &System, LeadCells, &cnxp, &cellinfo, hopfn, &hoppara, &leadp, &tpara);
+		genTransmissions(realE+eta*I, &System, LeadCells, &cnxp, &cellinfo, hopfn, &hoppara, &leadp, &tpara, 1, ldoses, currents);
 		kavg += (transmissions[0][1]/kpts);
 	      }
 	      
@@ -1423,7 +1452,11 @@ main(int argc, char *argv[])
 // 	      
 // 	      
 	       //define this process as finished, and check how many others are
-	        sleep(myRandNum(0.0, 10.0));
+// 	       printf("%
+		if(conf_num>0)
+		{
+		  sleep((int) myRandNum(0.0, 10.0));
+		}
 		check = fopen(checkname, "r");
 		fscanf(check, "%d", &numfin);
 		fclose(check);

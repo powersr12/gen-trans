@@ -1,25 +1,53 @@
 #include "transport.h"
 #include "test.h"
 
+//mode=0 - just transmissions!
+//mode=1 - transmissions and ldos/current maps - can be generalised further later
 void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Leads, cnxProfile *cnxp, 
 		      cellDivision *cellinfo, hoppingfunc *hoppingfn, void *hoppingparams,
-		      lead_para *leadsparams, trans_params *tpara)
+		      lead_para *leadsparams, trans_params *tpara, int mode, double *ldoses, double ***currents)
 {
     //important definitions and quantities
-    int length1 = (DeviceCell->length);
-    int length2 = (DeviceCell->length2);
+//     int length1 = (DeviceCell->length);
+//     int length2 = (DeviceCell->length2);
+
     int geo = (DeviceCell->geo);
     
     int cell1dim = (cellinfo->cell1dim);
     int num_leads = tpara->num_leads;
     
     int this_cell, dim, dim_old=0, dim_new;
+    int Nrem = *(DeviceCell->Nrem);
+    int Ntot = *(DeviceCell->Ntot);
     double _Complex **g_old, g_new, g00inv;
-    double _Complex **g_sys_r, **g_sys_a, **SigmaR, **SigmaA, **Gamma, **temp1, **temp2;
+    double _Complex **g_sys_r, **g_sys_a, **SigmaR, **SigmaA, **Gamma, **temp1, **temp2, *gii, **gi1, **g1i;
     double _Complex **Gamma1, **Gamma2, **gsr, **gsa;
     int d1, d2, s1, s2;
     
-    int i, j, k;
+    int i, j, k, l, m, n;
+    
+    int devicemode=0, devicemode2=0; 
+    
+    if(mode==0)
+    {
+      devicemode = 0; 
+      devicemode2 = 0;
+    }
+    
+    if(mode==1)
+    {
+     devicemode = 1;
+     devicemode2 = 1;
+    }
+    
+    gii=NULL; gi1=NULL; g1i=NULL;
+    if(mode ==1)
+    {
+      gii = createCompArray(Ntot);
+      gi1 = createNonSquareMatrix(Ntot, cell1dim);
+      g1i = createNonSquareMatrix(cell1dim, Ntot);
+    }
+          
     
     SigmaR = createSquareMatrix(cell1dim);
     SigmaA = createSquareMatrix(cell1dim);
@@ -34,9 +62,9 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 	 
 
       //calculate retarded GF of system 
-         genDeviceGF(En, DeviceCell, cnxp, cellinfo, hoppingfn, hoppingparams, 0, g_sys_r, NULL, SigmaR);
-      
-      
+         genDeviceGF(En, DeviceCell, cnxp, cellinfo, hoppingfn, hoppingparams, devicemode, devicemode2, g_sys_r, gii, gi1, SigmaR);
+
+
       //calculate advanced quantities
 	 if( (tpara->TRsym) == 0)
 	 {
@@ -48,11 +76,31 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 		g_sys_a[i][j] = conj(g_sys_r[j][i]);		
 	     }
 	   }
+	   
+	   if(mode==1)
+	   {
+	      for(i=0; i<cell1dim; i++)
+	      {
+		  for(j=0; j<Ntot; j++)
+		  {
+		    g1i[i][j] = conj(gi1[j][i]);
+		  }
+	      }
+		
+	    }
+	   
+	   
 	 }
 	 else if( (tpara->TRsym) == 1)
 	 {
+	   
+	   if(mode==1)
+	   {
+	      devicemode2 = 2;
+	   }
+	   
 	    (leadfn)(creal(En) - I*cimag(En), DeviceCell, Leads, cellinfo, leadsparams, SigmaA);
-	    genDeviceGF(creal(En) - I*cimag(En), DeviceCell, cnxp, cellinfo, hoppingfn, hoppingparams, 0, g_sys_a, NULL, SigmaA);
+	    genDeviceGF(creal(En) - I*cimag(En), DeviceCell, cnxp, cellinfo, hoppingfn, hoppingparams, devicemode, devicemode2, g_sys_a, NULL, g1i, SigmaA);
 	 }
 	 
 	 
@@ -103,9 +151,74 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 	s1+=d1;
 	FreeMatrix(Gamma1);
       }
+        double *bshifts = createDoubleArray(3);
+	double current_mag;
+	double _Complex hopmag;
+
+      if(mode==1)
+      {
+	
+	for(i=0; i<Ntot; i++)
+	{
+	  ldoses[i] = -cimag(gii[i])/M_PI;
+	
+	  s1=0; d1=0;
+	  for(k=0; k<num_leads; k++)
+	  {
+	      d1=(cellinfo->lead_dims)[k];
+ 	      currents[k][i][0] = 0.0;
+	      currents[k][i][1] = 0.0;
+	      
+	      for(l=0; l<(cnxp->site_cnxnum)[i]; l++)
+	      {
+		j = (cnxp->site_cnx)[i][l];
+		hopmag = hoppingfn(DeviceCell, DeviceCell, i, j, bshifts, hoppingparams);
+		current_mag=0;
+		
+		for(m=0; m<d1; m++)
+		{
+		  for(n=0; n<d1; n++)
+		  {
+		    current_mag += cimag(hopmag * gi1[i][s1+m]  * Gamma[s1+m][s1+n]  *g1i[s1+n][j]);
+		  }
+		}
+		
+		currents[k][i][0] += current_mag * ( (DeviceCell->pos)[j][0] -(DeviceCell->pos)[i][0]  );
+		currents[k][i][1] += current_mag * ( (DeviceCell->pos)[j][1] -(DeviceCell->pos)[i][1]  );
+		
+	      }
+	      
+	      s1+=d1;
+	      
+	  }
+	      
+	    
+	  printf("%lf	%lf	%e %e\n", (DeviceCell->pos)[i][0], (DeviceCell->pos)[i][1], currents[1][i][0], currents[1][i][1]);
+	  
+	  
+	}
+	
+	
+	
+	
+      }
       
       
       
+//       for(i=0; i<Ntot; i++)
+//       {
+// 	printf("%lf	%lf	%e\n", (DeviceCell->pos)[i][0], (DeviceCell->pos)[i][1], -cimag(gii[i]));
+//       }
+       
+	
+       if(mode ==1)
+	{
+	  free(gii); 
+	  FreeMatrix(g1i); 
+	  FreeMatrix(gi1); 
+	}
+         
+      free(bshifts);
       FreeMatrix(Gamma);
       FreeMatrix(g_sys_r); FreeMatrix(g_sys_a);
         
@@ -114,12 +227,17 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 }
 
 //mode indicates either single sweep (mode=0) or double sweep (mode=1)
-//(mode=2) for double sweep with reversed sweeping directions (for broken time-reversal symmetry cases)
+//(mode=2) for double sweep with reversed sweeping directions (for cases yet to be determined, patched GF?)
+//mode2 determines what is calculated in the reverse sweep (if mode>0) :
+//0 - Gii only (e.g. for DOS maps only)
+//1 - Gii and Gi1 (e.g. for LDOS maps and current maps with time reversal symmetry)
+//2 - G1i only (for advanced GFs in second current map sweep where TRS is broken)
+
 void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp, 
-		      cellDivision *cellinfo, hoppingfunc *hoppingfn, void *hoppingparams, int mode, 
-		      double _Complex **Gon, double _Complex **Goff, double _Complex **Sigma)
+		      cellDivision *cellinfo, hoppingfunc *hoppingfn, void *hoppingparams, int mode, int mode2, 
+		      double _Complex **Gon, double _Complex *Gdiags, double _Complex **Goff, double _Complex **Sigma)
 {
-  
+
   int geo = (DeviceCell->geo);
     
   int num_cells = (cellinfo->num_cells);
@@ -130,9 +248,12 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
   
   int cell_start, cell_end, cell_iter, it_count;
   int dim1  = (cellinfo->cell_dims)[0];
+  int Nrem = *(DeviceCell->Nrem);
+    int Ntot = *(DeviceCell->Ntot);
+
   double *bshifts = createDoubleArray(3);
   
- 
+  double _Complex ***allgs, **gtemp, **off_old, **off_new, **t1, **t2, **gprev;
   
   
   if(mode == 0 || mode == 1)
@@ -141,8 +262,23 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
     cell_end = 0;
     cell_iter = -1;
   }
-
   
+  if(mode == 2)
+  {
+    cell_start = 0 ;
+    cell_end = num_cells-1;
+    cell_iter = 1;
+  }
+  
+  
+  if(mode>0)
+  {
+    //requests memory for an array of pointers to matrices
+    allgs = (double _Complex ***)malloc(num_cells * sizeof(double _Complex **));
+    
+  }
+
+
   //calculate system GF	
   //backwards recursive sweep!
   for(it_count=0; it_count<(cellinfo->num_cells); it_count ++)
@@ -223,7 +359,7 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 	    
 	  }
 	}
-	
+
 	  	//check non-zero elements at the cell stage
 // 	  	printf("#g00inv\n");
 // 	  	listNonZero(g00inv, dim, dim);
@@ -282,25 +418,243 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 	}
 	
 	//save the temporary edges if needed for the dual sweep
-	if(mode==1)
+	if(mode>0)
 	{
+	  allgs[this_cell] = createSquareMatrix(dim);
+	  MatrixCopy(g_old, allgs[this_cell], dim);
 	}
 	
 	dim_old=dim;
+	
+	
+	
       
   }//end of first sweep 
-  
+
   MatrixCopy(g_old, Gon, dim1);
   FreeMatrix(g_old);
+
   
+  //perform forward sweep
   if(mode>0)
   {
+
+    //setups and initialisations before running loop
+    
+    //copy info about cell 0
+    off_old = createNonSquareMatrix(dim1, dim1);
+    MatrixCopyPart(Gon, off_old, 0, 0, 0, 0, dim1, dim1);
+
+    if(mode2<2)
+    {
+      gprev = createSquareMatrix(dim1);
+      MatrixCopyPart(Gon, gprev, 0, 0, 0, 0, dim1, dim1);
+    }
+//           	        	printf("ok-tz %d\n", this0);
+
+    if(mode2==1)
+    {
+	for(i=0; i<dim1; i++)
+	{
+// 	  printf("ok %d / %d\n", i, dim1);
+	  Gdiags[(cellinfo->cells_site_order)[i]] = Gon[i][i];
+// 		printf("ok %d / %d	Nr %d\n", i, dim1, Nrem);
+
+	
+	  for(j=0; j<dim1; j++)
+	  {
+// 	    printf("okj %d / %d siteorder %d\n", j, dim1, (cellinfo->cells_site_order)[i]);
+	    Goff[(cellinfo->cells_site_order)[i]][j] = Gon[i][j];
+	  }
+// 	  printf("ok %d / %d\n", i, dim1);
+	}
+            
+
+    }
+		
+    if(mode2==2)
+    {
+	for(i=0; i<dim1; i++)
+	{
+	  for(j=0; j<dim1; j++)
+	  {           	        	
+	    Goff[i][(cellinfo->cells_site_order)[j]] = Gon[i][j];
+	  }
+	}
+    }
+
     
     //insert second sweep here
+    for(it_count=1; it_count<(cellinfo->num_cells); it_count ++)
+    {
+	this_cell = cell_end - it_count*cell_iter;
+    
+	dim = (cellinfo->cell_dims)[this_cell];
+	dim_old = (cellinfo->cell_dims)[this_cell + cell_iter];
+	
+	this0=(cellinfo->starting_index)[this_cell];
+	last0=(cellinfo->starting_index)[this_cell+cell_iter];
+	
+	
+	//g_old is the current cell but before update
+	g_old = createSquareMatrix(dim);
+	MatrixCopyPart(allgs[this_cell], g_old, 0,0,0,0, dim, dim);
+	
+	//gtemp is the fully connected and updated version of the current cell
+	if(mode2<2)
+	{
+	  gtemp = createSquareMatrix(dim);
+	}
+	
+	//gprev is the fully connected version of the previous cell
+
+	
+	//off_old 
+	    //is filled at the end of the iteration by copying off_new
+	    //has dimension (dim_old, dim1) (or vice versa) and is the connected version
+	
+	//off_new
+	if(mode2 == 1)
+	{
+	    off_new = createNonSquareMatrix(dim, dim1);
+	}
+	if(mode2 == 2)
+	{
+	    off_new = createNonSquareMatrix(dim1, dim);
+	}
+	    
+	    
+	//generate V matrices as above 
+		V12 = createNonSquareMatrix(dim_old, dim);
+		V21 = createNonSquareMatrix(dim, dim_old);
+	    
+		for(i=0; i<dim; i++)
+		{
+		  
+		  index1 = (cellinfo->cells_site_order)[this0 +i];
+		  for(j=0; j<(cnxp->site_cnxnum)[index1]; j++)
+		  {
+		    index2 = (cnxp->site_cnx)[index1][j];
+		    
+		    //is this neighbour in the previous cell?
+		    if( (cellinfo->sites_by_cell)[index2] == (this_cell + cell_iter))
+		    {
+			//what is its index within the cell?
+			k=0;
+			for(l=0; l<dim_old; l++)
+			{
+			  if( index2 == (cellinfo->cells_site_order)[last0 +l])
+			  {
+			    k=l;
+			  }
+			}
+			
+			V21[i][k] = hoppingfn(DeviceCell, DeviceCell, index1, index2, bshifts, hoppingparams);
+			V12[k][i] = hoppingfn(DeviceCell, DeviceCell, index2, index1, bshifts, hoppingparams);
+		      
+		    }
+		    
+		    
+		  }
+		}
+		
+	
+	
+	if(mode2<2)
+	{
+	
+	
+		t1 = createNonSquareMatrix(dim, dim_old);
+		MatrixMultNS(g_old, V21, t1, dim, dim, dim_old);
+		
+		//update off-diagonals
+		if(mode2==1)
+		{
+		  MatrixMultNS(t1, off_old, off_new, dim, dim_old, dim1);
+		}
+		
+		
+	//update diagonals
+		t2 = createNonSquareMatrix(dim, dim_old);
+		MatrixMultNS(t1, gprev, t2, dim, dim_old, dim_old);
+		FreeMatrix(t1);
+		t1 = createNonSquareMatrix(dim, dim);
+		MatrixMultNS(t2, V12, t1, dim, dim_old, dim);
+		FreeMatrix(t2); 
+		t2= createSquareMatrix(dim);
+		MatrixMult(t1, g_old, t2, dim);
+		FreeMatrix(t1);
+		MatrixAdd(g_old, t2, gtemp, dim);
+		FreeMatrix(t2);
+      
+	    
+	//copying and freeing
+		FreeMatrix(g_old);
+		FreeMatrix(V12);
+		FreeMatrix(V21);
+		FreeMatrix(gprev);
+		
+		gprev = createSquareMatrix(dim);
+		MatrixCopy(gtemp, gprev, dim);
+		
+		for(i=0; i<dim; i++)
+		{
+		  Gdiags[(cellinfo->cells_site_order)[this0 +i]] = gtemp[i][i];
+		  
+		  for(j=0; j<dim1; j++)
+		  {
+		    Goff[(cellinfo->cells_site_order)[this0 +i]][j] = off_new[i][j];
+		  }
+		}
+		
+		FreeMatrix(gtemp);
+		FreeMatrix(off_old);
+		
+		off_old=createNonSquareMatrix(dim, dim1);
+		MatrixCopyPart(off_new, off_old, 0, 0, 0, 0, dim, dim1);
+		FreeMatrix(off_new);
+		
+	}
+	
+	if(mode2 == 2)
+	{
+		t1 = createNonSquareMatrix(dim1, dim);
+		MatrixMultNS(off_old, V12, t1, dim1, dim_old, dim);
+		MatrixMultNS(t1, g_old, off_new, dim1, dim, dim);
+		
+		FreeMatrix(t1);
+		FreeMatrix(g_old);
+		FreeMatrix(V12);
+		FreeMatrix(V21);
+	
+		for(i=0; i<dim; i++)
+		{
+		  for(j=0; j<dim1; j++)
+		  {
+		    Goff[j][(cellinfo->cells_site_order)[this0 +i]] = off_new[j][i];
+		  }
+		}
+		FreeMatrix(off_old);
+		off_old=createNonSquareMatrix(dim1, dim);
+		MatrixCopyPart(off_new, off_old, 0, 0, 0, 0, dim1, dim);
+		FreeMatrix(off_new);
+	}
+    }
+	
+
     
   }
-  
+
    free(bshifts);
+   
+   if(mode>0)
+   {
+     for(i=0; i<num_cells; i++)
+     {
+       FreeMatrix(allgs[i]);
+     }
+     free(allgs);
+   }
   
 }
 
@@ -1938,10 +2292,11 @@ void multipleLeads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadC
 
 	  //generate the info required for Rubio method
 	  lead_prep(En, LeadCells[leadloop], leadloop, params, ginv, V12, V21);
-	  
 
 	  InvertMatrixGSL(ginv, g00, dim1);
 	  RubioSGF(SL, g00, V12, V21, dim1, &lcount, elemerr*dim1*dim1);
+	  
+	  
 // 	    if(leadloop==0)
 // 	  {
 // // 	    printf("DIM %d\n", dim1);
