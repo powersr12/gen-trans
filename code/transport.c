@@ -11,6 +11,7 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 //     int length1 = (DeviceCell->length);
 //     int length2 = (DeviceCell->length2);
 
+//     printf("#started transmission calc\n");
     int geo = (DeviceCell->geo);
     
     int cell1dim = (cellinfo->cell1dim);

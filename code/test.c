@@ -212,6 +212,7 @@ main(int argc, char *argv[])
 	  char loop_type[4];
 	  sprintf(loop_type, "E"); //= 'E'; //E for energy loop, B for Bfield loop
 	  
+	  //how often to map, map this particular energy/bfield/loop variable, mapping mode: ldos, currents, all
 	  int mappings=0, mapnow=0, mapmode=0;
 	  int map_all_leads=1, map_lead=0;
 	  
@@ -945,6 +946,11 @@ main(int argc, char *argv[])
 		if(this_proc==0)
 		{
 		  (SysFunction) ( &System, SysPara, output_type, strucfile);
+		  
+		  //additional, general disorder routine(s) here.
+		  
+		  
+		  
 		  //export the disorder configuration for the other processes calculating the same configuration
 		  if(procs>0)
 		  {
@@ -1380,6 +1386,8 @@ main(int argc, char *argv[])
 		}
 	      }
 	      
+	      //Standard 6 probe hall bar, outputs Rxy, Rxx and T_LR
+		//consider alternative hall bar arrangements later?
 	      if (ishallbar==1)
 	      {
 		EmptyDoubleMatrix(ttildas, num_leads, num_leads);
