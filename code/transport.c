@@ -194,7 +194,6 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 	  }
 	      
 	    
-	  printf("%lf	%lf	%e %e\n", (DeviceCell->pos)[i][0], (DeviceCell->pos)[i][1], currents[1][i][0], currents[1][i][1]);
 	  
 	  
 	}

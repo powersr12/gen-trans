@@ -6,8 +6,8 @@ REDUCFACT=1
 GEO=0
 MAXPTS=10000
 
-DOSNAME=/home/spow/projects/gen_trans/code/ldoses.dat
-CURRENTNAME=/home/spow/projects/gen_trans/code/ldoses.dat
+DOSNAME=/home/spow/projects/gen_trans/res/ANTIDOTS_RIBBON_1e-06/ZZ140_trig_lat_L_7_circ_dot_R_3.0_10x4_xyf_0.0_rf_0.0/E_+0.20_B_+0.000_run.conf00.ldos
+CURRENTNAME=/home/spow/projects/gen_trans/res/ANTIDOTS_RIBBON_1e-06/ZZ140_trig_lat_L_7_circ_dot_R_3.0_10x4_xyf_0.0_rf_0.0/E_+0.20_B_+0.000_run.conf00.cmaps_l0
 NUMPTS=`cat $DOSNAME | awk 'END{print NR}'`
 MAXDOS=`cat $DOSNAME | awk 'BEGIN{max=0} {if ($3>max) max=$3} END{print max}'`
 MAXX=`cat $DOSNAME | awk 'BEGIN{max=0} {if ($1>max) max=$1} END{print max}'`
@@ -28,14 +28,14 @@ fi
 echo "$NUMPTS points..."
 RESCALE=1
 
-if [ $NUMPTS -le $MAXPTS ]
-then 
-
-
-
-
-
-fi
+# if [ $NUMPTS -le $MAXPTS ]
+# then 
+# 
+# 
+# 
+# 
+# 
+# fi
 
 if [ $NUMPTS -ge $MAXPTS ]
 then

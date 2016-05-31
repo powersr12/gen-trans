@@ -246,6 +246,21 @@ main(int argc, char *argv[])
 		      {
 			  sscanf(argv[i+1], "%d", &mappings);
 		      }
+		      if(strcmp("-mapmode", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%d", &mapmode);
+		      }
+		      if(strcmp("-mapall", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%d", &map_all_leads);
+		      }
+		      if(strcmp("-maplead", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%d", &map_lead);
+		      }
+		      
+		      
+		      
 		      if(strcmp("-jobname", argv[i]) == 0)
 		      {
 			  sscanf(argv[i+1], "%s", job_name);
@@ -857,9 +872,10 @@ main(int argc, char *argv[])
 	    FILE *output;
 	    char filename[160], filename3[160], filename_temp[160];
 	    char checkname[160], direcname[160], conffile[200], strucfile[160];
-	    char bandname1[160], bandname2[160], bandname3[160];
+	    char bandname1[160], bandname2[160], bandname3[160], mapname[200];
             char command[400];
 	    FILE *bandfile;
+	    FILE *mapfile;
 	    
 	//Create directory and filenaming convention
 	    sprintf(direcname, "../res/%s_%s_%.0e/%s%d_%s", systemtype, peritype, eta, geotype, length1, sysinfo);
@@ -1225,14 +1241,20 @@ main(int argc, char *argv[])
 	  int bandmode;
 	  double kxstep;
 	  
-	  double *ldoses = createDoubleArray(Ntot);
-	  double ***currents = (double ***)malloc(num_leads * sizeof(double **));
-	  for(i=0; i<num_leads; i++)
+	  double *ldoses ;
+	  double ***currents;
+	 
+	  
+	  
+	  if(mappings != 0)
 	  {
-	    currents[i] = createNonSquareDoubleMatrix(Ntot, 2);
+	    ldoses = createDoubleArray(Ntot);
+	    currents = (double ***)malloc(num_leads * sizeof(double **));
+	    for(i=0; i<num_leads; i++)
+	    {
+	      currents[i] = createNonSquareDoubleMatrix(Ntot, 2);
+	    }
 	  }
-	  
-	  
 	  
 	  
 
@@ -1339,6 +1361,11 @@ main(int argc, char *argv[])
 	 }
 	  
 	  
+	  
+	  
+	    
+	  
+	  
 	  for(en=0; en<loop_pts_temp; en++)
 	  {
 	      if(strcmp("E", loop_type) == 0)
@@ -1353,6 +1380,38 @@ main(int argc, char *argv[])
 // 		sprintf(filename3, "%s/%s.bf_%.3lf", direcname, filename_temp, Bfield);
 
 	      }
+	      
+	      if(mappings != 0)
+	      {
+		mapnow=0;
+		
+		if( (en % mappings) == 0)
+		{
+		  mapnow = 1;
+		}
+		  
+	      }
+	      mapmode = mapnow;
+	      
+	      printf("#map mode %d\n", mapmode);
+	      
+	      if(mapmode == 1)
+	      {
+		for (i=0; i<Ntot; i++)
+		    { 
+		      ldoses[i] = 0;
+		      
+		      for(j=0; j< num_leads; j++)
+		      {
+			for(k=0; k<2; k++)
+			{
+			  currents[j][i][k] = 0;
+			}
+		      }
+		    }
+	      }
+	      
+	     
 	    
 	      hoppara.Btes=Bfield;
 	      
@@ -1363,7 +1422,7 @@ main(int argc, char *argv[])
 	      {
 		hoppara.kpar = kmin + k*kstep;
 		
-		genTransmissions(realE+eta*I, &System, LeadCells, &cnxp, &cellinfo, hopfn, &hoppara, &leadp, &tpara, 1, ldoses, currents);
+		genTransmissions(realE+eta*I, &System, LeadCells, &cnxp, &cellinfo, hopfn, &hoppara, &leadp, &tpara, mapmode, ldoses, currents);
 		kavg += (transmissions[0][1]/kpts);
 	      }
 	      
@@ -1385,6 +1444,46 @@ main(int argc, char *argv[])
   // 		printf("%lf	%e	%e	%e	%e	%e\n", Bfield, transmissions[0][1], transmissions[0][2], transmissions[0][3], transmissions[0][4], transmissions[0][5]);
 		}
 	      }
+	      
+	      
+	      //print maps
+	      
+	      if(mapmode==1)
+	      {
+		     sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.ldos", direcname, realE, Bfield, job_name, conf_num);
+		     
+		      	  //printf("%lf	%lf	%e %e\n", (DeviceCell->pos)[i][0], (DeviceCell->pos)[i][1], currents[1][i][0], currents[1][i][1]);
+
+		      mapfile = fopen(mapname, "w");
+		      
+		      for(i=0; i<Ntot; i++)
+		      {
+			fprintf(mapfile, "%lf	%lf	%e\n", (pos)[i][0], (pos)[i][1], ldoses[i]);
+		      }
+		      fclose(mapfile);
+		      
+
+	      
+		      for(j=0; j<num_leads; j++)
+		      {
+			
+			sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.cmaps_l%d", direcname, realE, Bfield, job_name, conf_num, j);
+
+
+			  mapfile = fopen(mapname, "w");
+			  for(i=0; i<Ntot; i++)
+			  {
+			    fprintf(mapfile, "%lf	%lf	%e %e\n", (pos)[i][0], (pos)[i][1], currents[j][i][0], currents[j][i][1] );
+			  }
+			  fclose(mapfile);
+			  
+		      }
+		    
+		    
+	      }
+	      
+	      
+	      
 	      
 	      //Standard 6 probe hall bar, outputs Rxy, Rxx and T_LR
 		//consider alternative hall bar arrangements later?
