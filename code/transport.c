@@ -287,6 +287,7 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
   
 //    	printf("########\n#cell %d\n", this_cell);
 	
+	printf("### backwards sweep, cell %3d of %3d\n", this_cell, (cellinfo->num_cells));
     //generate disconnected cell GF
 	dim = (cellinfo->cell_dims)[this_cell];
 	g00inv = createSquareMatrix(dim);
@@ -483,11 +484,14 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 	}
     }
 
-    
+    printf ("\n"); 
     //insert second sweep here
     for(it_count=1; it_count<(cellinfo->num_cells); it_count ++)
     {
 	this_cell = cell_end - it_count*cell_iter;
+	
+	printf("### forwards sweep, cell %3d of %3d\n", this_cell, (cellinfo->num_cells));
+
     
 	dim = (cellinfo->cell_dims)[this_cell];
 	dim_old = (cellinfo->cell_dims)[this_cell + cell_iter];
