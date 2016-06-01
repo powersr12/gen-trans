@@ -1153,7 +1153,7 @@ main(int argc, char *argv[])
 	  
 	  hoppara.gauge=gauge;
 	  int *res = createIntArray(2);
-	  double **reslimits = createNonSquareDoubleMatrix(2, 4);
+	  double **reslimits = createNonSquareDoubleMatrix(2, 6);
 	  
 	  
 	  //mag field cut offs
@@ -1168,10 +1168,18 @@ main(int argc, char *argv[])
 	  //this assumes bottom and top probes are collinear, I guess is can be generalised later
 	  if(gauge == 2 || gauge == 3)
 	  {
-	    reslimits[0][0] = pos[2*length1*buffer_rows][0];
+	    reslimits[0][0] = pos[2*length1*2][0];
 	    reslimits[0][1] = pos[2*length1*(hallp.toppx[0] -1)][0];
 	    reslimits[0][2] = pos[2*length1*(hallp.toppx[1] + (int)((hallp.toppw[1]+1)/2)  +1)][0];
-	    reslimits[0][3] = pos[2*length1*(length2 -buffer_rows - 1)][0];
+	    reslimits[0][3] = pos[2*length1*(length2 - 2)][0];
+	    
+	    reslimits[0][4] = pos[2*length1*(hallp.toppx[0] + (int)((hallp.toppw[0]+1)/2)  +1)][0];
+	    reslimits[0][5] = pos[2*length1*(hallp.toppx[1] -1)][0];
+
+	    
+	    
+	    
+	    printf("# gauge changes points: %lf, %lf, %lf, %lf, %lf, %lf\n", reslimits[0][0], reslimits[0][1], reslimits[0][2], reslimits[0][3], reslimits[0][4], reslimits[0][5]);
 	    
 	  }
 	  

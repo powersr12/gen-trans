@@ -287,7 +287,7 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
   
 //    	printf("########\n#cell %d\n", this_cell);
 	
-	printf("### backwards sweep, cell %3d of %3d\n", this_cell, (cellinfo->num_cells));
+// 	printf("### backwards sweep, cell %3d of %3d\n", this_cell, (cellinfo->num_cells));
     //generate disconnected cell GF
 	dim = (cellinfo->cell_dims)[this_cell];
 	g00inv = createSquareMatrix(dim);
@@ -490,7 +490,7 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
     {
 	this_cell = cell_end - it_count*cell_iter;
 	
-	printf("### forwards sweep, cell %3d of %3d\n", this_cell, (cellinfo->num_cells));
+// 	printf("### forwards sweep, cell %3d of %3d\n", this_cell, (cellinfo->num_cells));
 
     
 	dim = (cellinfo->cell_dims)[this_cell];
@@ -1991,6 +1991,8 @@ double _Complex peierlsTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a,
     
   }
   //printf("# hopping %d	%d: %lf	%lf\n", a, b, ans, dist);
+    //printf("%lf	%lf	%e\n", x1 + (x2-x1)/2, y1 + (y2-y1)/2, fabs(creal(ans)));
+
   return ans;
   
 }
@@ -2013,6 +2015,7 @@ double _Complex graphenePeierlsPhase(double x1, double y1, double x2, double y2,
   double phase, weight;
   dely=y2-y1; delx=x2-x1;
   midx=x1 + delx/2; midy = y1+dely/2;
+  double xrenorm=0;
   
 
   //limits for gauge=0 and gauge=1 if finite cutoff
@@ -2070,29 +2073,97 @@ double _Complex graphenePeierlsPhase(double x1, double y1, double x2, double y2,
     
   }
   
+  
+  double l6, m1, m2, m3;
   if(gauge == 2)
   {
+//     xrenorm = limits[0][1] + (limits[0][2] - limits[0][1])/2;
+       // xrenorm = 0;
+
+//     l6 = limits[0][4] + (limits[0][5] - limits[0][4])/2;
+//     
+//     m1 = limits[0][1] + (limits[0][4] - limits[0][1])/2;
+//     m2 = limits[0][5] + (limits[0][2] - limits[0][5])/2;
+//     m3 = limits[0][4] + (limits[0][5] - limits[0][4])/2;
+//     
+//     m1= limits[0][1];
+//     m2 = limits[0][2];
+//     
+//     
+//     if(midx <= limits[0][0])
+//     {
+//       weight = 0.0;
+//       xrenorm = m1;
+//     }
+//     if(midx > limits[0][0] && midx < limits[0][1])
+//     {
+//       weight = (midx - limits[0][0])/(limits[0][1] - limits[0][0]);
+//       xrenorm = m1;
+//     }
+//     if(midx >= limits[0][1] && midx <= limits[0][4])
+//     {
+//       weight = 1.0;
+//       xrenorm = m1;
+//     }
+//     if(midx > limits[0][4] && midx <= l6)
+//     {
+//       weight = 1.0 - (midx - limits[0][4])/(l6 - limits[0][4]);
+//       xrenorm = m1;
+//     }
+//     if(midx > l6 && midx < limits[0][5])
+//     {
+//       weight = (midx - l6)/(limits[0][5] - l6);
+//       xrenorm = m2;
+//     }
+//     if(midx >= limits[0][5] && midx <= limits[0][2])
+//     {
+//       weight = 1.0;
+//       xrenorm = m2;
+//     }
+//     if(midx > limits[0][2] && midx < limits[0][3])
+//     {
+//       weight = 1.0 - (midx - limits[0][2])/(limits[0][3] - limits[0][2]);
+//       xrenorm = m2;
+//     }
+//     if(midx >= limits[0][3])
+//     {
+//       weight = 0.0;
+//       xrenorm = m2;
+//     }
+//     phase = beta*( (weight -1)*midy*delx + weight*(midx-xrenorm)*dely);
+    
+    
+    
+    
     if(midx <= limits[0][0])
     {
       weight = 0.0;
+      phase = beta*( (weight -1)*midy*delx + weight*(midx-xrenorm)*dely);
     }
     if(midx > limits[0][0] && midx < limits[0][1])
     {
       weight = (midx - limits[0][0])/(limits[0][1] - limits[0][0]);
+      phase = beta*( (weight -1)*midy*delx + weight*(midx-xrenorm)*dely);
     }
     if(midx >= limits[0][1] && midx <= limits[0][2])
     {
       weight = 1.0;
+      phase = beta*( (weight -1)*midy*delx + weight*(midx-xrenorm)*dely);
     }
     if(midx > limits[0][2] && midx < limits[0][3])
     {
       weight = 1.0 - (midx - limits[0][2])/(limits[0][3] - limits[0][2]);
+      phase = beta*( (weight -1)*(midy*delx - limits[0][2]*dely)  + weight*(midx-xrenorm)*dely);
     }
     if(midx >= limits[0][3])
     {
       weight = 0.0;
+      phase = beta*( (weight -1)*(midy*delx - limits[0][2]*dely)  + weight*(midx-xrenorm)*dely);
     }
-    phase = beta*( (weight -1)*midy*delx + weight*midx*dely);
+    
+    
+    
+    
   }
     
   if(gauge == 3)
@@ -2156,6 +2227,7 @@ double _Complex graphenePeierlsPhase(double x1, double y1, double x2, double y2,
   
 //  printf("# %lf (%lf,  %lf) phase %+e\n", x, delx, dely, phase);
   
+   //printf("%lf	%lf	%e\n", midx, midy, phase);
   return cexp(2 * M_PI * I * phase);  
   
   
