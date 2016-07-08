@@ -1139,18 +1139,7 @@ main(int argc, char *argv[])
 // 	  hoppara.t0=t0;
 	  hoppara.isperiodic=isperiodic;
 	  hoppara.kpar=kmin;
-// <<<<<<< HEAD
-// 	  hoppara.NN_lowdis=NNlowdis;
-// 	  hoppara.NN_highdis=NNhighdis;
-// 	  hoppara.gauge=1;
-// 	  
-// 	    //mag field cut off
-// 	      int *res = createIntArray(2);
-// 	      res[0] = 0;
-// 	      res[1] = 0; 
-// 	      double **reslimits = createNonSquareDoubleMatrix(2, 2);
-// =======
-	  
+
 	  hoppara.gauge=gauge;
 	  int *res = createIntArray(2);
 	  double **reslimits = createNonSquareDoubleMatrix(2, 6);
@@ -1185,31 +1174,16 @@ main(int argc, char *argv[])
 	  
 	  if(gauge == 3)
 	  {
-// 	    reslimits[1][0] = (LeadCells[4]->pos)[*(LeadCells[4]->Ntot) -1][1]   ;
-// 	    reslimits[1][3] = (LeadCells[2]->pos)[0][1];
+
 	    
 	    reslimits[1][0] = pos[2*length1*length2 + 2*(hallp.toppc[0]*hallp.toppw[0] +  hallp.toppc[1]*hallp.toppw[1] + hallp.botpc[0]*hallp.botpw[0])-1 ][1];
 	    reslimits[1][3] = pos[2*length1*length2 + 2*hallp.toppc[0]*hallp.toppw[0]  -1][1];
 
 	    
-	    /*
-	    printf("%lf	%lf\n%lf	%lf\n", 0.0, reslimits[1][0], length2*1.0, reslimits[1][0]);
-	    printf("%lf	%lf\n%lf	%lf\n", 0.0, reslimits[1][3], length2*1.0, reslimits[1][3]);*/
+
 	    
 	  }
-	  
-// 	      printf("# GAUGE %d\n", gauge);
-// 	      for(i=0;i<2;i++)
-// 	      {
-// 		for(j=0; j<4; j++)
-// 		{
-// 		  printf("# limits %d	%d %lf\n", i, j, reslimits[i][j]);
-// 		}
-// 	      }
-	      
-// >>>>>>> hallbars
-// 	      reslimits[0][0] = pos[0][0];
-// 	      reslimits[0][1] = pos[Ntot-1][0];
+
 	
 	  hoppara.restrics = res;
 	  hoppara.limits = reslimits;
@@ -1237,8 +1211,6 @@ main(int argc, char *argv[])
 	  
 
 	  tpara.transmissions = transmissions;
-// <<<<<<< HEAD
-//  	  genLeads(&System, LeadCells, 2, 0, &leadp);
 
 	  double kavg;
 	  
@@ -1300,13 +1272,7 @@ main(int argc, char *argv[])
 		  }
 			  
 		  genKXbandproj(&System, hopfn, &hoppara, bandmode, kxl, bands, projections, weights);
-      // 	    printf("%lf\t", kxl);
-      // 	    
-      // 	    for (i=0; i<Nrem; i++)
-      // 	    {
-      // 	      printf("%e\t", bands[i]);
-      // 	    }
-      // 	    printf("\n");
+
 		  
 		  bandfile = fopen(bandname1, "a"); 
 		  fprintf(bandfile, "%lf\t", kxl);
@@ -1379,13 +1345,11 @@ main(int argc, char *argv[])
 	      if(strcmp("E", loop_type) == 0)
 	      {
 		realE =  loop_min_temp + en*loop_step;
-// 		sprintf(filename3, "%s/%s.en_%.3lf", direcname, filename_temp, realE);
 	      }
 	      
 	      if(strcmp("B", loop_type) == 0)
 	      {
 		Bfield =  loop_min_temp + en*loop_step;
-// 		sprintf(filename3, "%s/%s.bf_%.3lf", direcname, filename_temp, Bfield);
 
 	      }
 	      
@@ -1460,7 +1424,6 @@ main(int argc, char *argv[])
 	      {
 		     sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.ldos", direcname, realE, Bfield, job_name, conf_num);
 		     
-		      	  //printf("%lf	%lf	%e %e\n", (DeviceCell->pos)[i][0], (DeviceCell->pos)[i][1], currents[1][i][0], currents[1][i][1]);
 
 		      mapfile = fopen(mapname, "w");
 		      
@@ -1495,6 +1458,7 @@ main(int argc, char *argv[])
 	      
 	      //Standard 6 probe hall bar, outputs Rxy, Rxx and T_LR
 		//consider alternative hall bar arrangements later?
+		//generalise ishallbar=2, =3 etc for SHE setups?
 	      if (ishallbar==1)
 	      {
 		EmptyDoubleMatrix(ttildas, num_leads, num_leads);
