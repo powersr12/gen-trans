@@ -1169,8 +1169,8 @@ main(int argc, char *argv[])
 	  if(gauge == 2 || gauge == 3)
 	  {
 	    reslimits[0][0] = pos[2*length1*2][0];
-	    reslimits[0][1] = pos[2*length1*(hallp.toppx[0] -1)][0];
-	    reslimits[0][2] = pos[2*length1*(hallp.toppx[1] + (int)((hallp.toppw[1]+1)/2)  +1)][0];
+	    reslimits[0][1] = pos[2*length1*(hallp.toppx[0] - (int)(buffer_rows/2) )][0];
+	    reslimits[0][2] = pos[2*length1*(hallp.toppx[1] + (int)((hallp.toppw[1]+1)/2)  + (int)(buffer_rows/2))][0];
 	    reslimits[0][3] = pos[2*length1*(length2 - 2)][0];
 	    
 	    reslimits[0][4] = pos[2*length1*(hallp.toppx[0] + (int)((hallp.toppw[0]+1)/2)  +1)][0];
@@ -1401,7 +1401,7 @@ main(int argc, char *argv[])
 	      }
 	      mapmode = mapnow;
 	      
-	      printf("#map mode %d\n", mapmode);
+// 	      printf("#map mode %d\n", mapmode);
 	      
 	      if(mapmode == 1)
 	      {
@@ -1433,7 +1433,7 @@ main(int argc, char *argv[])
 		genTransmissions(realE+eta*I, &System, LeadCells, &cnxp, &cellinfo, hopfn, &hoppara, &leadp, &tpara, mapmode, ldoses, currents);
 		kavg += (transmissions[0][1]/kpts);
 	      }
-	      
+
 	      output =fopen(filename, "a");
 	      
 	      if(ishallbar == 0)
