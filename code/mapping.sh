@@ -6,7 +6,7 @@ REDUCFACT=1
 GEO=0
 MAXPTS=20000
 
-BASENAME=/home/spow/GEN_TRANS_RESULTS/ANTIDOTS_HALLBAR_2_2_rw_6_1e-06/ZZ288_rect_lat_L_36_64_circ_dot_R_10.0_4x8_xyf_0.0_rf_0.0/E_+0.20_B_+80.000_mastergauge.conf00
+BASENAME=/home/spow/GEN_TRANS_RESULTS/ANTIDOTS_HALLBAR_2_2_rw_6_1e-06/ZZ288_rect_lat_L_36_64_circ_dot_R_10.0_4x8_xyf_0.0_rf_0.0/E_+0.20_B_+88.000_mastergauge.conf00
 DOSNAME=$BASENAME.ldos
 CURRENTNAMES="$BASENAME.cmaps_l0 $BASENAME.cmaps_l1"
 NUMPTS=`cat $DOSNAME | awk 'END{print NR}'`
