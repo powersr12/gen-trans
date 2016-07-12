@@ -8,7 +8,7 @@ MAXPTS=20000
 
 BASENAME=/home/spow/GEN_TRANS_RESULTS/ANTIDOTS_HALLBAR_2_2_rw_6_1e-06/ZZ288_rect_lat_L_36_64_circ_dot_R_10.0_4x8_xyf_0.0_rf_0.0/E_+0.20_B_+88.000_mastergauge.conf00
 DOSNAME=$BASENAME.ldos
-CURRENTNAMES="$BASENAME.cmaps_l0 $BASENAME.cmaps_l1"
+CURRENTS="l0 l1 l2 l3"
 NUMPTS=`cat $DOSNAME | awk 'END{print NR}'`
 MAXDOS=`cat $DOSNAME | awk 'BEGIN{max=0} {if ($3>max) max=$3} END{printf "%lf",  max}'`
 MAXX=`cat $DOSNAME | awk 'BEGIN{max=0} {if ($1>max) max=$1} END{print max}'`
@@ -81,7 +81,8 @@ EOF
 
 
 # Files containing reduced current and DOS maps
-for CNAME in $CURRENTNAMES; do 
+for CSEL in $CURRENTS; do 
+CNAME=$BASENAME.cmaps_${CSEL}
 grep -v ^# ${CNAME}  | awk -vd1=$XCELLS -vd2=$YCELLS -vxe=$XE -vye=$YE -vxmin=$MINX -vymin=$MINY 'BEGIN {for(i=0; i<d1*d2; i++) arr[i]=0.0; arr2[i]=0.0} {arr[int(  ($1 - xmin ) /xe)*d2 + int(($2 - ymin ) /ye )] += $3; arr2[int(  ($1 - xmin ) /xe)*d2 + int(($2 - ymin ) /ye )] += $4 } END {for(i=0; i<d1; i++) for(j=0; j<d2; j++) printf "%e %e %e %e\n", xmin + i*xe , ymin+j*ye,  arr[d2*i+j], arr2[d2*i+j]} ' > ${CNAME}_red.dat;
 
 
@@ -91,7 +92,7 @@ cat >> tempmath.m << EOF
 
 CurData =   Import["${CNAME}_red.dat", "Table"];
 
-CurPlot =  ListVectorPlot[CurData, PlotRange -> {{$MINX, $MAXX}, {$MINY, $MAXY}}, VectorStyle -> RGBColor[0.9, 0.45, 0], VectorPoints -> {30, 30},  VectorScale -> {Medium, Scaled[1.15], Automatic}, AspectRatio-> 120/95];
+CurPlot${CSEL} =  ListVectorPlot[CurData, PlotRange -> {{$MINX, $MAXX}, {$MINY, $MAXY}}, VectorStyle -> RGBColor[0.9, 0.45, 0], VectorPoints -> {30, 30},  VectorScale -> {Medium, Scaled[1.15], Automatic}, AspectRatio -> ( $MAXY - $MINY )/( $MAXX - $MINX )];
 
 Export["${CNAME}_map.png", CurPlot, ImageResolution -> 200];
 
@@ -106,7 +107,13 @@ EOF
 done
 
 
+cat >> tempmath.m << EOF
 
+CombinedPlot = Show[DOSplot, CurPlotl0, CurPlotl2, CurPlotl3];
+
+Export["${CNAME}_map_comb.png", CombinedPlot, ImageResolution -> 200];
+
+EOF
 
 
 
