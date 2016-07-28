@@ -26,6 +26,7 @@ void simpleRibbonGeo (RectRedux *SiteArray, void *p, int struc_out, char *filena
 	 // srand(time(NULL) + seed);
 	  
 
+	  
 	  //atomic coordinates and the atoms that are in and out, similar to previous cases
 	  int tot_sites = 2*length*length2;
 	  double **site_coords = createNonSquareDoubleMatrix(tot_sites, 3);

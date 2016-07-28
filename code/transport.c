@@ -156,9 +156,23 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
         double *bshifts = createDoubleArray(3);
 	double current_mag;
 	double _Complex hopmag;
+	
+	FILE *bigdump;
+	char bigfile[200];
+	
+	
 
       if(mode==1)
       {
+	
+	// a way to bulk print out all the bond currents.
+	//for debugging only. see loop below also.
+// 	for(i=0; i<num_leads; i++)
+// 	{
+// 	  sprintf(bigfile, "current_dump_l%d", i);
+// 	  bigdump = fopen(bigfile, "w");
+// 	  fclose(bigdump);
+// 	}
 	
 	for(i=0; i<Ntot; i++)
 	{
@@ -184,6 +198,13 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 		    current_mag += cimag(hopmag * gi1[i][s1+m]  * Gamma[s1+m][s1+n]  *g1i[s1+n][j]);
 		  }
 		}
+// 		sprintf(bigfile, "current_dump_l%d", k);
+// 		bigdump = fopen(bigfile, "a");
+//  		if((DeviceCell->pos)[j][0]>=(DeviceCell->pos)[i][0])
+// 		  fprintf(bigdump, "%lf	%lf	%lf	%lf	%.15e\n", (DeviceCell->pos)[i][0], (DeviceCell->pos)[i][1], (DeviceCell->pos)[j][0],(DeviceCell->pos)[j][1], current_mag);
+// 		fclose(bigdump);
+		
+	
 		
 		if(current_mag>0)
 		{

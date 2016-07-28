@@ -22,7 +22,7 @@ main(int argc, char *argv[])
 	  
 	  //general system inputs and default values
 	      char systemtype[32];
-	      char geotype[32], peritype[32], leadtype[32], sysinfo[80], loopinfo[64];
+	      char geotype[32], peritype[40], leadtype[32], sysinfo[120], loopinfo[64], disinfo[40];
 	      sprintf(systemtype, "SUBLATTICEPOT");
 	      int length1=2, length2=3*length1, geo=0, isperiodic=1, ismagnetic=0;
 	      int makebands = 0, unfold=0, project=0, kxpoints=51, bandsonly=0, bandsminset=0, bandsmaxset=100000;
@@ -42,6 +42,7 @@ main(int argc, char *argv[])
 				//the correct gauge is then chosen depending on whether we have
 				//a simple system or a hall bar
 	      int gauge = 0; 	//default gauge choice, phase is along x
+	      int potdis =0;	//is there an additional, random potential disorder in the system?
 	  
 	      //check for command line arguments which vary these
 		  for(i=1; i<argc-1; i++)
@@ -117,6 +118,10 @@ main(int argc, char *argv[])
 		    if(strcmp("-magsetup", argv[i]) == 0)
 		    {
 			sscanf(argv[i+1], "%d", &magsetup);
+		    }
+		    if(strcmp("-potdis", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &potdis);
 		    }
 		  }
 	  
@@ -377,7 +382,7 @@ main(int argc, char *argv[])
 		int hall_denom=6, hall_rel_width=1, hall_start=1;
 		int hall_second_start = hall_denom - hall_start - hall_rel_width; 
 		int ntop=2, nbot=2;
-		int hall_num_y_cells=3;
+		int hall_num_y_cells=10;
 	      
 	      	hallbpara hallp={};
 	
@@ -732,7 +737,7 @@ main(int argc, char *argv[])
 		    SysPara = NULL;
 		    
 		    //set filename info?
-		    	sprintf(sysinfo, "clean");
+		    	sprintf(sysinfo, "clean_l2_%d", length2);
 
 		}
 		
@@ -744,6 +749,43 @@ main(int argc, char *argv[])
 	//misc  
 	  
 	  double cond2;
+	  
+	  
+	  //potential disorder settings
+	      double pdconc=0.0, pddelta=0.0, pdxi=1.0;
+	      int pdmap=0;
+	      potDis_para dispara = {};
+	      
+	      if(potdis==1)
+	      {
+		for(i=1; i<argc-1; i++)
+		{
+		  if(strcmp("-pdconc", argv[i]) == 0)
+		  {
+		      sscanf(argv[i+1], "%lf", &pdconc);
+		  }
+		  if(strcmp("-pddelta", argv[i]) == 0)
+		  {
+		      sscanf(argv[i+1], "%lf", &pddelta);
+		  }
+		  if(strcmp("-pdxi", argv[i]) == 0)
+		  {
+		      sscanf(argv[i+1], "%lf", &pdxi);
+		  }
+		  if(strcmp("-pdmap", argv[i]) == 0)
+		  {
+		      sscanf(argv[i+1], "%d", &pdmap);
+		  }
+		 }
+		 
+		 dispara.conc = pdconc;
+		 dispara.delta = pddelta;
+		 dispara.xi = pdxi;
+		 dispara.seed = conf_num;
+		
+		 sprintf(disinfo, "POTDIS_c_%.2lf_d_%.3lf_xi_%.1lf", pdconc, pddelta, pdxi);
+	      }
+	  
 	  
 	  
 	  
@@ -870,15 +912,21 @@ main(int argc, char *argv[])
 
 	//File I/O variables
 	    FILE *output;
-	    char filename[160], filename3[160], filename_temp[160];
-	    char checkname[160], direcname[160], conffile[200], strucfile[160];
-	    char bandname1[160], bandname2[160], bandname3[160], mapname[200];
-            char command[400];
+	    char filename[300], filename3[300], filename_temp[300];
+	    char checkname[300], direcname[300], conffile[350], strucfile[300], disorderfile[300];
+	    char bandname1[300], bandname2[300], bandname3[300], mapname[400];
+            char command[600];
 	    FILE *bandfile;
 	    FILE *mapfile;
 	    
 	//Create directory and filenaming convention
 	    sprintf(direcname, "../res/%s_%s_%.0e/%s%d_%s", systemtype, peritype, eta, geotype, length1, sysinfo);
+	    
+	    if(potdis==1)
+	    {
+	      sprintf(direcname, "%s/%s", direcname, disinfo);
+	    }
+	    
 	    sprintf(command, "mkdir -p %s", direcname);
 	    system(command);
 	    printf("# directory: %s\n", direcname);
@@ -887,6 +935,8 @@ main(int argc, char *argv[])
 	    sprintf(filename_temp, "%s_%s.conf%02d", loopinfo, job_name, conf_num); 
 
 	    sprintf(strucfile, "%s/%s.struct", direcname, filename_temp);
+	    sprintf(disorderfile, "%s/%s.disprof", direcname, filename_temp);
+
 	    sprintf(filename, "%s/.%s.part%02d", direcname, filename_temp, this_proc);
 	    
 	    sprintf(bandname1, "%s/%s.bands", direcname, filename_temp);
@@ -929,7 +979,7 @@ main(int argc, char *argv[])
 
 		
 	
-		srand(this_proc);
+		srand(this_proc); // ? why is this here??
 
 
     
@@ -964,8 +1014,10 @@ main(int argc, char *argv[])
 		  (SysFunction) ( &System, SysPara, output_type, strucfile);
 		  
 		  //additional, general disorder routine(s) here.
-		  
-		  
+		  if(potdis == 1)
+		  {
+		    potentialDisorder (&System, &dispara, pdmap, disorderfile );
+		  }
 		  
 		  //export the disorder configuration for the other processes calculating the same configuration
 		  if(procs>0)
@@ -980,7 +1032,7 @@ main(int argc, char *argv[])
 		}
 		
 
-		
+// 		exit(0);
 		
 		  
 		  if(this_proc > 0)
@@ -1029,7 +1081,7 @@ main(int argc, char *argv[])
 		  halloutput = 1;
 		
 		else
-		  output_type = 0;
+		  halloutput = 0;
 		
 		
 		HallBarify (&System, LeadCells, &hallp, &leadp, halloutput, strucfile);
@@ -1419,6 +1471,8 @@ main(int argc, char *argv[])
 	      
 	      
 	      //print maps
+	      double xc, yc;
+	      double probe_pots[num_leads];
 	      
 	      if(mapmode==1)
 	      {
@@ -1449,7 +1503,12 @@ main(int argc, char *argv[])
 			  fclose(mapfile);
 			  
 		      }
-		    
+		      
+		      
+		  
+			   
+
+		      
 		    
 	      }
 	      
@@ -1476,12 +1535,12 @@ main(int argc, char *argv[])
 		  }
 		}
 		
-		mtrans[0][0] = 1 / transmissions[0][0];
+		mtrans[0][0] = 1 / ttildas[0][0];
 		
 		for(i=1; i<num_leads-1; i++)
 		{
 		    mtrans[0][i] = - ttildas[0][i+1] / ttildas[0][0];
-		    mtrans[i][0] = ttildas[i+1][0] / ttildas[0][0];
+		    mtrans[i][0] =  ttildas[i+1][0] / ttildas[0][0];
 		    
 		    for(j=1; j< num_leads-1; j++)
 		    {
@@ -1489,7 +1548,8 @@ main(int argc, char *argv[])
 		      
 		    }
 		}
-		vecb[0] = 1.0;
+		vecb[0] = 1.0; vecb[1] = 0.0;  vecb[2] = 0.0; vecb[3] = 0.0; vecb[4] = 0.0; 
+		vecx[0] = 0.0; vecx[1] = 0.0;  vecx[2] = 0.0; vecx[3] = 0.0; vecx[4] = 0.0; 
 		
 		LinEqnDouble (mtrans, vecb, vecx, num_leads-1);
 		
@@ -1497,7 +1557,7 @@ main(int argc, char *argv[])
 		
 		if(strcmp("E", loop_type) == 0)
 		{
-		  fprintf(output, "%lf	%e	%e	%e\n", realE, (vecx[1]-vecx[3])/vecx[0], (vecx[1]-vecx[2])/vecx[0], kavg);		
+		  fprintf(output, "%lf	%.12e	%.12e	%.12e	%.12e	%.12e	%.12e	%.12e\n", realE, (vecx[1]-vecx[3])/vecx[0], (vecx[1]-vecx[2])/vecx[0], kavg, vecx[1], vecx[2], vecx[3], vecx[4]);		
   // 		printf("%lf	%e	%e	%e	%e	%e\n", realE, transmissions[0][1], transmissions[0][2], transmissions[0][3], transmissions[0][4], transmissions[0][5]);
 
 		  //printf( "%lf	%e\n", realE, kavg);
@@ -1505,16 +1565,69 @@ main(int argc, char *argv[])
 		}
 		if(strcmp("B", loop_type) == 0)
 		{
-		  fprintf(output, "%lf	%e	%e	%e\n", Bfield, (vecx[1]-vecx[3])/vecx[0], (vecx[1]-vecx[2])/vecx[0], kavg);		
+		  fprintf(output, "%lf	%.12e	%.12e	%.12e	%.12e	%.12e	%.12e	%.12e\n", Bfield, (vecx[1]-vecx[3])/vecx[0], (vecx[1]-vecx[2])/vecx[0], kavg, vecx[1], vecx[2], vecx[3], vecx[4]);		
   // 		printf("%lf	%e	%e	%e	%e	%e\n", Bfield, transmissions[0][1], transmissions[0][2], transmissions[0][3], transmissions[0][4], transmissions[0][5]);
 		}
 		
+		
+		
+		    //make a composite map for multiprobe systems
+		      if(mapmode == 1)
+		      {
+			probe_pots[0] = 1.0;
+			probe_pots[1] = 0.0;
+			probe_pots[2] = vecx[1];
+			probe_pots[3] = vecx[2];
+			probe_pots[4] = vecx[3];
+			probe_pots[5] = vecx[4];
+			
+			printf("#curr: %.10e\n", vecx[0]);
+
+			sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.cmaps_multi", direcname, realE, Bfield, job_name, conf_num);
+			mapfile = fopen(mapname, "w");
+			for(i=0; i<Ntot; i++)
+			{ 
+			  xc=0.0; yc=0.0;
+ 			  k=1;
+//  			  for(k=0; k<num_leads; k++)
+//  			  {
+			    for(j=0; j<num_leads; j++)
+			    {
+				if(j!=k)
+				{
+				  if(probe_pots[k] > probe_pots[j])
+				  {
+				    xc += (probe_pots[k] - probe_pots[j])*currents[k][i][0];
+				    yc += (probe_pots[k] - probe_pots[j])*currents[k][i][1];
+				  }
+				  
+				  if(probe_pots[j] > probe_pots[k])
+				  {
+				    xc += (probe_pots[j] - probe_pots[k])*currents[j][i][0];
+				    yc += (probe_pots[j] - probe_pots[k])*currents[j][i][1];
+				  }
+				}
+			      
+//  			    }
+			  }
+			  
+			  
+		
+		
+			  
+			    fprintf(mapfile, "%lf	%lf	%.12e %.12e\n", (pos)[i][0], (pos)[i][1], xc, yc);
+			}
+			fclose(mapfile);
+		      }
+			  
 		
 
 	      }
 	      
 	      fclose(output);
 
+	      
+	      
 	  }
 			
 

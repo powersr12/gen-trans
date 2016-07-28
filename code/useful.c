@@ -21,6 +21,12 @@ double myRandNum (double min, double max)
   return min + (max-min)*( (double) rand() / (double) RAND_MAX);
 }
 
+//generates a random INTEGER between min and max INCLUSIVE
+int myRandInt (int min, int max)
+{
+  return min + ((rand()) % (max-min+1)) ;
+}
+
 
 //is a point (atom) inside a polygon (al antidot)?
 int pnpoly(int nvert, double *vertx, double *verty, double testx, double testy)

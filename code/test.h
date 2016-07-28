@@ -7,6 +7,7 @@
 #include "mapping.h"
 #include "transport.h"
 #include "connect.h"
+#include "disorder.h"
 
 #include "../libs/matrices.h"
 #include "../libs/hubbard.h"
