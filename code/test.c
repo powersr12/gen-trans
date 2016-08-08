@@ -43,6 +43,7 @@ main(int argc, char *argv[])
 				//a simple system or a hall bar
 	      int gauge = 0; 	//default gauge choice, phase is along x
 	      int potdis =0;	//is there an additional, random potential disorder in the system?
+	      int splitgen =0;	//if =1, splits the system generation and calculation
 	  
 	      //check for command line arguments which vary these
 		  for(i=1; i<argc-1; i++)
@@ -263,9 +264,11 @@ main(int argc, char *argv[])
 		      {
 			  sscanf(argv[i+1], "%d", &map_lead);
 		      }
-		      
-		      
-		      
+		      if(strcmp("-splitgen", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%d", &splitgen);
+		      }
+		      	      
 		      if(strcmp("-jobname", argv[i]) == 0)
 		      {
 			  sscanf(argv[i+1], "%s", job_name);
@@ -1003,10 +1006,22 @@ main(int argc, char *argv[])
 		sprintf(loopinfo, "VG_%s_loop_%+.2lf_to_%+.2lf_Bfixed_%+.3lf_Efixed_%+.3lf", vgtname, VGmin, VGmax, Bfield, realE);
 	      }
 
+	      
+	      
+	    //loop details
+	    int calc_procs = procs;
+	    int this_calc_proc = this_proc;
+	    if(splitgen == 1)
+	    {
+	      calc_procs = procs-1;
+	      this_calc_proc = this_proc-1;
+	    }
+	      
+	      
 		if(loop_pts>1)
 		{
 		  loop_step = (loopmax-loopmin)/(loop_pts - 1);
-		  remainder = (loop_pts % procs);
+		  remainder = (loop_pts % calc_procs);
 		}
 		if(loop_pts==1)
 		{
@@ -1015,20 +1030,22 @@ main(int argc, char *argv[])
 		}
 		
 		
+		if(remainder != 0 && this_calc_proc < remainder)
+		{
+		  loop_pts_temp = ((loop_pts - remainder) / calc_procs) + 1;
+		  loop_min_temp = loopmin + this_calc_proc * (loop_pts_temp) * loop_step;
+		  
+		}
+		else
+		{
+		  loop_pts_temp = loop_pts/calc_procs;
+		  loop_min_temp = loopmin + remainder * (loop_pts_temp + 1) * loop_step + (this_calc_proc - remainder) * (loop_pts_temp) * loop_step ;
+		}
 		
-	      
-	      if(remainder != 0 && this_proc < remainder)
-	      {
-		      loop_pts_temp = ((loop_pts - remainder) / procs) + 1;
-		      loop_min_temp = loopmin + this_proc * (loop_pts_temp) * loop_step;
-		      
-	      }
-	      else
-	      {
-		      loop_pts_temp = loop_pts/procs;
-		      loop_min_temp = loopmin + remainder * (loop_pts_temp + 1) * loop_step + (this_proc - remainder) * (loop_pts_temp) * loop_step ;
-
- 	      }
+		if(splitgen == 1 && this_proc == 0)
+		{
+		  loop_pts_temp=0;
+		}
 	
 
 	//File I/O variables
@@ -1155,16 +1172,18 @@ main(int argc, char *argv[])
 
 // 		exit(0);
 		
-		  
+
 		  if(this_proc > 0)
 		  {
 		    while(can_start_yet<0)
 		    {
-		      	sleep(myRandNum(1.0*length1, 3.0*length1));
+			if(splitgen != 1)
+			{
+			  sleep( (int) myRandNum(1.0, 45.0));
+			}
 			check = fopen(checkname, "r");
 			fscanf(check, "%d", &can_start_yet);
 		    }
-		    
 		    importRectConf(&System, length1, length2, conffile);
 		  }
 		  
