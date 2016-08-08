@@ -28,10 +28,6 @@ for i in ${@:5}; do
 done
 fi
 
-if [ $REMAINDER -ne 0 ]
-then
-  NUMNODES=$(($NUMNODES +1))
-fi
 
 echo "# configurations: $NUMCONFS"
 echo "# processors per configuration: $PROCSPCONF"
