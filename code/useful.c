@@ -16,6 +16,25 @@ int mymin(int num1, int num2)
   else
     return num2;
 }
+
+double dmax(double num1, double num2)
+{
+  if(num1>= num2)
+    return num1;
+  else
+    return num2;
+}
+
+
+double dmin(double num1, double num2)
+{
+  if(num1<= num2)
+    return num1;
+  else
+    return num2;
+}
+
+
 double myRandNum (double min, double max)
 {
   return min + (max-min)*( (double) rand() / (double) RAND_MAX);

@@ -63,3 +63,7 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 
 void genKXbandproj(RectRedux *DeviceCell,  hoppingfunc *hoppingfn, void *hoppingparams, int mode,
 		      double kx, double *bands, double **projs, double **weights);
+
+
+void gate_induced_pot ( int vgtype, RectRedux *DeviceCell, double *engdeppots, double gate_voltage, double edge_cut_off, double subs_thick, double subs_epsr);
+

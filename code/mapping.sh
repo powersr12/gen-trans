@@ -4,9 +4,9 @@ ZZX=1.0
 ZZY=1.73206
 REDUCFACT=1
 GEO=0
-MAXPTS=20000
+MAXPTS=22000
 
-BASENAME=/home/spow/projects/gen_trans/res/ANTIDOTS_HALLBAR_2_2_rw_6_1e-06/ZZ56_trig_lat_L_7_circ_dot_R_0.0_4x8_xyf_0.0_rf_0.0/E_+0.20_B_+400.000_mg2.conf00
+BASENAME=/home/spow/GEN_TRANS_RESULTS/ANTIDOTS_HALLBAR_2_2_rw_6_1e-06/ZZ288_rect_lat_L_36_64_circ_dot_R_0.0_4x8_xyf_0.0_rf_0.0/E_+0.20_B_+121.000_mgauge.conf00
 
 
 DOSNAME=$BASENAME.ldos

@@ -2728,4 +2728,66 @@ void lead_prep(double _Complex En, RectRedux *LeadCell, int leadindex, lead_para
 }
   
   
+//gate induced potential - variations on the efetov model.
+//places a potential on sites depending on gate and geometry parameters
 
+void gate_induced_pot ( int vgtype, RectRedux *DeviceCell, double *engdeppots, double gate_voltage, double edge_cut_off, double subs_thick, double subs_epsr)
+{
+  int length1 = (DeviceCell->length);
+  int length2 = (DeviceCell->length2);
+  int geo = (DeviceCell->geo);
+  int Nrem = *(DeviceCell->Nrem);
+  double **pos = (DeviceCell->pos);
+  
+  double top_edge, bottom_edge, rib_center, ypos, ny, nmax, n0;
+  int i;
+  
+  //top and bottom edges of ribbon for potential calculations
+      //zigzag naturally offset by definition of atomic positions (none along y=0)
+	if(geo==0)
+	{
+	    top_edge=length1*sqrt(3)/2;
+	    bottom_edge=0.0;
+	    rib_center = top_edge/2;
+	}
+	
+	  //armchair offset slightly to avoid division by zero for very edge sites
+	if(geo==1 )
+	{
+	    top_edge=(length1)*0.5;
+	    bottom_edge = -0.5;
+	    rib_center = top_edge/2 -0.25;
+	}
+	
+	
+	//density induced by this setup in an infinite width graphene sheet (SI units, m^-2)
+	//note the 2 in the denominator - this assumes a spinless calculation.
+	n0= (subs_epsr)*(8.85E-12)*gate_voltage/(2*subs_thick * 1.6E-19);
+	nmax = n0 * ((top_edge-bottom_edge)/2) / sqrt( pow( (top_edge-bottom_edge)/2, 2)  - pow((top_edge-rib_center) - edge_cut_off, 2) );
+  
+	for(i=0; i<Nrem; i++)
+	{
+	  ypos = pos[i][1] - rib_center;
+	  
+	  if (vgtype==0)
+	  {
+	    ny = n0;
+	  }
+	  
+	  if (vgtype==1)
+	  {
+	    ny = n0 * ((top_edge-bottom_edge)/2)  / sqrt( pow((top_edge-bottom_edge)/2, 2)  - pow(ypos, 2) );
+	
+	    if(ny>nmax)
+	      ny=nmax;
+	  }
+	  
+	  engdeppots[i] = (- gate_voltage/ fabs(gate_voltage)) * (1.05E-28) * (ny/fabs(ny))* sqrt(M_PI * fabs(ny) ) / (2.7 * 1.6E-19) ;
+	  
+	  if(gate_voltage==0.0)
+	  {
+	    engdeppots[i] = 0.0;
+	  }
+	}
+  
+}

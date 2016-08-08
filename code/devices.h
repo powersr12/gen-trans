@@ -68,6 +68,17 @@ typedef struct {
 }adot_para;
 
 typedef struct {
+	int buffer_rows;
+	int sruns;
+	double smax;
+	double minper;
+	int vacruns;
+	double vacprob;
+	int seed;
+}edgedis_para;
+
+
+typedef struct {
   int num_top_probes;
   int num_bot_probes;
   int *toppx;
@@ -91,6 +102,7 @@ void genSublatticeInterface(RectRedux *SiteArray, void *p, int struc_out, char *
 
 void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 
+void genEdgeDisorderedDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 
 
 void exportRectConf(RectRedux *System, char *filename);

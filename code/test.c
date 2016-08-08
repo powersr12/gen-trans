@@ -22,7 +22,7 @@ main(int argc, char *argv[])
 	  
 	  //general system inputs and default values
 	      char systemtype[32];
-	      char geotype[32], peritype[40], leadtype[32], sysinfo[120], loopinfo[64], disinfo[40];
+	      char geotype[32], peritype[40], leadtype[32], sysinfo[120], loopinfo[80], disinfo[40];
 	      sprintf(systemtype, "SUBLATTICEPOT");
 	      int length1=2, length2=3*length1, geo=0, isperiodic=1, ismagnetic=0;
 	      int makebands = 0, unfold=0, project=0, kxpoints=51, bandsonly=0, bandsminset=0, bandsmaxset=100000;
@@ -285,6 +285,7 @@ main(int argc, char *argv[])
 	//energy and magfield loop related doubles 
 	  double realE=0.0, Emax=0.9, Emin=-0.9;
 	  double Bfield=0.0, Bmax=20.0, Bmin=0.0;
+	  double VG=0.0, VGmin = 0.0, VGmax=10.0;
 	  double _Complex En;
 	  
 	  
@@ -307,6 +308,15 @@ main(int argc, char *argv[])
 		    {
 			sscanf(argv[i+1], "%lf", &Bmax);
 		    }
+		    if(strcmp("-VGmin", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%lf", &VGmin);
+		    }
+		    if(strcmp("-VGmax", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%lf", &VGmax);
+		    }
+		    
 		  }
 	  
 
@@ -729,6 +739,68 @@ main(int argc, char *argv[])
 		}
 		
 		
+		
+		int edge_buffer_rows=10, sruns=20;
+		double smax=2.0, minper=40.0;
+		int vacruns =0;
+		double vacprob=0.0;
+		
+		edgedis_para edgedisp = {};
+		if(strcmp("EDGEDIS", systemtype) == 0)
+		{	
+		    //default values
+		    
+		    edgedisp.buffer_rows = edge_buffer_rows;
+		    edgedisp.sruns = sruns;
+		    edgedisp.smax = smax;
+		    edgedisp.minper = minper;
+		    edgedisp.vacruns = vacruns;
+		    edgedisp.vacprob = vacprob;
+
+		    edgedisp.seed = conf_num;
+
+		    
+		    //check for command line arguments which vary these
+		    for(i=1; i<argc-1; i++)
+		    {
+		      if(strcmp("-ebufrows", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%d", &(edgedisp.buffer_rows));
+		      }
+		      if(strcmp("-sruns", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%d", &(edgedisp.sruns));
+		      }
+		      if(strcmp("-smax", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(edgedisp.smax));
+		      }
+		      if(strcmp("-minper", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(edgedisp.minper));
+		      }
+		      if(strcmp("-vacruns", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%d", &(edgedisp.vacruns));
+		      }
+		      if(strcmp("-vacprob", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(edgedisp.vacprob));
+		      }
+		      
+		      
+		    }
+		    
+		    //set functions and params for use below
+		    SysFunction = &genEdgeDisorderedDevice;
+		    SysPara = &edgedisp;
+		    
+		    //set filename info - what to put in filename from these params
+		    sprintf(sysinfo, "L2_%d_DIS%dx%.2lf_per_%.0lf_vac%dx%.2lf", length2, buffer_rows, (edgedisp.sruns), (edgedisp.smax),(edgedisp.minper), (edgedisp.vacruns), (edgedisp.vacprob)); 
+		}
+		
+		
+		
 		if(strcmp("CLEAN", systemtype) == 0)
 		{	
 		    
@@ -880,6 +952,55 @@ main(int argc, char *argv[])
 		loopmax = Bmax;
 		sprintf(loopinfo, "Bloop_%+.2lf_to_%+.2lf_Efixed_%+.3lf", Bmin, Bmax, realE);
 
+	      }
+	      
+	      
+	      double edge_cut=5.0, subs_thick=0.1E-6, subs_epsr=3.9;
+	      int vgtype=0; 
+	      char vgtname[20];
+	      if(strcmp("VG", loop_type) == 0)
+	      {
+		Bfield = Bmin;
+		realE = Emin;
+		loopmin = VGmin;
+		loopmax = VGmax;
+		
+		 //additional parameters for gate voltage type loop.
+		 for(i=1; i<argc-1; i++)
+		 {
+		    if(strcmp("-vgtype", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &vgtype);
+		    }
+		    if(strcmp("-vgedgecut", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%lf", &edge_cut);
+		    }
+		    if(strcmp("-vgsubsthick", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%lf", &subs_thick);
+		    }
+		    if(strcmp("-vgsubsepsr", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%lf", &subs_epsr);
+		    }
+		 }
+		if(vgtype==0)
+		{
+		  sprintf(vgtname, "constpot");
+		}
+		else if (vgtype ==1)
+		{
+		  sprintf(vgtname, "efetov");
+		}
+		else if (vgtype ==2)
+		{
+		  sprintf(vgtname, "efetov2");
+		}
+		
+	
+		
+		sprintf(loopinfo, "VG_%s_loop_%+.2lf_to_%+.2lf_Bfixed_%+.3lf_Efixed_%+.3lf", vgtname, VGmin, VGmax, Bfield, realE);
 	      }
 
 		if(loop_pts>1)
@@ -1077,6 +1198,13 @@ main(int argc, char *argv[])
 		  
 	  if(ishallbar == 1)
 	  {
+		if(strcmp("VG", loop_type) == 0)
+		{
+		  printf("hall bar and edge potential models incompatible!");
+		  exit(1);
+		}
+	    
+	    
 		if(output_type == 1 && this_proc == 0)
 		  halloutput = 1;
 		
@@ -1101,6 +1229,8 @@ main(int argc, char *argv[])
 		
 		
 		pos = System.pos;
+		
+		
 		
 
 	  }
@@ -1288,7 +1418,31 @@ main(int argc, char *argv[])
 	    }
 	  }
 	  
-	  
+	 double *engdeppots,  *origpots , **lead_origpots, **lead_engdeppots;
+	 
+	 //back up energy independent on-site potentials
+	 if(strcmp("VG", loop_type) == 0)
+	 {
+	   engdeppots = createDoubleArray(Ntot);
+	   origpots = createDoubleArray(Ntot);
+	   for(i=0; i<Ntot; i++)
+	   {
+	     origpots[i] = System.site_pots[i];
+	   }
+	   
+	   lead_engdeppots = (double **)malloc(num_leads*sizeof(double *));
+	   lead_origpots = (double **)malloc(num_leads*sizeof(double *));
+	   for(j=0; j<num_leads; j++)
+	   {
+	     lead_engdeppots[j] = createDoubleArray( *(LeadCells[j]->Ntot));
+	     lead_origpots[j] = createDoubleArray( *(LeadCells[j]->Ntot));
+	     
+	     for(i=0; i<*(LeadCells[j]->Ntot); i++)
+	     {
+	      lead_origpots[j][i] = (LeadCells[j]->site_pots)[i];
+	     }
+	   }
+	 }
 
 	  
 	 if(makebands == 1)
@@ -1303,6 +1457,17 @@ main(int argc, char *argv[])
 	    if(ismagnetic == 1)
 	    {
 	      hoppara.Btes=Bmin;
+	    }
+	    
+	    //generate engdeppots if required
+	    gate_induced_pot (vgtype, &System, engdeppots, VGmin, edge_cut, subs_thick, subs_epsr);
+
+	    
+	    
+	    //set total onsite potentials
+	    for(i=0; i<Ntot; i++)
+	    {
+	      System.site_pots[i] = origpots[i] + engdeppots[i];
 	    }
 	    
 	    
@@ -1382,8 +1547,17 @@ main(int argc, char *argv[])
 		  exit(0);
 		}
 		
-		
-		
+	    //reset onsite potentials if they have been gate-voltage model altered
+	    
+	      if(strcmp("VG", loop_type) == 0)
+	      {
+		for(i=0; i<Ntot; i++)
+		{
+		  System.site_pots[i] = origpots[i];
+		}
+	      }
+	    
+	    
 	 }
 	  
 	  
@@ -1404,6 +1578,39 @@ main(int argc, char *argv[])
 		Bfield =  loop_min_temp + en*loop_step;
 
 	      }
+	      
+	      if(strcmp("VG", loop_type) == 0)
+	      {
+		VG =  loop_min_temp + en*loop_step;
+		
+		//generate gate-depedent onsites for this VG
+		  //in the device:
+		    gate_induced_pot (vgtype, &System, engdeppots, VG, edge_cut, subs_thick, subs_epsr);
+
+		  //in the leads
+		    for(j=0; j<num_leads; j++)
+		    {
+		      	gate_induced_pot (vgtype, LeadCells[j], lead_engdeppots[j], VG, edge_cut, subs_thick, subs_epsr);
+		    }
+
+		
+		//set total onsite pots
+		    for(i=0; i<Ntot; i++)
+		    {
+		      System.site_pots[i] = origpots[i] + engdeppots[i];
+		    }
+		    
+		    for(j=0; j<num_leads; j++)
+		    {
+		      for(i=0; i<*(LeadCells[j]->Ntot); i++)
+		      {
+			(LeadCells[j]->site_pots)[i]= lead_origpots[j][i] + lead_engdeppots[j][i];
+		      }
+		    }
+				
+
+	      }
+	      
 	      
 	      if(mappings != 0)
 	      {
@@ -1466,6 +1673,11 @@ main(int argc, char *argv[])
 		{
 		  fprintf(output, "%lf	%e\n", Bfield, kavg);
   // 		printf("%lf	%e	%e	%e	%e	%e\n", Bfield, transmissions[0][1], transmissions[0][2], transmissions[0][3], transmissions[0][4], transmissions[0][5]);
+		}
+		
+		if(strcmp("VG", loop_type) == 0)
+		{
+		  fprintf(output, "%lf	%e\n", VG, kavg);
 		}
 	      }
 	      
