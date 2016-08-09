@@ -794,6 +794,7 @@ main(int argc, char *argv[])
 		      
 		    }
 		    
+		    
 		    //set functions and params for use below
 		    SysFunction = &genEdgeDisorderedDevice;
 		    SysPara = &edgedisp;
