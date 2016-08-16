@@ -6,7 +6,7 @@ REDUCFACT=1
 GEO=0
 MAXPTS=22000
 
-BASENAME=/home/spow/GEN_TRANS_RESULTS/ANTIDOTS_HALLBAR_2_2_rw_6_1e-06/ZZ288_rect_lat_L_36_64_circ_dot_R_0.0_4x8_xyf_0.0_rf_0.0/E_+0.20_B_+121.000_mgauge.conf00
+BASENAME=/home/spow/GEN_TRANS_RESULTS/ANTIDOTS_HALLBAR_2_2_rw_6_1e-06/ZZ288_rect_lat_L_36_64_circ_dot_R_5.0_4x8_xyf_0.0_rf_0.0/E_+0.05_B_+22.875_mgauge.conf00
 
 
 DOSNAME=$BASENAME.ldos

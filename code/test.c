@@ -1259,10 +1259,11 @@ main(int argc, char *argv[])
 	  
 	  
 	  
-	  if(ishallbar != 1)
-	  {
-	    genLeads(&System, LeadCells, num_leads, 0, &leadp);
-	  }
+	    if(ishallbar != 1)
+	    {
+	      genLeads(&System, LeadCells, num_leads, 0, &leadp);
+	    }
+	  
 	  
 
   
@@ -1271,26 +1272,30 @@ main(int argc, char *argv[])
 	  
 
 	  cnxProfile cnxp;
-	  cnxp.max_neigh=max_neigh;
-	  device_connectivity (&System, connectrules, &cnxpara, &cnxp);
-	  
-		time = clock() - time;
-		printf("#made connection profile in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
-		time = clock();
-   	 // printConnectivity (&System, &cnxp);
+	 
+	    cnxp.max_neigh=max_neigh;
+	    device_connectivity (&System, connectrules, &cnxpara, &cnxp);
+	    
+		  time = clock() - time;
+		  printf("#made connection profile in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
+		  time = clock();
+	  // printConnectivity (&System, &cnxp);
 	  
 		
 		
 	  gen_start_params start_p ={};
-	  start_p.rule = &graph_conn_sep2;
-	  start_p.rule_params = &cnxpara;
-	  start_p.num_leads = num_leads;
-	  start_p.Leads = LeadCells;
+	 
+	    start_p.rule = &graph_conn_sep2;
+	    start_p.rule_params = &cnxpara;
+	    start_p.num_leads = num_leads;
+	    start_p.Leads = LeadCells;
+	  
 	  
 		
 	  cellDivision cellinfo;
 	 // genStartingCell(&System, &cellinfo, 2, NULL);
 	  
+	 
 	  	  genStartingCell(&System, &cellinfo, 3, &start_p);
 
 	  
@@ -1303,6 +1308,7 @@ main(int argc, char *argv[])
 		time = clock() - time;
 		printf("#split cells in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		time = clock();
+	  
 
 // exit(0);
 		
@@ -1478,16 +1484,24 @@ main(int argc, char *argv[])
 	    {
 	      hoppara.Btes=Bmin;
 	    }
-	    
+	    		double *engdeppots2;
+
 	    //generate engdeppots if required
-	    gate_induced_pot (vgtype, &System, engdeppots, VGmin, edge_cut, subs_thick, subs_epsr);
+	      if(strcmp("VG", loop_type) == 0)
+	      {
+		engdeppots2 = createDoubleArray(Ntot);
+		gate_induced_pot (vgtype, &System, engdeppots2, VGmin, edge_cut, subs_thick, subs_epsr);
+	      }
 
 	    
 	    
 	    //set total onsite potentials
-	    for(i=0; i<Ntot; i++)
+	    if(strcmp("VG", loop_type) == 0)
 	    {
-	      System.site_pots[i] = origpots[i] + engdeppots[i];
+	      for(i=0; i<Ntot; i++)
+	      {
+		System.site_pots[i] = origpots[i] + engdeppots2[i];
+	      }
 	    }
 	    
 	    
@@ -1577,7 +1591,7 @@ main(int argc, char *argv[])
 		}
 	      }
 	    
-	    
+	    free(engdeppots2);
 	 }
 	  
 	  
