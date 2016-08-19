@@ -41,6 +41,8 @@ main(int argc, char *argv[])
 				//1 means field everywhere
 				//the correct gauge is then chosen depending on whether we have
 				//a simple system or a hall bar
+				//2 means no field in right/left leads in hall bar geometry
+				//this forces the choice gauge=0
 	      int gauge = 0; 	//default gauge choice, phase is along x
 	      int potdis =0;	//is there an additional, random potential disorder in the system?
 	      int splitgen =0;	//if =1, splits the system generation and calculation
@@ -126,7 +128,7 @@ main(int argc, char *argv[])
 		    }
 		  }
 	  
-	  
+			 
 	 
 		  if(geo==0)
 		  {
@@ -274,6 +276,11 @@ main(int argc, char *argv[])
 			  sscanf(argv[i+1], "%s", job_name);
 		      }
 		    }
+		    
+			  if(magsetup==2)
+			  {
+			    sprintf(job_name, "%s.ms2", job_name);
+			  }
 
 		    int buffer_rows=0;
 		    for(i=1; i<argc-1; i++)
@@ -1246,6 +1253,10 @@ main(int argc, char *argv[])
 		{
 		  gauge = 2;
 		}
+		if(magsetup==2)
+		{
+		  gauge = 0;
+		}
 		
 		
 		pos = System.pos;
@@ -1377,6 +1388,16 @@ main(int argc, char *argv[])
 	    
 	    
 	    printf("# gauge changes points: %lf, %lf, %lf, %lf, %lf, %lf\n", reslimits[0][0], reslimits[0][1], reslimits[0][2], reslimits[0][3], reslimits[0][4], reslimits[0][5]);
+	    
+	  }
+	  
+	  //this is the special case of no field in left and right leads for a hall bar
+	  //field is turned on at the end of the buffer region
+	  if(magsetup == 2 && ishallbar == 1 && gauge == 0)
+	  {
+	    res[0] = 1;
+	    reslimits[0][0] = pos[2*length1*(buffer_rows)][0];
+	    reslimits[0][1] = pos[2*length1*(length2-buffer_rows-1)][0];
 	    
 	  }
 	  
@@ -1827,7 +1848,7 @@ main(int argc, char *argv[])
 			probe_pots[4] = vecx[3];
 			probe_pots[5] = vecx[4];
 			
-			printf("#curr: %.10e\n", vecx[0]);
+// 			printf("#curr: %.10e\n", vecx[0]);
 
 			sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.cmaps_multi", direcname, realE, Bfield, job_name, conf_num);
 			mapfile = fopen(mapname, "w");

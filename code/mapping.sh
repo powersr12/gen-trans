@@ -4,13 +4,15 @@ ZZX=1.0
 ZZY=1.73206
 REDUCFACT=1
 GEO=0
-MAXPTS=22000
+MAXPTS=31000
 
-BASENAME=/home/spow/GEN_TRANS_RESULTS/ANTIDOTS_HALLBAR_2_2_rw_6_1e-06/ZZ288_rect_lat_L_36_64_circ_dot_R_5.0_4x8_xyf_0.0_rf_0.0/E_+0.05_B_+22.875_mgauge.conf00
+BASENAME=/home/spow/projects/gen_trans/res/CLEAN_HALLBAR_2_2_rw_6_1e-06/ZZ20_clean_l2_100/E_+0.20_B_+600.000_run.ms2.conf00
 
 
 DOSNAME=$BASENAME.ldos
 CURRENTS="l0 l2 l3 l1 l4 l5 multi"
+# CURRENTS="l0 l1"
+
 NUMPTS=`cat $DOSNAME | awk 'END{print NR}'`
 MAXDOS=`cat $DOSNAME | awk 'BEGIN{max=0} {if ($3>max) max=$3} END{printf "%lf",  max}'`
 MAXX=`cat $DOSNAME | awk 'BEGIN{max=0} {if ($1>max) max=$1} END{print max}'`
@@ -34,6 +36,10 @@ RESCALE=1
 if [ $NUMPTS -le $MAXPTS ]
 then 
     echo "OK! Very little rescaling required!"
+    XCELLS=`echo "$MAXX/$XE - $MINX/$XE + 1"  | bc `
+    YCELLS=`echo "$MAXY/$YE - $MINY/$YE + 1"  | bc `
+    NUMPTS=$(($XCELLS*$YCELLS))
+    echo "Rescaling... to "$NUMPTS" points"
 fi
 
 if [ $NUMPTS -ge $MAXPTS ]
