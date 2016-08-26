@@ -1261,16 +1261,14 @@ main(int argc, char *argv[])
 		
 		pos = System.pos;
 		
-		
-		
-
 	  }
 
 		
 	  
 	  
-	  
-	    if(ishallbar != 1)
+            //more complicated geometries (e.g. Hall Bars) generate their own lead parameters.
+            //this generates leads for simple left/right geometries
+	    if(ishallbar == 0)
 	    {
 	      genLeads(&System, LeadCells, num_leads, 0, &leadp);
 	    }
