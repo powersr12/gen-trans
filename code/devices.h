@@ -99,6 +99,7 @@ void simpleRibbonGeo (RectRedux *SiteArray, void *p, int struc_out, char *filena
 
 void genSublatticeDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 void genSublatticeInterface(RectRedux *SiteArray, void *p, int struc_out, char *filename);
+void genSublatticeLeadPots(RectRedux **Leads, void *p);
 
 void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 

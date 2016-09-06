@@ -754,6 +754,39 @@ void genSublatticeDevice(RectRedux *SiteArray, void *p, int struc_out, char *fil
 }
 
 
+//generates averaged sublattice potentials in left right leads (leads 0 and 1)
+//this is useful for injection in and out of infinite devices
+void genSublatticeLeadPots(RectRedux **Leads, void *p)
+{
+	int i, j;
+	subl_para *params = (subl_para *)p;
+	double a_conc = (params->a_conc);
+	double b_conc = (params->b_conc);
+	double a_pot = (params->a_pot);
+	double b_pot = (params->b_pot);
+	
+	
+	for(i=0; i<2; i++)
+	{
+		for(j=0; j< *(Leads[i]->Ntot); j++)
+		{
+			if( (Leads[i]->siteinfo)[j][0] == 0 && (Leads[i]->siteinfo)[j][1] == 0)
+			{
+				(Leads[i]->site_pots)[j] = a_conc * a_pot;
+			}
+			
+			if( (Leads[i]->siteinfo)[j][0] == 0 && (Leads[i]->siteinfo)[j][1] == 1)
+			{
+				(Leads[i]->site_pots)[j] = b_conc * b_pot;
+			}
+		}
+	}
+	
+	
+}
+
+
+
 //A general (non-disordered) antidot barrier-type device 
 //(circular ALs in triangular lattice for the moment - should be generalised later)
 //Different to the routine used in the disordered antidot paper

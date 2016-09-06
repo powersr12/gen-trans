@@ -2526,6 +2526,70 @@ void multipleLeads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadC
 }
 
 
+//very simple lead Sigmas 
+//assumes a constant density of states in metal leads
+//diagonal terms in Sigma constant
+//off diagonal terms with optional, variable distance decay
+//Does not use LeadCells (no repeated unit cells or SGF to calculate...) or hoppingfunc
+//model params are stored within params->(hoppara->hops)
+// [0] is 'Sig' - the magnitude of the imaginary part of the diagonal SGF term 
+// [1] is 'alpha', [2] is 'beta' in the off diagonal expression i alpha (diagonal value) / separation^beta
+// [3] is the hopping between lead and device (this should allow is to be made spin dependent easier?)
+void multipleSimplestMetalLeads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadCells, cellDivision *cellinfo, lead_para *params, double _Complex **Sigma)
+{
+  
+    int leadloop, dim1, dim1a,  dimcounta=0, lcount;
+    double _Complex **smallSigma, **temp1;
+
+    int num_leads = (cellinfo->num_leads);
+    gen_hop_params *hopp = (params->hoppara);
+    double sep;
+    double _Complex *hops = (hopp->hops);
+    int i, j, k;
+    int iprime, jprime;
+  
+    
+    
+    for(leadloop=0; leadloop < num_leads; leadloop++)
+    {
+  
+  
+            dim1a = (cellinfo->lead_dims)[leadloop];
+
+            
+            smallSigma = createSquareMatrix(dim1a);
+            
+            for(i=0; i< dim1a; i++)
+            {
+                iprime = (cellinfo->lead_sites)[dimcounta + i];
+                for(j=0; j<dim1a; j++)
+                {
+                    jprime = (cellinfo->lead_sites)[dimcounta + j];
+                    sep = sqrt( pow((DeviceCell->pos)[jprime][0] - (DeviceCell->pos)[iprime][0], 2) + pow((DeviceCell->pos)[jprime][1] - (DeviceCell->pos)[iprime][1], 2));
+                    
+                    smallSigma[i][j] = I * hops[0] * hops[3] * conj(hops[3]);
+                    
+                    if(i!=j)
+                    {
+                        smallSigma[i][j] = smallSigma[i][j] * hops[1] / (pow(sep, hops[2]));
+                    }
+                    
+                }
+            }
+            
+            
+            MatrixCopyPart(smallSigma, Sigma, 0, 0, dimcounta, dimcounta, dim1a, dim1a);
+            FreeMatrix(smallSigma); 
+            
+            dimcounta += dim1a;
+	  
+    }
+
+}
+
+
+
+
 //simplest way to generate sigmas
 void simple2leads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadCells, cellDivision *cellinfo, lead_para *params, double _Complex **Sigma)
 {

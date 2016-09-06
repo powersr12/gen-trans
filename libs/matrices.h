@@ -42,6 +42,7 @@ void EigenvectorsGSL(double _Complex **origMatrix, double _Complex *evals, doubl
 
 void printEMatrix(double _Complex **aMatrix, int dim);
 void printIntMatrix(int **aMatrix, int dim);
+void printDMatrix(double  **aMatrix, int dim);
 
 double _Complex MatrixTrace(double _Complex **Matrix, int dim);
 void MatrixReal(double _Complex **Orig, double _Complex **MatReal, int dim);

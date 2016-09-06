@@ -60,6 +60,12 @@ void printConnectivity (RectRedux *DeviceCell, cnxProfile *cnxp)
 
 //config = 3 reads a lead file, and a connectivity rule, and puts anything 
 //nearer than that to a lead atom into the starting cell
+
+//config = 4 : x dependent lead selection.
+//each lead has an xmin and xmax, all sites in this range are part of that lead
+//used for top lead / hanle type configurations.
+
+
 void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config, void *start_params)
 {
     //cellinfo->num_cells = 2;
@@ -72,6 +78,8 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
     
     cellinfo->cells_site_order = createIntArray(dim);
     cellinfo->sites_by_cell = createIntArray(alldim);
+    int *temparray;
+
 
     //initialise cells_site_order elements to -1
     for(i=0; i<dim; i++)
@@ -392,7 +400,6 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
     }
     
     
-
     else if (config == 3) //based on lead site positions and connection rule
     {
       gen_start_params *sps = (gen_start_params *) start_params;
@@ -405,7 +412,7 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
       
       //count total sites connecting to leads, and each lead
       //problem if sites connect to more than one other site ->temp array fixes this
-                int *temparray = createIntArray(alldim);
+      temparray = createIntArray(alldim);
 
       
       for(i=0; i<cellinfo->num_leads; i++)
@@ -456,7 +463,54 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
 
     }
     
-    
+    else if(config==4)
+    {
+        multix_start_params *sps = (multix_start_params *) start_params;
+      
+        j=0, m=0;
+        cellinfo->num_leads=(sps->num_leads);
+        cellinfo->lead_dims=createIntArray(cellinfo->num_leads);
+        
+              temparray = createIntArray(alldim);
+
+        
+        for(i=0; i<cellinfo->num_leads; i++)
+        {
+            m=0;
+            
+            for(l=0; l<alldim; l++)
+            {
+                if( (DeviceCell->siteinfo)[l][0] == 0 && temparray[l]==0)
+                {
+                    if((DeviceCell->pos)[l][0] >= sps->startx[i] && (DeviceCell->pos)[l][0] <= sps->endx[i])
+                    {
+                        (cellinfo->cells_site_order)[j] = l;
+                        j++; m++;
+                        (cellinfo->sites_by_cell)[l] = 0;
+                        temparray[l]=1;
+                    }
+                }
+            }
+            (cellinfo->lead_dims)[i] = m;
+        }
+        cellinfo->cell1dim = j; 
+        
+        cellinfo->group_dim = 0;
+	
+	cellinfo->lead_sites = createIntArray( cellinfo->cell1dim );
+	
+	for(l=0; l<cellinfo->cell1dim ; l++)
+	{
+	  cellinfo->lead_sites[l] = (cellinfo->cells_site_order)[l];
+	}        
+            
+        
+                  free(temparray);
+
+        
+        
+        
+    }
     
 
     
@@ -481,7 +535,7 @@ void cellSplitter (RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellin
   num_sites_left=0;
   cellinfo->group_cell=-1;
   
-  
+
   for(i=0; i<alldim; i++)
   {
     if( (cellinfo->sites_by_cell)[i] == -1)
@@ -1156,5 +1210,9 @@ int graph_conn_sep2 (RectRedux *DeviceCell, RectRedux *LeadCell, void *rule_para
     
     return ans;
 }
+
+
+
+
 
 

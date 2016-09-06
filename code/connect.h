@@ -43,7 +43,11 @@ typedef struct {
   RectRedux **Leads;
 }gen_start_params;
   
-
+typedef struct {
+  int num_leads;
+  double *startx;
+  double *endx;
+}multix_start_params;
 
 void device_connectivity (RectRedux *DeviceCell, cnxRulesFn *rule, void *rule_params, cnxProfile *cnxp);
 void printConnectivity (RectRedux *DeviceCell, cnxProfile *cnxp);
