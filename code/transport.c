@@ -2790,6 +2790,80 @@ void lead_prep(double _Complex En, RectRedux *LeadCell, int leadindex, lead_para
     free(bshifts);
 
 }
+
+
+//general routine to prepare lead cells for Rubio-esque routine
+//takes positions, cell sep. vector and hopping rule
+//returns unit cell ginv, V12 and V21
+void lead_prep2(double _Complex En, RectRedux *LeadCell, int leadindex, rib_lead_para *params, double _Complex **ginv, double _Complex **V12, double _Complex **V21)
+{
+    int i, j, k;
+    
+    int dim = *(LeadCell->Nrem);
+    
+    hoppingfunc *hopfn = (hoppingfunc *)(params->hopfn);
+    double *bshifts = createDoubleArray(3);
+    
+  
+    //g00
+    for(i=0; i <dim; i++)
+    {
+      ginv[i][i] = En - (LeadCell->site_pots[i]) - (hopfn)(LeadCell, LeadCell, i, i, bshifts, (params->hoppara) ) ;
+      
+      for(j=0; j<dim; j++)
+      {
+	if(j!=i)
+	{
+	  ginv[i][j] = - (hopfn)(LeadCell, LeadCell, i, j, bshifts, (params->hoppara) );
+	}
+	
+      }
+      
+            
+    }
+   
+//   if(leadindex ==0)
+//   {
+//      printf("GINV %d\n", dim);
+// 	listNonZero(ginv, dim, dim);
+//   }
+
+      //Vs
+    for(i=0; i<3; i++)
+      bshifts[i] = (params->shift_vec)[i];
+    
+    
+      for(i=0; i <dim; i++)
+      {
+	for(j=0; j<dim; j++)
+	{
+	  
+	    V12[i][j] =  (hopfn)(LeadCell, LeadCell, i, j, bshifts, (params->hoppara) );
+	  
+	  
+	}
+	      
+      }
+
+      
+    for(i=0; i<3; i++)
+      bshifts[i] = -(params->shift_vec)[i];
+    
+    
+      for(i=0; i <dim; i++)
+      {
+	for(j=0; j<dim; j++)
+	{
+	  
+	    V21[i][j] =  (hopfn)(LeadCell, LeadCell, i, j, bshifts, (params->hoppara) );
+// 	    V21[i][j] =  conj(V12[j][i]);
+
+	}
+	      
+      }
+    free(bshifts);
+
+}
   
   
 //gate induced potential - variations on the efetov model.
@@ -2855,3 +2929,118 @@ void gate_induced_pot ( int vgtype, RectRedux *DeviceCell, double *engdeppots, d
 	}
   
 }
+
+
+
+void multipleCustomLeads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadCells, cellDivision *cellinfo, lead_para *params, double _Complex **Sigma)
+{
+  
+    int leadloop, dim1, dim1a,  dimcounta=0, lcount;
+    double _Complex **smallSigma, **temp1;
+
+    int num_leads = (cellinfo->num_leads);
+    gen_hop_params *hopp = (params->hoppara);
+    double sep;
+    double _Complex *hops = (hopp->hops);
+    int i, j, k;
+    int iprime, jprime;
+    
+    multiple_para *multiple;
+	singleleadfunction *singlefn;
+    void * singleparams;
+    
+    for(leadloop=0; leadloop < num_leads; leadloop++)
+    {
+  
+		multiple = (multiple_para *)(params-> multiple)[leadloop];
+		singlefn = (singleleadfunction *)(multiple -> indiv_lead_fn);
+		singleparams = (multiple -> indiv_lead_para);
+		
+            dim1a = (cellinfo->lead_dims)[leadloop];
+
+            
+            smallSigma = createSquareMatrix(dim1a);
+            
+           //external function call of multiple.indiv_lead_fn to calculate sigma
+	    (singlefn)(leadloop, En, DeviceCell, LeadCells, cellinfo, singleparams, smallSigma);
+            
+            
+            MatrixCopyPart(smallSigma, Sigma, 0, 0, dimcounta, dimcounta, dim1a, dim1a);
+            FreeMatrix(smallSigma); 
+            
+            dimcounta += dim1a;
+	  
+    }
+
+}
+
+
+//generate Sigma for a single Ribbon type lead
+void singleRibbonLead (int leadnum, double _Complex En, RectRedux *DeviceCell, RectRedux **LeadCells, cellDivision *cellinfo, void *params, double _Complex **Sigma)
+{
+    int leadloop, dim1, dim1a,  lcount, dimcounta=0;
+    double _Complex **ginv, **V12, **V21, **g00, **SL, **SR, **VLD, **VDL, **smallSigma, **temp1;
+    double elemerr=1.0e-15;
+	
+    rib_lead_para *ribpara = (rib_lead_para *)params;
+    
+    int i, j, k;
+  
+    double *bshifts0 = createDoubleArray(3);
+    hoppingfunc *hopfn = (hoppingfunc *)(ribpara->hopfn);
+    
+	for(leadloop=0; leadloop < leadnum; leadloop++)
+	{
+		dim1a = (cellinfo->lead_dims)[leadloop];
+		dimcounta += dim1a;
+	}
+      //generate leads SGFs
+  
+	  dim1 = *(LeadCells[leadnum]->Nrem);
+	  ginv = createSquareMatrix(dim1);
+	  V12 = createSquareMatrix(dim1);
+	  V21 = createSquareMatrix(dim1);
+	  g00 = createSquareMatrix(dim1);
+
+	  SL = createSquareMatrix(dim1);
+
+	  //generate the info required for Rubio method
+	  lead_prep2(En, LeadCells[leadnum], leadnum, ribpara, ginv, V12, V21);
+
+	  InvertMatrixGSL(ginv, g00, dim1);
+	  RubioSGF(SL, g00, V12, V21, dim1, &lcount, elemerr*dim1*dim1);
+	  
+	  
+
+	  FreeMatrix(ginv); FreeMatrix(V12); FreeMatrix(V21); FreeMatrix (g00);
+	
+
+    //connections of leads to device
+	  //leads are connected to the device using the hopping rules of the lead region, 
+	  //not the device region (if different)
+	  
+	  dim1a = (cellinfo->lead_dims)[leadnum];
+
+	  VLD = createNonSquareMatrix(dim1, dim1a);
+	  VDL = createNonSquareMatrix(dim1a, dim1);
+	  
+	  for(i=0; i <dim1; i++)
+	  {
+	    for(j=0; j<dim1a; j++)
+	    {
+		k=(cellinfo->lead_sites)[dimcounta + j];
+		VLD[i][j] =  (hopfn)(LeadCells[leadnum], DeviceCell, i, k, bshifts0, (ribpara->hoppara) );
+	      	VDL[j][i] =  (hopfn)(DeviceCell, LeadCells[leadnum], k, i, bshifts0, (ribpara->hoppara) );
+	    }
+		  
+	  }
+
+
+	  temp1 = createNonSquareMatrix(dim1a, dim1);
+	  MatrixMultNS(VDL, SL, temp1, dim1a, dim1, dim1);
+	  MatrixMultNS(temp1, VLD, Sigma, dim1a, dim1, dim1a);
+	  FreeMatrix(temp1); FreeMatrix(VLD); FreeMatrix(VDL);
+	
+    free(bshifts0);
+}
+

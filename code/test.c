@@ -40,6 +40,9 @@ main(int argc, char *argv[])
                                 //=2 6 lead SPIN HALL BAR - same as Hall bar, but current is injected top to bottom, and the non local resistance (& spin hall angle if system is SPIN POLARISED) are output
                                     //bond currents in 'multi' show net current flow
                                     //shows total, and each spin version (will!)
+				//= 3 / four metal leads in a Hanle type configuration.
+				//=4 CUSTOM MODE
+				//allows each lead to be defined separately.
               
               
 	      int nngm = 1;	//default assumption is Nearest Neighbour graphene hopping parameters and lattice, 
@@ -188,6 +191,8 @@ main(int argc, char *argv[])
 		  }
 		  
 	//hopping related
+	gen_hop_params hoppara={};
+
 	int NNN=1;
 	double t0=-1.0, NNlowdis=0.56, NNhighdis=0.59, onsitec=0.0;
 	
@@ -397,7 +402,15 @@ main(int argc, char *argv[])
 
 	    //lead info
 	  int num_leads=2;
-	    
+		for(i=1; i<argc-1; i++)
+		  {
+			if(strcmp("-numleads", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%d", &num_leads);
+			}
+		  }
+	  
+	  
 	      if(isperiodic==0)
 	      {
 		connectrules = &graph_conn_sep;
@@ -862,6 +875,26 @@ main(int argc, char *argv[])
 	  double cond2;
 	  
 	  
+	  double startloc, endloc, starty, endy;
+	  
+	  //approximate size values for lead generation...
+		if(geo==0)
+		{
+			endloc = length2*1.0 -0.5;
+			startloc = 0.0;
+			starty = 0.0;
+			endy = length1*sqrt(3)/2;
+		}
+		if(geo==1)
+		{
+			endloc = length2*sqrt(3) - (1/sqrt(3));
+			startloc= 0.0;
+			starty = -0.5;
+			endy = length1*1.0/2;
+		}
+		
+	  
+	  
 	  //potential disorder settings
 	      double pdconc=0.0, pddelta=0.0, pdxi=1.0;
 	      int pdmap=0;
@@ -900,7 +933,7 @@ main(int argc, char *argv[])
 	  
 	  
 	  
-	  //standard hall ssettings
+	  //standard hall settings
 	   if(ishallbar==1 || ishallbar==2)
             {
             connectrules = &graph_conn_sep;
@@ -981,7 +1014,7 @@ main(int argc, char *argv[])
             
             
             double *leadsxmin, *leadsxmax;
-            double leadwidth, endsep, endpos, endloc, convunit;
+            double leadwidth, endsep, endpos, convunit;
             int typeleads;
 	    int currIn, currOut;
 	    int *leadOrder;
@@ -996,7 +1029,7 @@ main(int argc, char *argv[])
             //leads are of leadwidth units wide
             if(ishallbar ==3)
             {
-                num_leads=4;
+                num_leads=4; //default - checks again below!
                 connectrules = &graph_conn_sep;
                 isperiodic=0;
                 cnxpara.periodic = 0;
@@ -1010,16 +1043,8 @@ main(int argc, char *argv[])
                 metal_leads=1;
                 
                 
-                //some default geometry values...
-                    if(geo==0)
-                    {
-                        endloc = length2*1.0 -0.5;
-                    }
-                    if(geo==1)
-                    {
-                        endloc = length2*sqrt(3) - (1/sqrt(3));
-                    }
-                    convunit = endloc/20;
+                //default lead geometries
+                    convunit = (endloc-startloc)/20;
                     
                     leadwidth = convunit;
                     endpos = convunit;
@@ -1030,7 +1055,7 @@ main(int argc, char *argv[])
                 
                 for(i=1; i<argc-1; i++)
                 {
-                    if(strcmp("-mpnumleads", argv[i]) == 0)
+                    if(strcmp("-numleads", argv[i]) == 0)
                     {
                         sscanf(argv[i+1], "%d", &num_leads);
                     }
@@ -1096,20 +1121,19 @@ main(int argc, char *argv[])
                 
             }
             
-            gen_hop_params metal_hop_p = {};
-            multix_start_params mxsp = {};
-            double metal_alpha, metal_sig, metal_beta, metal_hop;
+		gen_hop_params metal_hop_p = {};
+		multix_start_params mxsp = {};
+		double metal_alpha=0.0, metal_sig=-1.0, metal_beta=1.0, metal_hop=t;
+		metal_hop_p.hops = createCompArray(4);
+		metal_hop_p.hops[0] = metal_sig;
+                metal_hop_p.hops[1] = metal_alpha;
+                metal_hop_p.hops[2] = metal_beta;
+                metal_hop_p.hops[3] = metal_hop;
+	    
             if(metal_leads == 1)
             {
                 starting_cell_mode=4;
-                metal_hop_p.hops = createCompArray(4);
-                
-                //defaults
-                metal_alpha = 0.0;
-                metal_beta = 1.0;
-                metal_sig = -1.0;
-                metal_hop = t;
-                
+            
                 
                 for(i=1; i<argc-1; i++)
                 {
@@ -1145,6 +1169,248 @@ main(int argc, char *argv[])
 	  
 
 
+	  
+		//CUSTOM LEADS MODE
+		char leadconf[40], temp_in_string[40];
+		multiple_para *mleadps[num_leads];
+		custom_start_params cstart_p ={};
+		cstart_p.leadtype = createIntArray(num_leads);
+		sprintf(leadconf, "CUSTOM");
+		int nleft, nright;
+		int counttop, countbot, countleft, countright;
+		if(ishallbar==4)
+		{
+			currIn=1;
+			currOut=0;
+			connectrules = &graph_conn_sep;
+			for(i=1; i<argc-1; i++)
+			{
+				//uses main code numleads check
+// 				if(strcmp("-numleads", argv[i]) == 0)
+// 				{
+// 					sscanf(argv[i+1], "%d", &num_leads);
+// 				}
+				if(strcmp("-mpcurrin", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &currIn);
+				}
+				if(strcmp("-mpcurrout", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &currOut);
+				}
+				if(strcmp("-leadconfname", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%s", leadconf);
+				}
+			}
+			
+			counttop=0; countbot=0; countleft=0; countright=0;
+			ntop=(int)(num_leads-2 - (num_leads-2)/2 );
+			nbot=(num_leads-2)/2;
+			nleft=1;
+			nright=1;
+			
+			leadOrder = createIntArray(num_leads);
+		
+			leadOrder[0] = currIn;
+			leadOrder[num_leads-1] = currOut;
+			j=1;
+			
+			for(i=0; i<num_leads; i++)
+			{
+				if(i != currIn && i != currOut)
+				{
+					leadOrder[j] = i;
+					j++;
+				}
+			}
+			
+			for(j=0; j<num_leads; j++)
+			{
+				mleadps[j] = (multiple_para *)malloc(sizeof(multiple_para));
+ 				(mleadps[j]->name) = (char *)malloc(sizeof(char) * (41));
+				sprintf(mleadps[j]->name, "RIBBON"); //default is ribbon
+				cstart_p.leadtype[j]=0;
+				
+
+								
+				if(j==0)
+					(mleadps[j]->def_pos)=0;
+				if(j==1)
+					(mleadps[j]->def_pos)=1;
+				if(j>1 && j<2+ ntop)
+					(mleadps[j]->def_pos)=2;
+				if(j>= 2+ (int)(num_leads-2 - (num_leads-2)/2 ))
+					(mleadps[j]->def_pos)=3;
+				
+				sprintf(temp_in_string, "-lead%dside", j);
+				for(i=1; i<argc-1; i++)
+				{
+					if(strcmp(temp_in_string, argv[i]) == 0)
+					{
+						sscanf(argv[i+1], "%d", &(mleadps[j]->def_pos));
+					}
+				}
+				
+				if((mleadps[j]->def_pos)==0)
+					countleft++;
+				if((mleadps[j]->def_pos)==1)
+					countright++;
+				if((mleadps[j]->def_pos)==2)
+					counttop++;
+				if((mleadps[j]->def_pos)==3)
+					countbot++;
+			}
+			ntop=counttop; nbot=countbot; nleft=countleft; nright=countright;
+			counttop=0; countbot=0; countleft=0; countright=0;
+			
+			
+			//individual lead types and default settings
+			for(j=0; j<num_leads; j++)
+			{
+				sprintf(temp_in_string, "-lead%dtype", j);
+				
+				//set lead types and default settings
+				for(i=1; i<argc-1; i++)
+				{
+					if(strcmp(temp_in_string, argv[i]) == 0)
+					{
+						if(strcmp("RIBBON", argv[i+1]) == 0)
+						{
+							//lead j is a ribbon
+							sprintf(mleadps[j]->name, "RIBBON");
+							cstart_p.leadtype[j]=0;
+						}
+						
+						if(strcmp("METALX", argv[i+1]) == 0)
+						{
+							//lead j is a metallic strip with finite xdim
+							sprintf(mleadps[j]->name, "METALX");
+							cstart_p.leadtype[j]=1;
+						}
+						
+						if(strcmp("METALXY", argv[i+1]) == 0)
+						{
+							//lead j is a metallic strip with finite x&y dims
+							sprintf(mleadps[j]->name, "METALXY");
+							cstart_p.leadtype[j]=1;
+						}
+						
+						if(strcmp("STM", argv[i+1]) == 0)
+						{
+							//lead j is a simple STM tip
+							sprintf(mleadps[j]->name, "STM");
+							cstart_p.leadtype[j]=2;
+						}
+						
+						if(strcmp("PATCHED", argv[i+1]) == 0)
+						{
+							//lead j is a patched boundary
+							sprintf(mleadps[j]->name, "PATCHED");
+							cstart_p.leadtype[j]=3;
+						}
+						
+					}
+				}
+				
+				
+				//set other lead properties
+				if(strcmp("RIBBON", mleadps[j]->name) == 0)
+				{
+					(mleadps[j]->indiv_lead_para) = (rib_lead_para *)malloc(sizeof(rib_lead_para));
+					
+					(mleadps[j]->indiv_lead_fn) = &singleRibbonLead;
+					(mleadps[j]->indiv_gen_fn) = &genSingleRibbonLead;
+					((rib_lead_para *)(mleadps[j]->indiv_lead_para))->hopfn = hopfn;
+					((rib_lead_para *)(mleadps[j]->indiv_lead_para))->hoppara = &hoppara;
+
+					
+					//default sizes and geos
+						if((mleadps[j]->def_pos)==0)
+						{
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width=(length1 / (nleft)) - 2*(1 - (int)(nright/(nleft*nleft)) );
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->geo=geo;
+						}
+						if((mleadps[j]->def_pos)==1)
+						{
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width=(length1 / (nright)) - 2*(1 - (int)(nright/(nright*nright)) );
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->geo=geo;
+							
+						}
+						if((mleadps[j]->def_pos)==2)
+						{
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width= (int) 2*length2 / (3*ntop);
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->geo=1-geo;
+						}
+						if((mleadps[j]->def_pos)==3)
+						{
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width= (int) 2*length2 / (3*nbot);
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->geo=1-geo;
+						}
+						
+					
+					for(i=1; i<argc-1; i++)
+					{
+						sprintf(temp_in_string, "-lead%dsize", j);
+						if(strcmp(temp_in_string, argv[i]) == 0)
+						{
+							sscanf(argv[i+1], "%d", &((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width);
+						}
+						sprintf(temp_in_string, "-lead%dgeo", j);
+						if(strcmp(temp_in_string, argv[i]) == 0)
+						{
+							sscanf(argv[i+1], "%d", &(((rib_lead_para *)(mleadps[j]->indiv_lead_para))->geo));
+						}
+					}
+					
+					//default positioning
+						if((mleadps[j]->def_pos)==0)
+						{
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord = HallPositioning(length1, nleft, countleft, 0, 1, ((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width);
+							countleft++;
+						}
+						if((mleadps[j]->def_pos)==1)
+						{
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord = HallPositioning(length1, nright, countright, 0, 1, ((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width);
+							countright++;
+							
+						}
+						if((mleadps[j]->def_pos)==2)
+						{
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord = HallPositioning(length2, ntop, counttop, buffer_rows, 2, ((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width);
+							counttop++;
+						}
+						if((mleadps[j]->def_pos)==3)
+						{
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord = HallPositioning(length2, nbot, countbot, buffer_rows, 2, ((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width);
+							countbot++;
+						}
+						
+				}
+				
+				if(strcmp("METALX", mleadps[j]->name) == 0)
+				{
+				}
+				
+						
+				
+			printf("#lead %d: %s\n", j, mleadps[j]->name);
+				printf("#lead %d, defpos %d, width %d, start %d\n", j, (mleadps[j]->def_pos),  ((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width, ((rib_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord);
+				
+				
+			((rib_lead_para *)(mleadps[j]->indiv_lead_para))->def_pos=(mleadps[j]->def_pos);
+				
+			}
+// 			printf("%d	%d\n", ntop, nbot);
+			for(j=0; j<num_leads; j++)
+			{
+				
+
+			}
+			
+		}
+		
+	  
 	  //loop info
 	      double loop_step, loop_min_temp, loopmax, loopmin;
 	      
@@ -1483,8 +1749,15 @@ main(int argc, char *argv[])
 			genSublatticeLeadPots(LeadCells, &sublp);
 		}
 	  
+	  if(ishallbar == 4)
+	  {
+		leadp.multiple = mleadps;
+		leadp.leadsfn = &multipleCustomLeads;
+		genCustomLeads (&System, LeadCells, num_leads, &leadp);
+	  }
 	  
 	  
+
 
 	  cnxProfile cnxp;
 	 
@@ -1496,7 +1769,7 @@ main(int argc, char *argv[])
 		  time = clock();
 	  // printConnectivity (&System, &cnxp);
 	  
-		
+
 		
 	  gen_start_params start_p ={};
 	 
@@ -1508,14 +1781,26 @@ main(int argc, char *argv[])
 	  void *starting_ps;
           starting_ps = &start_p;
           
-          if(metal_leads ==1)
+	if(metal_leads ==1)
               starting_ps = &mxsp;
+	  
+	if(ishallbar == 4)
+	{	
+		starting_ps = &cstart_p;
+		cstart_p.rule = &graph_conn_sep2;
+		cstart_p.rule_params = &cnxpara;
+		cstart_p.num_leads = num_leads;
+		cstart_p.Leads = LeadCells;
+		starting_cell_mode = 5;
+	}
 		
 	  cellDivision cellinfo;
 	 // genStartingCell(&System, &cellinfo, 2, NULL);
 	  
 	 
 	  	  genStartingCell(&System, &cellinfo, starting_cell_mode, starting_ps);
+		  
+
 
 	  
 		time = clock() - time;
@@ -1527,7 +1812,8 @@ main(int argc, char *argv[])
 		time = clock() - time;
 		printf("#split cells in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		time = clock();
-	  
+// 	  		  			  			exit(0);
+
 
 //  exit(0);
 		
@@ -1536,7 +1822,6 @@ main(int argc, char *argv[])
 
 //GAUGE NEEDS TO BE GENERALISED FOR HALL BAR CASE
 //TIDY THIS UP IN GENERAL TO ALLOW FIELD IN LEADS
-	  gen_hop_params hoppara={};
 	  hoppara.num_neigh = nngm;
 	  hoppara.hops=createCompArray(hoppara.num_neigh);
 	  hoppara.NN_lowdis=createDoubleArray(hoppara.num_neigh);
@@ -1640,6 +1925,11 @@ main(int argc, char *argv[])
                 leadp.hoppara = &metal_hop_p;
                 leadp.leadsfn = &multipleSimplestMetalLeads;
             }
+            
+            if(ishallbar == 4)
+	    {
+		    leadp.leadsfn = &multipleCustomLeads;
+	    }
 
 	  
 	  trans_params tpara = {};
@@ -1925,6 +2215,7 @@ main(int argc, char *argv[])
 		kavg += (transmissions[0][1]/kpts);
 	      }
 
+	      
 	      output =fopen(filename, "a");
 	      
 	      if(ishallbar == 0)
@@ -2032,7 +2323,7 @@ main(int argc, char *argv[])
                         }
                         vecb[0] = 1.0; vecb[1] = 0.0;  vecb[2] = 0.0; vecb[3] = 0.0; vecb[4] = 0.0; 
                         vecx[0] = 0.0; vecx[1] = 0.0;  vecx[2] = 0.0; vecx[3] = 0.0; vecx[4] = 0.0; 
-//                                                 printDMatrix(transmissions, 6);
+//                                                  printDMatrix(transmissions, 6);
 //                                                 printDMatrix(ttildas, 6);
 //                                                 printDMatrix(mtrans, 5);
 
@@ -2229,13 +2520,13 @@ main(int argc, char *argv[])
                         
                         
                      
-                    //non local resistances in general 4 probe measurements
+                    //non local resistances in general multi probe measurements
                     //currIn and currOut define the probes current is driven between
-                    //probes are reordered 0-3 (above) so that 0=currIn, 3=currOut, 1 & 2 define the nonlocal potential difference
-                    if (ishallbar==3)
+                    //probes are reordered 0-N-1 (above) so that 0=currIn, N-2=currOut, 1 .. N-1 define the nonlocal potential difference
+                    if (ishallbar==3 || ishallbar==4)
                     {
-                        if(num_leads==4)
-			{
+//                         if(num_leads==4)
+// 			{
 				EmptyDoubleMatrix(ttildas, num_leads, num_leads);
 				EmptyDoubleMatrix(mtrans, num_leads-1, num_leads-1);
 				
@@ -2335,7 +2626,7 @@ main(int argc, char *argv[])
 				
 				
 				
-			}
+// 			}
                     }
                     
 	      
