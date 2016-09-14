@@ -1270,7 +1270,7 @@ main(int argc, char *argv[])
 	  
 	  
 	  
-	    if(ishallbar != 1)
+	    if(ishallbar != 1 && bandsonly == 0)
 	    {
 	      genLeads(&System, LeadCells, num_leads, 0, &leadp);
 	    }
@@ -1306,14 +1306,14 @@ main(int argc, char *argv[])
 	  cellDivision cellinfo;
 	 // genStartingCell(&System, &cellinfo, 2, NULL);
 	  
-	 
+	 if(bandsonly == 0)
 	  	  genStartingCell(&System, &cellinfo, 3, &start_p);
 
 	  
 		time = clock() - time;
 		printf("#generated starting cell in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		time = clock();
-	  
+	if(bandsonly == 0)
 	  cellSplitter(&System, &cnxp, &cellinfo);
 	  
 		time = clock() - time;
@@ -1417,9 +1417,7 @@ main(int argc, char *argv[])
 	  hoppara.restrics = res;
 	  hoppara.limits = reslimits;
 	  
-	  double _Complex **Sigma = createSquareMatrix(cellinfo.cell1dim);
-	  double _Complex **G00 = createSquareMatrix(cellinfo.cell1dim);
-
+	 
 
 	  
 	  leadp.hopfn = hopfn;
@@ -1468,7 +1466,7 @@ main(int argc, char *argv[])
 	 double *engdeppots,  *origpots , **lead_origpots, **lead_engdeppots;
 	 
 	 //back up energy independent on-site potentials
-	 if(strcmp("VG", loop_type) == 0)
+	 if(strcmp("VG", loop_type) == 0 )
 	 {
 	   engdeppots = createDoubleArray(Ntot);
 	   origpots = createDoubleArray(Ntot);
@@ -1477,17 +1475,20 @@ main(int argc, char *argv[])
 	     origpots[i] = System.site_pots[i];
 	   }
 	   
-	   lead_engdeppots = (double **)malloc(num_leads*sizeof(double *));
-	   lead_origpots = (double **)malloc(num_leads*sizeof(double *));
-	   for(j=0; j<num_leads; j++)
+	   if( bandsonly == 0)
 	   {
-	     lead_engdeppots[j] = createDoubleArray( *(LeadCells[j]->Ntot));
-	     lead_origpots[j] = createDoubleArray( *(LeadCells[j]->Ntot));
-	     
-	     for(i=0; i<*(LeadCells[j]->Ntot); i++)
-	     {
-	      lead_origpots[j][i] = (LeadCells[j]->site_pots)[i];
-	     }
+	    lead_engdeppots = (double **)malloc(num_leads*sizeof(double *));
+	    lead_origpots = (double **)malloc(num_leads*sizeof(double *));
+	    for(j=0; j<num_leads; j++)
+	    {
+	      lead_engdeppots[j] = createDoubleArray( *(LeadCells[j]->Ntot));
+	      lead_origpots[j] = createDoubleArray( *(LeadCells[j]->Ntot));
+	      
+	      for(i=0; i<*(LeadCells[j]->Ntot); i++)
+	      {
+		lead_origpots[j][i] = (LeadCells[j]->site_pots)[i];
+	      }
+	    }
 	   }
 	 }
 
