@@ -598,7 +598,7 @@ main(int argc, char *argv[])
 		    SysPara = &subintp;
 		    
 		    //set filename info - what to put in filename from these params
-		    sprintf(sysinfo, "L2_%d_BUF_%d_SUBA_%.2lfx%.3lf_SUBB_%.2lfx%.3lf", length2, buffer_rows, (sublp.a_conc), (sublp.a_pot),(sublp.b_conc), (sublp.b_pot)); 
+		    sprintf(sysinfo, "L2_%d_BUF_%d_SUBA_%.2lfx%.3lf_SUBB_%.2lfx%.3lf", length2, buffer_rows, (subintp.a_conc1), (subintp.a_pot1),(subintp.b_conc1), (subintp.b_pot2)); 
 		}
 		
 		
