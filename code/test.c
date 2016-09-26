@@ -417,7 +417,8 @@ main(int argc, char *argv[])
 	//disorder / system config default parameters - for sublattice
 	  double suba_conc=1.0, suba_pot=0.062, subb_conc=1.0, subb_pot=-0.062;
 	  int xory=0;
-	  double interface_width=0.0, interface_position;
+	  double interface_width=0.0, interface_position, interface_position2;
+	  double intreltoedge=2.0;
 	  
 	  
 	  
@@ -598,10 +599,160 @@ main(int argc, char *argv[])
 		    SysPara = &subintp;
 		    
 		    //set filename info - what to put in filename from these params
-		    sprintf(sysinfo, "L2_%d_BUF_%d_SUBA_%.2lfx%.3lf_SUBB_%.2lfx%.3lf", length2, buffer_rows, (subintp.a_conc1), (subintp.a_pot1),(subintp.b_conc1), (subintp.b_pot2)); 
+		    sprintf(sysinfo, "L2_%d_BUF_%d_SUBA_%.2lfx%.3lf_SUBB_%.2lfx%.3lf", length2, buffer_rows, (subintp.a_conc1), (subintp.a_pot1),(subintp.b_conc1), (subintp.b_pot1)); 
 		}
 		
+		sub2int_para sub2intp = {};
+		if(strcmp("SUBTWOINT", systemtype) == 0)
+		{	
+		    //default values
+		    
+		    sub2intp.buffer_rows = buffer_rows;
+		    sub2intp.a_conc1 = suba_conc;
+		    sub2intp.a_pot1 = suba_pot;
+		    sub2intp.b_conc1 = subb_conc;
+		    sub2intp.b_pot1 = subb_pot;
+		    
+		    sub2intp.xory = xory;
+		    
+		    
+		    sub2intp.seed = conf_num;
+		    
 		
+
+		    
+		    //check for command line arguments which vary these
+		    for(i=1; i<argc-1; i++)
+		    {
+		      if(strcmp("-subaconc", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sub2intp.a_conc1));
+		      }
+		      if(strcmp("-subapot", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sub2intp.a_pot1));
+		      }
+		      if(strcmp("-subbconc", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sub2intp.b_conc1));
+		      }
+		      if(strcmp("-subbpot", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sub2intp.b_pot1));
+		      }
+		       if(strcmp("-intxory", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%d", &(sub2intp.xory));
+		      }
+		       if(strcmp("-intwidth", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sub2intp.int_width1));
+		      }
+		      if(strcmp("-intreltoedge", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &intreltoedge);
+		      }
+		      if(strcmp("-bufferrows", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%d", &(sub2intp.buffer_rows));
+		      }
+		      
+		    }
+		    
+		      sub2intp.int_width2 =  sub2intp.int_width1;
+			//default values of region 2 parameters are swaps of region 1
+			sub2intp.a_conc2 = sub2intp.b_conc1;
+			sub2intp.a_pot2 = sub2intp.b_pot1;
+			sub2intp.b_pot2 = sub2intp.a_pot1;
+			sub2intp.b_conc2 = sub2intp.a_conc1;
+			
+			//default values of region 3 parameters are same as region 1
+			sub2intp.a_conc3 = sub2intp.a_conc1;
+			sub2intp.a_pot3 = sub2intp.a_pot1;
+			sub2intp.b_pot3 = sub2intp.b_pot1;
+			sub2intp.b_conc3 = sub2intp.b_conc1;
+			
+			//default interface positions
+			if(geo==0)
+			{
+			  if(sub2intp.xory==0)
+			  {
+			    interface_position = (int)(length2/4) *1.0 - 0.5;
+			    interface_position2 = (int)(length2/4) *3.0 - 0.5;
+			  }
+			  
+			  if(sub2intp.xory==1)
+			  {
+			    interface_position = intreltoedge;
+			    interface_position2 = (length1*sqrt(3))/2 - intreltoedge;
+			  }
+
+			}
+			
+			if(geo==1)
+			{
+			  if(sub2intp.xory==0)
+			  {
+			    interface_position = (int)(length2/4) *sqrt(3) - 1/(2*sqrt(3));
+			    interface_position2 = (int)(3*length2/4) *sqrt(3) - 1/(2*sqrt(3));
+			  }
+			  
+			  if(sub2intp.xory==1)
+			  {
+			    interface_position = intreltoedge;
+			    interface_position2 = length1/2 -0.5 - intreltoedge;
+			  }
+			}
+			
+			sub2intp.int_pos1 = interface_position;		
+			sub2intp.int_pos2 = interface_position2;	
+			
+		    for(i=1; i<argc-1; i++)
+		    {
+		      if(strcmp("-subaconc2", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sub2intp.a_conc2));
+		      }
+		      if(strcmp("-subapot2", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sub2intp.a_pot2));
+		      }
+		      if(strcmp("-subbconc2", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sub2intp.b_conc2));
+		      }
+		      if(strcmp("-subbpot2", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sub2intp.b_pot2));
+		      }
+		      
+		        if(strcmp("-intpos", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sub2intp.int_pos1));
+		      }
+		      
+		          if(strcmp("-intpos2", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sub2intp.int_pos2));
+		      }
+		      
+		          if(strcmp("-intwidth2", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sub2intp.int_width2));
+		      }
+		    }
+		    
+		    
+		    
+		    printf("#interface 1: %lf, 2: %lf\n", (sub2intp.int_pos1), (sub2intp.int_pos2));
+		    
+		    //set functions and params for use below
+		    SysFunction = &genSublatticeTwoInts;
+		    SysPara = &sub2intp;
+		    
+		    //set filename info - what to put in filename from these params
+		    sprintf(sysinfo, "L2_%d_%dINT_W%.1lf_SUBA_%.2lfx%.3lf_SUBB_%.2lfx%.3lf", length2, sub2intp.xory, sub2intp.int_width1, (sub2intp.a_conc2), (sub2intp.a_pot2),(sub2intp.b_conc2), (sub2intp.b_pot2)); 
+		}
 		
 		adot_para adotp = {};
 		char lattice_info[35], dot_info[45];

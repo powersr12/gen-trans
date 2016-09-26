@@ -523,6 +523,323 @@ void genSublatticeInterface(RectRedux *SiteArray, void *p, int struc_out, char *
 
 
 
+//very general - creates ribbon with two sublattice dependent potential interfaces
+void genSublatticeTwoInts(RectRedux *SiteArray, void *p, int struc_out, char *filename)
+{  
+	  sub2int_para *params = (sub2int_para *)p;
+	  double a_conc1 = (params->a_conc1);
+	  double b_conc1 = (params->b_conc1);
+	  double a_pot1 = (params->a_pot1);
+	  double b_pot1 = (params->b_pot1);
+	  double a_conc2 = (params->a_conc2);
+	  double b_conc2 = (params->b_conc2);
+	  double a_pot2 = (params->a_pot2);
+	  double b_pot2 = (params->b_pot2);
+	   double a_conc3 = (params->a_conc3);
+	  double b_conc3 = (params->b_conc3);
+	  double a_pot3 = (params->a_pot3);
+	  double b_pot3 = (params->b_pot3);
+	  int xory = (params->xory);
+	  double int_pos1 = (params->int_pos1);
+	  double int_width1 = (params->int_width1);
+	  double int_pos2 = (params->int_pos2);
+	  double int_width2 = (params->int_width2);
+	  int buffer_rows = (params->buffer_rows);
+	  int seed = (params->seed);
+	  
+	  int length = SiteArray->length;
+	    int length2 = SiteArray->length2;
+	    int geo = SiteArray->geo;
+	    
+	  double smalldist;
+	  FILE *out;
+	  
+	  if(struc_out != 0)
+	  {
+	    out = fopen(filename, "w");
+	    
+	  }
+	    
+	  srand(time(NULL) + seed);
+	  
+	  
+	  //atomic coordinates and the atoms that are in and out, similar to previous cases
+	  int tot_sites = 2*length*length2;
+	  double **site_coords = createNonSquareDoubleMatrix(tot_sites, 3);
+	  double *site_pots = createDoubleArray(tot_sites);
+	  int **siteinfo = createNonSquareIntMatrix(tot_sites, 2);
+	  double xstart, ystart;
+	  int isclean, l, m;
+	  int *Nrem = (SiteArray->Nrem);
+	  int *Ntot = (SiteArray->Ntot);
+	  
+	  *Ntot = tot_sites;
+	  
+	  if(geo==0)
+	  {
+	    for(l=0; l<length2; l++)
+	    {
+	      xstart=l*1.0;
+	      for(m=0; m<length; m++)
+	      {
+		ystart= m*sqrt(3)/2 + 1/(2*sqrt(3));
+		
+		if((m%2) == 0)
+		{
+		    site_coords[l*2*length + 2*m][0] = xstart+0.5;
+		    site_coords[l*2*length + 2*m + 1][0] = xstart;
+		}
+		
+		if((m%2) == 1)
+		{
+		    site_coords[l*2*length + 2*m][0] = xstart;
+		    site_coords[l*2*length + 2*m + 1][0] = xstart+0.5;
+		}
+		
+		    site_coords[l*2*length + 2*m][1] = ystart;
+		    site_coords[l*2*length + 2*m + 1][1] = ystart + 1/(2*sqrt(3));
+		    siteinfo[l*2*length + 2*m][1]=0;
+		    siteinfo[l*2*length + 2*m +1][1]=1;
+
+		  
+	      }
+	    }
+	  }
+	  
+	  if(geo==1)
+	  {
+	      for(l=0; l<length2; l++)
+	      {
+		xstart = l*sqrt(3);
+		for(m=0; m<length; m++)
+		{
+		  if((m%2) == 0)
+		  {
+		    site_coords[l*2*length + m][0] = xstart;
+		    site_coords[l*2*length + length + m][0] = xstart +2 / sqrt(3);
+		    siteinfo[l*2*length + m][1] = 0;
+		    siteinfo[l*2*length + length + m][1] = 1;
+		  }
+		  if((m%2) == 1)
+		  {
+		    site_coords[l*2*length + m][0] = xstart +  1/(2*sqrt(3));
+		    site_coords[l*2*length + length + m][0] = xstart + (sqrt(3))/2;
+		    siteinfo[l*2*length + m][1] = 1;
+		    siteinfo[l*2*length + length + m][1] = 0;
+		  }
+		  
+		  site_coords[l*2*length + m][1] = m*0.5;
+		  site_coords[l*2*length + length + m][1] = m*0.5;
+
+		  
+		}
+		
+		
+	      }
+		
+	  }
+	      
+	      
+	      
+	      //disordery stuff here
+	      //both concentrations & potential vary linearly across the interface
+	      double temprandnum;
+	      double a_conc_temp, b_conc_temp, a_pot_temp, b_pot_temp;
+	      double side1a, side2a, side1b, side2b, centre, relposa, relposb;
+	      double delta_conca, delta_pota, delta_concb, delta_potb;
+	      double delta_conca2, delta_pota2, delta_concb2, delta_potb2;
+	      side1a = int_pos1 - (int_width1/2);
+	      side2a = int_pos1 + (int_width1/2);
+	      side1b = int_pos2 - (int_width2/2);
+	      side2b = int_pos2 + (int_width2/2);
+	      delta_conca = a_conc2 - a_conc1;
+	      delta_concb = b_conc2 - b_conc1;
+	      delta_pota = a_pot2 - a_pot1;
+	      delta_potb = b_pot2 - b_pot1;
+	      delta_conca2 = a_conc3 - a_conc2;
+	      delta_concb2 = b_conc3 - b_conc2;
+	      delta_pota2 = a_pot3 - a_pot2;
+	      delta_potb2 = b_pot3 - b_pot2;
+	      
+	      for(l=buffer_rows*2*length; l<2*length*length2 - 2*buffer_rows*length; l++)
+	      {
+		site_pots[l] = 0.0;
+		temprandnum = myRandNum(0.0, 1.0);
+		
+		
+		
+		if(xory==0)
+		{
+		  relposa = (site_coords[l][0] - side1a)/int_width1;
+		  relposb = (site_coords[l][0] - side1b)/int_width2;
+		}
+		
+		if(xory==1)
+		{
+		  relposa = (site_coords[l][1] - side1a)/int_width1;
+		  relposb = (site_coords[l][1] - side1b)/int_width2;
+		}
+		
+		if(relposa < 0)
+		  relposa =0;
+		
+		if(relposa > 1)
+		  relposa =1;
+		
+		if(relposb < 0)
+		  relposb =0;
+		
+		if(relposb > 1)
+		  relposb =1;
+		
+		a_conc_temp = a_conc1 + delta_conca*relposa + delta_conca2*relposb;
+		b_conc_temp = b_conc1 + delta_concb*relposa + delta_concb2*relposb;
+		a_pot_temp = a_pot1 + delta_pota*relposa + delta_pota2*relposb;
+		b_pot_temp = b_pot1 + delta_potb*relposa + delta_potb2*relposb;
+		  
+// 		      if(relposa <= 0)
+// 		      {
+// 			a_conc_temp = a_conc1;
+// 			a_pot_temp = a_pot1;
+// 			b_conc_temp = b_conc1;
+// 			b_pot_temp = b_pot1;
+// 		      }
+// 		      
+// 		      if(relpos > 0 && relpos < 1)
+// 		      {
+// 			a_conc_temp = a_conc1 + delta_conca*relpos;
+// 			b_conc_temp = b_conc1 + delta_concb*relpos;
+// 			a_pot_temp = a_pot1 + delta_pota*relpos;
+// 			b_pot_temp = b_pot1 + delta_potb*relpos;
+// 		      }
+// 		      
+// 			if(relpos >=1)
+// 		      {
+// 			a_conc_temp = a_conc2;
+// 			a_pot_temp = a_pot2;
+// 			b_conc_temp = b_conc2;
+// 			b_pot_temp = b_pot2;
+// 		      }
+		  
+		  
+		  
+		  
+		
+		
+		
+		if(siteinfo[l][1] == 0)
+		{
+		  if(temprandnum < a_conc_temp)
+		    site_pots[l] = a_pot_temp;
+		}
+		
+		if(siteinfo[l][1] == 1)
+		{
+		  if(temprandnum < b_conc_temp)
+		    site_pots[l] = b_pot_temp;
+		}
+		//printf("%d	%lf	%d	%lf\n", l, temprandnum, siteinfo[l][1], site_pots[l]);
+	      }
+	      
+	      
+	      
+	      
+	      
+	      //chaininfo needed for conductance calcs (if atoms are missing)
+		      (SiteArray->chaininfo) = createNonSquareIntMatrix(length2, 4);
+		      int tempint=0, tempint2=0;
+	 
+			for(l=0; l<length2; l++)
+			{
+			  tempint=0;
+			  for(m=0; m<2*length; m++)
+			  {
+			    if(siteinfo[l*2*length +m][0] == 0)
+			    {
+			      tempint ++;
+			      tempint2++;
+			    }
+			  }
+			  (SiteArray->chaininfo)[l][0] = tempint;
+			}
+			*Nrem = tempint2;
+			
+			
+			(SiteArray->chaininfo)[0][1] = 0;
+			for(l=1; l<length2; l++)
+			{
+			  (SiteArray->chaininfo)[l][1] = (SiteArray->chaininfo)[l-1][1] + (SiteArray->chaininfo)[l-1][0];
+			}
+
+
+			//are first and last atoms in each chain present?
+			for(l=1; l<length2; l++)
+			{
+			  if(siteinfo[l*2*length][0] == 1)
+			    (SiteArray->chaininfo)[l][2] = 1;
+			  
+			  if(siteinfo[(l+1)*2*length -1][0] == 1)
+			    (SiteArray->chaininfo)[l][3] = 1;
+			}
+	  
+	  
+	  
+			//separates out sublattices and positive and negative potentials by size
+			if(struc_out == 1)
+			{
+
+			  for(l=0; l<2*length*length2; l++)
+			  {
+			    if(siteinfo[l][0] == 0  && siteinfo[l][1] == 0 && site_pots[l] > 0)
+			    {  
+			      fprintf(out, "%lf	%lf	%lf\n", site_coords[l][0], site_coords[l][1], site_pots[l] );
+			    }
+			  }
+			  fprintf(out, "\n");
+			  
+			  for(l=0; l<2*length*length2; l++)
+			  {
+			    if(siteinfo[l][0] == 0  && siteinfo[l][1] == 0 && site_pots[l] < 0)
+			    {  
+			      fprintf(out, "%lf	%lf	%lf\n", site_coords[l][0], site_coords[l][1], site_pots[l] );
+			    }
+			  }
+			  fprintf(out, "\n");
+			  
+			  for(l=0; l<2*length*length2; l++)
+			  {
+			    if(siteinfo[l][0] == 0  && siteinfo[l][1] == 1 && site_pots[l] > 0)
+			    {  
+			      fprintf(out, "%lf	%lf	%lf\n", site_coords[l][0], site_coords[l][1], site_pots[l] );
+			    }
+			  }
+			  fprintf(out, "\n");
+			  
+			  for(l=0; l<2*length*length2; l++)
+			  {
+			    if(siteinfo[l][0] == 0  && siteinfo[l][1] == 1 && site_pots[l] < 0)
+			    {  
+			      fprintf(out, "%lf	%lf	%lf\n", site_coords[l][0], site_coords[l][1], site_pots[l] );
+			    }
+			  }
+			  fprintf(out, "\n");
+			
+			  
+			  if(struc_out != 0)
+			  {
+			    fclose(out);
+			  }
+			}
+			    
+			
+			  
+			  //Fill the array of data structures describing the system
+			  (SiteArray->pos) = site_coords;
+			  (SiteArray->site_pots) = site_pots;
+			  (SiteArray->siteinfo) = siteinfo;
+
+	
+}
 
 
 
