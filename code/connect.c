@@ -755,7 +755,46 @@ void cellSplitter (RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellin
   
 }
 
+//prints out to file the sites associatde with each lead (i.e. those in the system that they connect to, and any "leadsites" in the structure files)
 
+void printOutLeadStrucs(RectRedux *DeviceCell, RectRedux **Leads, cellDivision *cellinfo, char *output)
+{
+	FILE *struc;
+	int i, j, k=0;;
+	struc = fopen(output, "w");
+	
+	for(i=0; i<(cellinfo->num_leads); i++)
+	{
+		
+		for(j=0;j<(cellinfo->lead_dims)[i]; j++)
+		{
+			fprintf(struc, "%lf	%lf\n", (DeviceCell->pos)[(cellinfo->lead_sites)[k]][0], (DeviceCell->pos)[(cellinfo->lead_sites)[k]][1]);
+			k++;
+		}
+		for(j=0; j<*(Leads[i]->Ntot); j++)
+		{
+			if((Leads[i]->siteinfo)[j][0] == 0)
+			{
+				fprintf(struc,"%lf	%lf\n", (Leads[i]->pos)[j][0], (Leads[i]->pos)[j][1]);
+			}
+		}
+			
+		
+		fprintf(struc, "\n");
+		
+		
+	}
+	
+	for(i=0; i<(cellinfo->num_leads); i++)
+	{
+		
+		
+		
+	}
+	
+	
+	fclose(struc);
+}
 
 
 //This function simply generates the connections present in a pristine nearest neighbour AC or ZZ cell

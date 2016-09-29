@@ -4,22 +4,22 @@ ZZX=1.0
 ZZY=1.73206
 REDUCFACT=1
 GEO=0
-MAXPTS=36000
+MAXPTS=90000
 
 
 # BASEFOLDER=/home/spow/GEN_TRANS_RESULTS/
 BASEFOLDER=/home/ICN2/spower/projects/gen-trans/res/
 
-PROJFOLDER=CLEAN_METAL_4_PROBES_0_to_3_w5_s20_60_1e-06/ZZ100_clean_l2_400/
-PROJNAME=E_+0.50_B_+0.000_m05methop.conf00
+PROJFOLDER=ANTIDOTS_RIBBON_1e-06/ZZ288_rect_lat_L_36_64_circ_dot_R_10.0_4x8_xyf_0.0_rf_0.0/
+PROJNAME=E_+0.40_B_+159.000_longbuf.conf00
 BASENAME=$BASEFOLDER$PROJFOLDER$PROJNAME
 
 
 DOSNAME=$BASENAME.ldos
 CURRENTS="l0 l2 l3 l1 l4 l5 multi"
 # CURRENTS="l0 l1"
-# CURRENTS="l0 l1"
-CURRENTS="l0 l2 l3 l1 multi"
+CURRENTS="l0 l1"
+# CURRENTS="l0 l2 l3 l1 multi"
 
 NUMPTS=`cat $DOSNAME | awk 'END{print NR}'`
 MAXDOS=`cat $DOSNAME | awk 'BEGIN{max=0} {if ($3>max) max=$3} END{printf "%lf",  max}'`

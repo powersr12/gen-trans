@@ -62,6 +62,7 @@ void printConnectivity (RectRedux *DeviceCell, cnxProfile *cnxp);
 
 void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config, void *start_params);
 void cellSplitter (RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellinfo);
+void printOutLeadStrucs(RectRedux *DeviceCell, RectRedux **Leads, cellDivision *cellinfo, char *output);
 
 
 

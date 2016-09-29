@@ -3044,3 +3044,75 @@ void singleRibbonLead (int leadnum, double _Complex En, RectRedux *DeviceCell, R
     free(bshifts0);
 }
 
+
+
+
+//very simple metal lead Sigma 
+//assumes a constant density of states in metal leads
+//diagonal terms in Sigma constant
+//off diagonal terms with optional, variable distance decay
+//Does not use LeadCells (no repeated unit cells or SGF to calculate...) or hoppingfunc
+//model params are stored within params->(hoppara->hops)
+// [0] is 'Sig' - the magnitude of the imaginary part of the diagonal SGF term 
+// [1] is 'alpha', [2] is 'beta' in the off diagonal expression i alpha (diagonal value) / separation^beta
+// [3] is the hopping between lead and device (this should allow is to be made spin dependent easier?)
+void singleSimplestMetalLeads (int leadnum, double _Complex En, RectRedux *DeviceCell, RectRedux **LeadCells, cellDivision *cellinfo, void *params, double _Complex **Sigma)
+{
+  
+	metal_lead_para *metalpara = (metal_lead_para *)params;
+	
+	
+	
+    int leadloop, dim1, dim1a,  dimcounta=0, lcount;
+    double _Complex **smallSigma, **temp1;
+
+    int num_leads = (cellinfo->num_leads);
+    gen_hop_params *hopp = (metalpara->hoppara);
+    double sep;
+    double _Complex *hops = (hopp->hops);
+    int i, j, k;
+    int iprime, jprime;
+  
+    
+    
+    for(leadloop=0; leadloop < leadnum; leadloop++)
+	{
+		dim1a = (cellinfo->lead_dims)[leadloop];
+		dimcounta += dim1a;
+	}
+  
+  //generate leads SGFs
+  
+	  dim1 = (cellinfo->lead_dims)[leadnum];
+  
+            
+            for(i=0; i< dim1; i++)
+            {
+                iprime = (cellinfo->lead_sites)[dimcounta + i];
+                for(j=0; j<dim1a; j++)
+                {
+                    jprime = (cellinfo->lead_sites)[dimcounta + j];
+                    sep = sqrt( pow((DeviceCell->pos)[jprime][0] - (DeviceCell->pos)[iprime][0], 2) + pow((DeviceCell->pos)[jprime][1] - (DeviceCell->pos)[iprime][1], 2));
+                    
+                    Sigma[i][j] = I * hops[0] * hops[3] * conj(hops[3]);
+                    
+                    if(i!=j)
+                    {
+                        Sigma[i][j] = smallSigma[i][j] * hops[1] / (pow(sep, hops[2]));
+                    }
+                    
+                }
+            }
+            
+            
+            
+	  
+    
+	    
+
+}
+
+
+
+
+

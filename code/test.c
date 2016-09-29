@@ -1171,7 +1171,7 @@ main(int argc, char *argv[])
 
 	  
 		//CUSTOM LEADS MODE
-		char leadconf[40], temp_in_string[40];
+		char leadconf[40], temp_in_string[40], additional_lead_info[40];
 		multiple_para *mleadps[num_leads];
 		custom_start_params cstart_p ={};
 		cstart_p.leadtype = createIntArray(num_leads);
@@ -1408,6 +1408,8 @@ main(int argc, char *argv[])
 
 			}
 			
+			sprintf(peritype, "%s_%d_LEADS_%d_to_%d_%s", leadconf, num_leads, currIn, currOut, additional_lead_info);
+			
 		}
 		
 	  
@@ -1525,7 +1527,7 @@ main(int argc, char *argv[])
 	//File I/O variables
 	    FILE *output;
 	    char filename[300], filename3[300], filename_temp[300];
-	    char checkname[300], direcname[300], conffile[350], strucfile[300], disorderfile[300];
+	    char checkname[300], direcname[300], conffile[350], strucfile[300], lstrucfile[350], disorderfile[300];
 	    char bandname1[300], bandname2[300], bandname3[300], mapname[400];
             char command[600];
 	    FILE *bandfile;
@@ -1801,7 +1803,14 @@ main(int argc, char *argv[])
 	  	  genStartingCell(&System, &cellinfo, starting_cell_mode, starting_ps);
 		  
 
-
+		if(output_type == 1)
+		{
+			sprintf(lstrucfile, "%s.leads", strucfile);
+			printOutLeadStrucs(&System, LeadCells, &cellinfo, lstrucfile);
+			
+		}
+		  
+		  
 	  
 		time = clock() - time;
 		printf("#generated starting cell in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
@@ -2563,6 +2572,16 @@ main(int argc, char *argv[])
 
 				LinEqnDouble (mtrans, vecb, vecx, num_leads-1);
 				
+				
+				probe_pots[leadOrder[0]] = 1.0;
+				probe_pots[leadOrder[num_leads-1]] = 0.0;
+				
+				for(i=1; i<num_leads-1; i++)
+				{
+					probe_pots[leadOrder[i]] = vecx[i];
+				}
+					
+				
 				if(strcmp("E", loop_type) == 0)
 				{
 					fprintf(output, "%lf	%.12e\n", realE, (vecx[2]-vecx[1])/vecx[0]);		
@@ -2578,47 +2597,33 @@ main(int argc, char *argv[])
 				//make a composite map for multiprobe systems
 				if(mapmode == 1)
 				{
-					probe_pots[leadOrder[0]] = 1.0;
-					probe_pots[leadOrder[num_leads-1]] = 0.0;
-					
-					for(i=1; i<num_leads-1; i++)
-					{
-						probe_pots[leadOrder[i]] = vecx[i];
-					}
-					
-										
-
 					sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.cmaps_multi", direcname, realE, Bfield, job_name, conf_num);
 					mapfile = fopen(mapname, "w");
 					for(i=0; i<Ntot; i++)
 					{ 
-					xc=0.0; yc=0.0;
-					k=leadOrder[num_leads-1];
+						xc=0.0; yc=0.0;
+						k=leadOrder[num_leads-1];
 
-					for(j=0; j<num_leads; j++)
-					{
-						if(j!=k)
+						for(j=0; j<num_leads; j++)
 						{
-						if(probe_pots[k] > probe_pots[j])
-						{
-							xc += (probe_pots[k] - probe_pots[j])*currents[k][i][0];
-							yc += (probe_pots[k] - probe_pots[j])*currents[k][i][1];
-						}
+							if(j!=k)
+							{
+								if(probe_pots[k] > probe_pots[j])
+								{
+									xc += (probe_pots[k] - probe_pots[j])*currents[k][i][0];
+									yc += (probe_pots[k] - probe_pots[j])*currents[k][i][1];
+								}
+								
+								if(probe_pots[j] > probe_pots[k])
+								{
+									xc += (probe_pots[j] - probe_pots[k])*currents[j][i][0];
+									yc += (probe_pots[j] - probe_pots[k])*currents[j][i][1];
+								}
+							}
 						
-						if(probe_pots[j] > probe_pots[k])
-						{
-							xc += (probe_pots[j] - probe_pots[k])*currents[j][i][0];
-							yc += (probe_pots[j] - probe_pots[k])*currents[j][i][1];
 						}
-						}
-					
-					}
-					
-					
-				
-				
-					
-					fprintf(mapfile, "%lf	%lf	%.12e %.12e\n", (pos)[i][0], (pos)[i][1], xc, yc);
+
+						fprintf(mapfile, "%lf	%lf	%.12e %.12e\n", (pos)[i][0], (pos)[i][1], xc, yc);
 					}
 					fclose(mapfile);
 				}

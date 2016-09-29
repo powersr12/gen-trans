@@ -256,8 +256,7 @@ void genSingleRibbonLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, v
 	(Lead->geo) = (ribpara->geo);
 	(Lead->length) = (ribpara->width);
 	(Lead->length2) = 1;
-	(Lead->Nrem) = (int *)malloc(sizeof(int));
-	(Lead->Ntot) = (int *)malloc(sizeof(int));
+	
 	simpleRibbonGeo (Lead, NULL, 0, NULL);
 
 	//periodicity vectors for RGF leads
@@ -333,6 +332,11 @@ void genCustomLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, lead
   for(i=0; i< numleads; i++)
   {
 	Leads[i] = (RectRedux *)malloc(sizeof(RectRedux));
+	(Leads[i]->Nrem) = (int *)malloc(sizeof(int));
+	(Leads[i]->Ntot) = (int *)malloc(sizeof(int));
+	*(Leads[i]->Nrem)=0;
+	*(Leads[i]->Ntot)=0;
+	
   }	
 	
   for(i=0; i< numleads; i++)
