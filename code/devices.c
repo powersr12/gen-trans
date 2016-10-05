@@ -315,7 +315,91 @@ void genSingleRibbonLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, v
 } 
 
 
+void genSingleMetalLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, void *params)
+{
+	int i, j;
+	metal_lead_para* metpara = (metal_lead_para*)params;
+	
+	int devgeo = SiteArray->geo;
+	int length = (SiteArray->length);
+	int length2 = (SiteArray->length2);
+	double ybot, ytop, y_cell_diff;
+	double xleft, xright, x_cell_diff;
+	
+	if(devgeo == 0)
+	{
+		ybot = 1/(2*sqrt(3)) - sqrt(3);
+		ytop = 1/(2*sqrt(3)) + length * sqrt(3)/2;
+		xleft = 0.5;
+		xright = length2*1.0 - 0.5;
+		x_cell_diff = 1.0;
+		y_cell_diff = sqrt(3);
+	}
+	
+	if(devgeo == 1)
+	{
+		ybot = -1.0;
+		ytop = 0.5*length;
+		xleft = -1/(2*sqrt(3)) + sqrt(3)/2;
+		xright = -1/(2*sqrt(3))+ sqrt(3)/2 + (length2-1)*sqrt(3);
+		x_cell_diff = sqrt(3);
+		y_cell_diff = 1.0;
+	}
+    
 
+	//Lead->pos is used here to give the max x/y of the lead
+	(Lead->pos) = createNonSquareDoubleMatrix(2, 3);
+    
+	//lead sizes etc are such that they correspond to that of a ribbon with the same width param
+	if(metpara->def_pos == 0)
+	{
+		(Lead->pos)[0][0] =xleft;
+		(Lead->pos)[0][1] = xleft+ (metpara->width)*x_cell_diff;
+		
+		(Lead->pos)[1][0] = (metpara->start_coord)*y_cell_diff/2;
+		(Lead->pos)[1][1] = (metpara->start_coord + metpara->width2)*y_cell_diff/2;
+	}
+		
+    
+	if(metpara->def_pos == 1)
+	{
+		(Lead->pos)[0][0] =xright - (metpara->width)*x_cell_diff;
+		(Lead->pos)[0][1] =xright;
+		
+		(Lead->pos)[1][0] = (metpara->start_coord)*y_cell_diff/2;
+		(Lead->pos)[1][1] = (metpara->start_coord + metpara->width2)*y_cell_diff/2;
+			
+	}
+// 	if(ribpara->def_pos == 2)
+// 	{
+// 		
+// 			(Lead->pos)[0][0] = xleft + (metpara->start_coord)*x_cell_diff;
+// 			(Lead->pos)[0][1] = ytop - y_cell_diff/2;
+// 			
+// 			(Lead->pos)[1][0] = xleft + (metpara->start_coord + metpara->width)*x_cell_diff;
+// 			(Lead->pos)[1][1] = ytop - y_cell_diff/2;;
+// 			
+// 			(Lead->pos)[2][0] =
+// 			(Lead->pos)[2][1] = 
+// 			
+// 			(Lead->pos)[3][0] = xright - (metpara->width)*x_cell_diff;
+// 			(Lead->pos)[3][1] = (metpara->start_coord + metpara->width2)*y_cell_diff/2;
+// 		
+// 			(Lead->pos)[i][0] += (xleft + (ribpara->start_coord)*x_cell_diff);
+// 			(Lead->pos)[i][1] += (ytop);
+// 		
+// 	}
+// 	if(ribpara->def_pos == 3)
+// 	{
+// 			(Lead->pos)[i][0] += (xleft + (ribpara->start_coord)*x_cell_diff);
+// 			(Lead->pos)[i][1] += (ybot);
+// 	}
+// 
+// 		
+	
+
+	
+} 
 
 
 

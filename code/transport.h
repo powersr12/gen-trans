@@ -76,3 +76,4 @@ void multipleCustomLeads (double _Complex En, RectRedux *DeviceCell, RectRedux *
 
 void singleRibbonLead (int leadnum, double _Complex En, RectRedux *DeviceCell, RectRedux **LeadCells, cellDivision *cellinfo, void *params, double _Complex **Sigma);
 
+void singleSimplestMetalLead (int leadnum, double _Complex En, RectRedux *DeviceCell, RectRedux **LeadCells, cellDivision *cellinfo, void *params, double _Complex **Sigma);

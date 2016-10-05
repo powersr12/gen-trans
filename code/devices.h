@@ -49,7 +49,8 @@ typedef struct {
 	void *hopfn;
 	void *hoppara;
 	int geo;
-	int width;
+	int width;	//x-dim
+	int width2;	//y-dim
 	int start_coord;
 	int def_pos; //0->left, 1->right, 2->top, 3->bottom
 }metal_lead_para;
@@ -131,6 +132,7 @@ int HallPositioning(int length2, int num_side_probes, int this_probe, int buffer
 
 void genCustomLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, lead_para *params);
 void genSingleRibbonLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, void *params);
+void genSingleMetalLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, void *params);
 
 
 

@@ -3056,7 +3056,7 @@ void singleRibbonLead (int leadnum, double _Complex En, RectRedux *DeviceCell, R
 // [0] is 'Sig' - the magnitude of the imaginary part of the diagonal SGF term 
 // [1] is 'alpha', [2] is 'beta' in the off diagonal expression i alpha (diagonal value) / separation^beta
 // [3] is the hopping between lead and device (this should allow is to be made spin dependent easier?)
-void singleSimplestMetalLeads (int leadnum, double _Complex En, RectRedux *DeviceCell, RectRedux **LeadCells, cellDivision *cellinfo, void *params, double _Complex **Sigma)
+void singleSimplestMetalLead (int leadnum, double _Complex En, RectRedux *DeviceCell, RectRedux **LeadCells, cellDivision *cellinfo, void *params, double _Complex **Sigma)
 {
   
 	metal_lead_para *metalpara = (metal_lead_para *)params;

@@ -4,21 +4,21 @@ ZZX=1.0
 ZZY=1.73206
 REDUCFACT=1
 GEO=0
-MAXPTS=90000
+MAXPTS=100000
 
 
 # BASEFOLDER=/home/spow/GEN_TRANS_RESULTS/
 BASEFOLDER=/home/ICN2/spower/projects/gen-trans/res/
 
-PROJFOLDER=ANTIDOTS_RIBBON_1e-06/ZZ288_rect_lat_L_36_64_circ_dot_R_10.0_4x8_xyf_0.0_rf_0.0/
-PROJNAME=E_+0.40_B_+159.000_longbuf.conf00
+PROJFOLDER=ANTIDOTS_HALLBAR_2_2_rw_6_1e-06/ZZ288_rect_lat_L_36_64_circ_dot_R_5.0_4x8_xyf_0.0_rf_0.0/
+PROJNAME=E_+0.40_B_+161.000_longbuf.conf00
 BASENAME=$BASEFOLDER$PROJFOLDER$PROJNAME
 
 
 DOSNAME=$BASENAME.ldos
 CURRENTS="l0 l2 l3 l1 l4 l5 multi"
 # CURRENTS="l0 l1"
-CURRENTS="l0 l1"
+# CURRENTS="l0 l1"
 # CURRENTS="l0 l2 l3 l1 multi"
 
 NUMPTS=`cat $DOSNAME | awk 'END{print NR}'`
@@ -76,6 +76,7 @@ echo $XCELLS $YCELLS
 
 grep -v ^# ${DOSNAME}  | awk -vd1=$XCELLS -vd2=$YCELLS -vxe=$XE -vye=$YE -vxmin=$MINX -vymin=$MINY 'BEGIN {for(i=0; i<d1*d2; i++) arr[i]=0.0} {arr[int(  ($1 - xmin ) /xe)*d2 + int(($2 - ymin ) /ye )] += $3 } END {for(i=0; i<d1; i++) for(j=0; j<d2; j++) printf "%e %e %e\n", xmin + i*xe , ymin+j*ye,  arr[d2*i+j]} ' >  ${DOSNAME}_red.dat
 
+# echo ${DOSNAME}_red.dat
 NEWMAXDOS=`cat ${DOSNAME}_red.dat | awk 'BEGIN{max=0} {if ($3>max) max=$3} END{printf "%lf",  max}'`
 
 # 

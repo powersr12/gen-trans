@@ -1178,6 +1178,7 @@ main(int argc, char *argv[])
 		sprintf(leadconf, "CUSTOM");
 		int nleft, nright;
 		int counttop, countbot, countleft, countright;
+		double metaldim2=2.0;
 		if(ishallbar==4)
 		{
 			currIn=1;
@@ -1348,20 +1349,20 @@ main(int argc, char *argv[])
 							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->geo=1-geo;
 						}
 						
-					
-					for(i=1; i<argc-1; i++)
-					{
-						sprintf(temp_in_string, "-lead%dsize", j);
-						if(strcmp(temp_in_string, argv[i]) == 0)
+					//command line size and geo options
+						for(i=1; i<argc-1; i++)
 						{
-							sscanf(argv[i+1], "%d", &((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width);
+							sprintf(temp_in_string, "-lead%dsize", j);
+							if(strcmp(temp_in_string, argv[i]) == 0)
+							{
+								sscanf(argv[i+1], "%d", &((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width);
+							}
+							sprintf(temp_in_string, "-lead%dgeo", j);
+							if(strcmp(temp_in_string, argv[i]) == 0)
+							{
+								sscanf(argv[i+1], "%d", &(((rib_lead_para *)(mleadps[j]->indiv_lead_para))->geo));
+							}
 						}
-						sprintf(temp_in_string, "-lead%dgeo", j);
-						if(strcmp(temp_in_string, argv[i]) == 0)
-						{
-							sscanf(argv[i+1], "%d", &(((rib_lead_para *)(mleadps[j]->indiv_lead_para))->geo));
-						}
-					}
 					
 					//default positioning
 						if((mleadps[j]->def_pos)==0)
@@ -1390,6 +1391,37 @@ main(int argc, char *argv[])
 				
 				if(strcmp("METALX", mleadps[j]->name) == 0)
 				{
+					(mleadps[j]->indiv_lead_para) = (metal_lead_para *)malloc(sizeof(metal_lead_para));
+					
+					(mleadps[j]->indiv_lead_fn) = &singleSimplestMetalLead;
+					(mleadps[j]->indiv_gen_fn) = &genSingleMetalLead;
+					
+								
+					//default hopping paramaters
+						((metal_lead_para *)(mleadps[j]->indiv_lead_para))->hoppara = (gen_hop_params *)malloc(sizeof(gen_hop_params));
+						((gen_hop_params*)((metal_lead_para *)(mleadps[j]->indiv_lead_para))->hoppara)->hops = createCompArray(4);
+						((gen_hop_params*)((metal_lead_para *)(mleadps[j]->indiv_lead_para))->hoppara)->hops[0] = metal_sig;
+						((gen_hop_params*)((metal_lead_para *)(mleadps[j]->indiv_lead_para))->hoppara)->hops[1] = metal_alpha;
+						((gen_hop_params*)((metal_lead_para *)(mleadps[j]->indiv_lead_para))->hoppara)->hops[2] = metal_beta;
+						((gen_hop_params*)((metal_lead_para *)(mleadps[j]->indiv_lead_para))->hoppara)->hops[3] = metal_hop;
+					
+						//special mode!!
+						mleadps[j]->def_pos)=4;
+						
+					//default sizes
+						((metal_lead_para *)(mleadps[j]->indiv_lead_para))->width= (int) 2*length2 / (3*num_leads);
+						
+						
+					//command line size option	
+						for(i=1; i<argc-1; i++)
+						{
+							sprintf(temp_in_string, "-lead%dsize", j);
+							if(strcmp(temp_in_string, argv[i]) == 0)
+							{
+								sscanf(argv[i+1], "%d", &((metal_lead_para *)(mleadps[j]->indiv_lead_para))->width);
+							}
+						}
+					
 				}
 				
 						
