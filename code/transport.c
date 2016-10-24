@@ -3064,7 +3064,7 @@ void singleSimplestMetalLead (int leadnum, double _Complex En, RectRedux *Device
 	
 	
     int leadloop, dim1, dim1a,  dimcounta=0, lcount;
-    double _Complex **smallSigma, **temp1;
+    double _Complex **temp1;
 
     int num_leads = (cellinfo->num_leads);
     gen_hop_params *hopp = (metalpara->hoppara);
@@ -3089,7 +3089,7 @@ void singleSimplestMetalLead (int leadnum, double _Complex En, RectRedux *Device
             for(i=0; i< dim1; i++)
             {
                 iprime = (cellinfo->lead_sites)[dimcounta + i];
-                for(j=0; j<dim1a; j++)
+                for(j=0; j<dim1; j++)
                 {
                     jprime = (cellinfo->lead_sites)[dimcounta + j];
                     sep = sqrt( pow((DeviceCell->pos)[jprime][0] - (DeviceCell->pos)[iprime][0], 2) + pow((DeviceCell->pos)[jprime][1] - (DeviceCell->pos)[iprime][1], 2));
@@ -3098,7 +3098,7 @@ void singleSimplestMetalLead (int leadnum, double _Complex En, RectRedux *Device
                     
                     if(i!=j)
                     {
-                        Sigma[i][j] = smallSigma[i][j] * hops[1] / (pow(sep, hops[2]));
+                        Sigma[i][j] = Sigma[i][j] * hops[1] / (pow(sep, hops[2]));
                     }
                     
                 }

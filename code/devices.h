@@ -49,10 +49,11 @@ typedef struct {
 	void *hopfn;
 	void *hoppara;
 	int geo;
-	int width;	//x-dim
-	int width2;	//y-dim
-	int start_coord;
-	int def_pos; //0->left, 1->right, 2->top, 3->bottom
+	double width;	//x-dim
+	double width2;	//y-dim
+	double start_coord;
+	double start_coord2;
+	int def_pos; //0->left, 1->right, 2->top, 3->bottom, 4->fullwidth, 5-> absolute positioning
 }metal_lead_para;
 	
 	

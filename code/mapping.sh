@@ -10,16 +10,16 @@ MAXPTS=100000
 # BASEFOLDER=/home/spow/GEN_TRANS_RESULTS/
 BASEFOLDER=/home/ICN2/spower/projects/gen-trans/res/
 
-PROJFOLDER=ANTIDOTS_HALLBAR_2_2_rw_6_1e-06/ZZ288_rect_lat_L_36_64_circ_dot_R_5.0_4x8_xyf_0.0_rf_0.0/
-PROJNAME=E_+0.40_B_+161.000_longbuf.conf00
+PROJFOLDER=ANTIDOTS_HALLBAR_2_2_rw_6_1e-06/ZZ480_rect_lat_L_60_104_circ_dot_R_15.0_4x8_xyf_0.0_rf_0.0/
+PROJNAME=E_+0.35_B_+83.000_longbuf.conf00
 BASENAME=$BASEFOLDER$PROJFOLDER$PROJNAME
 
 
 DOSNAME=$BASENAME.ldos
-CURRENTS="l0 l2 l3 l1 l4 l5 multi"
+# CURRENTS="l0 l2 l3 l1 l4 l5 multi"
 # CURRENTS="l0 l1"
 # CURRENTS="l0 l1"
-# CURRENTS="l0 l2 l3 l1 multi"
+CURRENTS="l0 l2 l3 l1 multi"
 
 NUMPTS=`cat $DOSNAME | awk 'END{print NR}'`
 MAXDOS=`cat $DOSNAME | awk 'BEGIN{max=0} {if ($3>max) max=$3} END{printf "%lf",  max}'`

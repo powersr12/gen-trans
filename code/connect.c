@@ -576,6 +576,15 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
 				//RECTANGULAR METAL TYPE LEAD
 				if(leadtype[i] == 1)
 				{
+					if((DeviceCell->pos)[l][0] >=  (Leads[i]->pos)[0][0] && (DeviceCell->pos)[l][0] <= (Leads[i]->pos)[0][1] && (DeviceCell->pos)[l][1] >=  (Leads[i]->pos)[1][0] && (DeviceCell->pos)[l][1] <= (Leads[i]->pos)[1][1])
+					{
+						(cellinfo->cells_site_order)[j] = l;
+						j++; m++;
+						(cellinfo->sites_by_cell)[l] = 0;
+						temparray[l]=1;
+					}
+					
+					
 					
 				}
 				

@@ -314,7 +314,9 @@ void genSingleRibbonLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, v
 	
 } 
 
-
+//def_pos = 0,..3 - left, right, top, bottom - widths and coords in ribbonlike notation
+//def_pos = 4 - full width of ribbon, coords and length in ribbon like notation
+//def_pos = 5 - start_coord, start_coord2, witdth, width2 in absolute units
 void genSingleMetalLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, void *params)
 {
 	int i, j;
@@ -353,49 +355,63 @@ void genSingleMetalLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, vo
 	//lead sizes etc are such that they correspond to that of a ribbon with the same width param
 	if(metpara->def_pos == 0)
 	{
-		(Lead->pos)[0][0] =xleft;
-		(Lead->pos)[0][1] = xleft+ (metpara->width)*x_cell_diff;
+		(Lead->pos)[0][0] =xleft - (x_cell_diff/2);
+		(Lead->pos)[0][1] = xleft - (x_cell_diff/2) + (metpara->width)*x_cell_diff;
 		
-		(Lead->pos)[1][0] = (metpara->start_coord)*y_cell_diff/2;
-		(Lead->pos)[1][1] = (metpara->start_coord + metpara->width2)*y_cell_diff/2;
+		(Lead->pos)[1][0] = (metpara->start_coord2)*y_cell_diff/2;
+		(Lead->pos)[1][1] = (metpara->start_coord2 + metpara->width2)*y_cell_diff/2;
 	}
 		
     
 	if(metpara->def_pos == 1)
 	{
-		(Lead->pos)[0][0] =xright - (metpara->width)*x_cell_diff;
-		(Lead->pos)[0][1] =xright;
+		(Lead->pos)[0][0] =xright - (metpara->width)*x_cell_diff + (x_cell_diff/2);
+		(Lead->pos)[0][1] =xright + (x_cell_diff/2) ;
 		
-		(Lead->pos)[1][0] = (metpara->start_coord)*y_cell_diff/2;
-		(Lead->pos)[1][1] = (metpara->start_coord + metpara->width2)*y_cell_diff/2;
+		(Lead->pos)[1][0] = (metpara->start_coord2)*y_cell_diff/2;
+		(Lead->pos)[1][1] = (metpara->start_coord2 + metpara->width2)*y_cell_diff/2;
 			
 	}
-// 	if(ribpara->def_pos == 2)
-// 	{
-// 		
-// 			(Lead->pos)[0][0] = xleft + (metpara->start_coord)*x_cell_diff;
-// 			(Lead->pos)[0][1] = ytop - y_cell_diff/2;
-// 			
-// 			(Lead->pos)[1][0] = xleft + (metpara->start_coord + metpara->width)*x_cell_diff;
-// 			(Lead->pos)[1][1] = ytop - y_cell_diff/2;;
-// 			
-// 			(Lead->pos)[2][0] =
-// 			(Lead->pos)[2][1] = 
-// 			
-// 			(Lead->pos)[3][0] = xright - (metpara->width)*x_cell_diff;
-// 			(Lead->pos)[3][1] = (metpara->start_coord + metpara->width2)*y_cell_diff/2;
-// 		
-// 			(Lead->pos)[i][0] += (xleft + (ribpara->start_coord)*x_cell_diff);
-// 			(Lead->pos)[i][1] += (ytop);
-// 		
-// 	}
-// 	if(ribpara->def_pos == 3)
-// 	{
-// 			(Lead->pos)[i][0] += (xleft + (ribpara->start_coord)*x_cell_diff);
-// 			(Lead->pos)[i][1] += (ybot);
-// 	}
-// 
-// 		
+	
+	if(metpara->def_pos == 2)
+	{
+		(Lead->pos)[0][0] = xleft + (metpara->start_coord)*x_cell_diff ;
+		(Lead->pos)[0][1] = (Lead->pos)[0][0] + (metpara->width)*x_cell_diff/2 -x_cell_diff/2 ;
+		
+		(Lead->pos)[1][0] = ytop - (metpara->width2)*y_cell_diff/2;
+		(Lead->pos)[1][1] = ytop ;
+		
+	}
+	
+	if(metpara->def_pos == 3)
+	{
+		(Lead->pos)[0][0] = xleft + (metpara->start_coord)*x_cell_diff;
+		(Lead->pos)[0][1] = (Lead->pos)[0][0] + (metpara->width)*x_cell_diff/2 -x_cell_diff/2;
+		
+		(Lead->pos)[1][0] = ybot ;
+		(Lead->pos)[1][1] = ybot  + (metpara->width2)*y_cell_diff/2;
+		
+	}
+	
+	if(metpara->def_pos == 4)
+	{
+		(Lead->pos)[0][0] = xleft + (metpara->start_coord)*x_cell_diff;
+		(Lead->pos)[0][1] = (Lead->pos)[0][0] + (metpara->width)*x_cell_diff/2 -x_cell_diff/2;
+		
+		(Lead->pos)[1][0] = ybot;
+		(Lead->pos)[1][1] = ytop;
+		
+	}
+
+	if(metpara->def_pos == 5)
+	{
+		(Lead->pos)[0][0] = (metpara->start_coord);
+		(Lead->pos)[0][1] = (metpara->start_coord) + (metpara->width);
+		
+		(Lead->pos)[1][1] = (metpara->start_coord2);
+		(Lead->pos)[1][1] = (metpara->start_coord2) + (metpara->width2);
+		
+	}
 	
 
 	
