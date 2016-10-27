@@ -43,13 +43,26 @@ typedef struct {
   RectRedux **Leads;
 }gen_start_params;
   
+typedef struct {
+  int num_leads;
+  double *startx;
+  double *endx;
+}multix_start_params;
 
+typedef struct {
+  cnxRulesFn2 *rule;
+  void *rule_params;
+  int num_leads;
+  RectRedux **Leads;
+  int *leadtype;
+}custom_start_params;
 
 void device_connectivity (RectRedux *DeviceCell, cnxRulesFn *rule, void *rule_params, cnxProfile *cnxp);
 void printConnectivity (RectRedux *DeviceCell, cnxProfile *cnxp);
 
 void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config, void *start_params);
 void cellSplitter (RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellinfo);
+void printOutLeadStrucs(RectRedux *DeviceCell, RectRedux **Leads, cellDivision *cellinfo, char *output);
 
 
 

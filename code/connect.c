@@ -60,6 +60,20 @@ void printConnectivity (RectRedux *DeviceCell, cnxProfile *cnxp)
 
 //config = 3 reads a lead file, and a connectivity rule, and puts anything 
 //nearer than that to a lead atom into the starting cell
+
+//config = 4 : x dependent lead selection.
+//each lead has an xmin and xmax, all sites in this range are part of that lead
+//used for top lead / hanle type configurations.
+
+//config = 5 : custom lead mode.
+//this mode is for the custom leads setup
+	//each lead type has its own rule/submode
+	//leadtype:
+	//0 - ribbon type, similar to config=3
+	//1 - metal type, rectangular area (similar to config==4, but with possibility of finite y)
+	//2 - circular metal, suitable for simplest STM tips
+	//3 - held for patched GF systems
+
 void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config, void *start_params)
 {
     //cellinfo->num_cells = 2;
@@ -72,6 +86,8 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
     
     cellinfo->cells_site_order = createIntArray(dim);
     cellinfo->sites_by_cell = createIntArray(alldim);
+    int *temparray;
+
 
     //initialise cells_site_order elements to -1
     for(i=0; i<dim; i++)
@@ -91,7 +107,9 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
     }
     
     
-    
+	
+	int *leadtype;
+
     if(config==0)	// standard L/R leads same width as device. 
 			// cell 0 is the cell connecting to the RHS probe
 			// the "group" is the LHS cell
@@ -392,7 +410,6 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
     }
     
     
-
     else if (config == 3) //based on lead site positions and connection rule
     {
       gen_start_params *sps = (gen_start_params *) start_params;
@@ -405,12 +422,13 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
       
       //count total sites connecting to leads, and each lead
       //problem if sites connect to more than one other site ->temp array fixes this
-                int *temparray = createIntArray(alldim);
+      temparray = createIntArray(alldim);
 
-      
+//       printf("#num leads %d\n", cellinfo->num_leads);
       for(i=0; i<cellinfo->num_leads; i++)
       {
 	m=0;
+// 	printf("#lead %d dim: %d\n", i, *(Leads[i]->Ntot));
 	for(k=0; k<*(Leads[i]->Ntot); k++)
 	{
 	  if( (Leads[i]->siteinfo)[k][0] == 0)
@@ -456,9 +474,148 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
 
     }
     
-    
-    
+    //simplest metal leads
+    else if(config==4)
+    {
+        multix_start_params *sps = (multix_start_params *) start_params;
+      
+        j=0, m=0;
+        cellinfo->num_leads=(sps->num_leads);
+        cellinfo->lead_dims=createIntArray(cellinfo->num_leads);
+        
+              temparray = createIntArray(alldim);
 
+        
+        for(i=0; i<cellinfo->num_leads; i++)
+        {
+            m=0;
+            
+            for(l=0; l<alldim; l++)
+            {
+                if( (DeviceCell->siteinfo)[l][0] == 0 && temparray[l]==0)
+                {
+                    if((DeviceCell->pos)[l][0] >= sps->startx[i] && (DeviceCell->pos)[l][0] <= sps->endx[i])
+                    {
+                        (cellinfo->cells_site_order)[j] = l;
+                        j++; m++;
+                        (cellinfo->sites_by_cell)[l] = 0;
+                        temparray[l]=1;
+                    }
+                }
+            }
+            (cellinfo->lead_dims)[i] = m;
+        }
+        cellinfo->cell1dim = j; 
+        
+        cellinfo->group_dim = 0;
+	
+	cellinfo->lead_sites = createIntArray( cellinfo->cell1dim );
+	
+	for(l=0; l<cellinfo->cell1dim ; l++)
+	{
+	  cellinfo->lead_sites[l] = (cellinfo->cells_site_order)[l];
+	}        
+            
+        
+                  free(temparray);
+
+        
+        
+        
+    }
+    
+	
+	
+    else if(config==5)
+    {
+	custom_start_params *sps = (custom_start_params *) start_params;
+      
+	j=0, m=0;
+	cellinfo->num_leads=sps->num_leads;
+	cellinfo->lead_dims=createIntArray(cellinfo->num_leads);
+	RectRedux **Leads = sps->Leads;
+	
+	leadtype = sps->leadtype;
+	
+	//count total sites connecting to leads, and each lead
+	//problem if sites connect to more than one other site ->temp array fixes this
+	temparray = createIntArray(alldim);
+	
+// 	printf("#mode 5 in use\n");
+	for(i=0; i<cellinfo->num_leads; i++)
+	{
+		m=0;
+		
+				
+		for(l=0; l<alldim; l++)
+		{
+			if( (DeviceCell->siteinfo)[l][0] == 0 && temparray[l]==0)
+			{
+	
+				//RIBBON TYPE LEAD -use LeadCells and hopping rule
+				if(leadtype[i] == 0)
+				{
+					for(k=0; k<*(Leads[i]->Ntot); k++)
+					{
+						if( (Leads[i]->siteinfo)[k][0] == 0)
+						{
+							if((sps->rule)(DeviceCell, Leads[i], sps->rule_params, l, k) == 0)
+							{
+								(cellinfo->cells_site_order)[j] = l;
+								j++; m++;
+								(cellinfo->sites_by_cell)[l] = 0;
+								temparray[l]=1;
+							}
+							
+						}
+					}
+					
+					
+				}
+				
+				//RECTANGULAR METAL TYPE LEAD
+				if(leadtype[i] == 1)
+				{
+					if((DeviceCell->pos)[l][0] >=  (Leads[i]->pos)[0][0] && (DeviceCell->pos)[l][0] <= (Leads[i]->pos)[0][1] && (DeviceCell->pos)[l][1] >=  (Leads[i]->pos)[1][0] && (DeviceCell->pos)[l][1] <= (Leads[i]->pos)[1][1])
+					{
+						(cellinfo->cells_site_order)[j] = l;
+						j++; m++;
+						(cellinfo->sites_by_cell)[l] = 0;
+						temparray[l]=1;
+					}
+					
+					
+					
+				}
+				
+				//CIRCULAR METAL TYPE LEAD
+				if(leadtype[i] == 2)
+				{
+					
+				}
+				
+				//PATCHED GF TYPE LEAD
+				if(leadtype[i] == 3)
+				{
+					
+				}
+			}
+		}
+		(cellinfo->lead_dims)[i] = m;
+		
+	}
+	cellinfo->cell1dim = j;
+	cellinfo->group_dim = 0;
+	cellinfo->lead_sites = createIntArray( cellinfo->cell1dim );
+	for(l=0; l<cellinfo->cell1dim ; l++)
+	{
+	  cellinfo->lead_sites[l] = (cellinfo->cells_site_order)[l];
+	}
+      
+	free(temparray);
+	    
+	    
+    }
     
     else
       exit(1);
@@ -481,7 +638,7 @@ void cellSplitter (RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellin
   num_sites_left=0;
   cellinfo->group_cell=-1;
   
-  
+
   for(i=0; i<alldim; i++)
   {
     if( (cellinfo->sites_by_cell)[i] == -1)
@@ -607,7 +764,46 @@ void cellSplitter (RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellin
   
 }
 
+//prints out to file the sites associatde with each lead (i.e. those in the system that they connect to, and any "leadsites" in the structure files)
 
+void printOutLeadStrucs(RectRedux *DeviceCell, RectRedux **Leads, cellDivision *cellinfo, char *output)
+{
+	FILE *struc;
+	int i, j, k=0;;
+	struc = fopen(output, "w");
+	
+	for(i=0; i<(cellinfo->num_leads); i++)
+	{
+		
+		for(j=0;j<(cellinfo->lead_dims)[i]; j++)
+		{
+			fprintf(struc, "%lf	%lf\n", (DeviceCell->pos)[(cellinfo->lead_sites)[k]][0], (DeviceCell->pos)[(cellinfo->lead_sites)[k]][1]);
+			k++;
+		}
+		for(j=0; j<*(Leads[i]->Ntot); j++)
+		{
+			if((Leads[i]->siteinfo)[j][0] == 0)
+			{
+				fprintf(struc,"%lf	%lf\n", (Leads[i]->pos)[j][0], (Leads[i]->pos)[j][1]);
+			}
+		}
+			
+		
+		fprintf(struc, "\n");
+		
+		
+	}
+	
+	for(i=0; i<(cellinfo->num_leads); i++)
+	{
+		
+		
+		
+	}
+	
+	
+	fclose(struc);
+}
 
 
 //This function simply generates the connections present in a pristine nearest neighbour AC or ZZ cell
@@ -1156,5 +1352,9 @@ int graph_conn_sep2 (RectRedux *DeviceCell, RectRedux *LeadCell, void *rule_para
     
     return ans;
 }
+
+
+
+
 
 

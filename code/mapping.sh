@@ -6,15 +6,22 @@ REDUCFACT=1
 GEO=0
 MAXPTS=100000
 
+# BASEFOLDER=/home/ICN2/spower/projects/gen-trans/res/
+# PROJFOLDER=ANTIDOTS_RIBBON_1e-06/ZZ288_rect_lat_L_36_64_circ_dot_R_8.0_4x8_xyf_0.0_rf_0.0/
+# PROJNAME=E_+0.40_B_+163.500_longbuf.conf00
+
 BASEFOLDER=/home/ICN2/spower/projects/gen-trans/res/
-PROJFOLDER=ANTIDOTS_RIBBON_1e-06/ZZ288_rect_lat_L_36_64_circ_dot_R_8.0_4x8_xyf_0.0_rf_0.0/
-PROJNAME=E_+0.40_B_+163.500_longbuf.conf00
+PROJFOLDER=SUBLATTICEINT_valleytest_4_LEADS_1_to_0__1e-06/ZZ100_L2_100_BUF_0_SUBA_0.00x0.000_SUBB_0.00x0.000/
+PROJNAME=E_+0.01_B_+0.000_run.conf00
+
+
 BASENAME=$BASEFOLDER$PROJFOLDER$PROJNAME
 
 
 DOSNAME=$BASENAME.ldos
 # CURRENTS="l0 l2 l3 l1 l4 l5 multi"
-CURRENTS="l0 l1"
+# CURRENTS="l0 l1"
+CURRENTS="l0 l2 l3 l1 multi"
 
 NUMPTS=`cat $DOSNAME | awk 'END{print NR}'`
 MAXDOS=`cat $DOSNAME | awk 'BEGIN{max=0} {if ($3>max) max=$3} END{printf "%lf",  max}'`
@@ -71,6 +78,7 @@ echo $XCELLS $YCELLS
 
 grep -v ^# ${DOSNAME}  | awk -vd1=$XCELLS -vd2=$YCELLS -vxe=$XE -vye=$YE -vxmin=$MINX -vymin=$MINY 'BEGIN {for(i=0; i<d1*d2; i++) arr[i]=0.0} {arr[int(  ($1 - xmin ) /xe)*d2 + int(($2 - ymin ) /ye )] += $3 } END {for(i=0; i<d1; i++) for(j=0; j<d2; j++) printf "%e %e %e\n", xmin + i*xe , ymin+j*ye,  arr[d2*i+j]} ' >  ${DOSNAME}_red.dat
 
+# echo ${DOSNAME}_red.dat
 NEWMAXDOS=`cat ${DOSNAME}_red.dat | awk 'BEGIN{max=0} {if ($3>max) max=$3} END{printf "%lf",  max}'`
 
 # 
