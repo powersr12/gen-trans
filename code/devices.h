@@ -20,12 +20,44 @@ typedef struct {
 }RectRedux;
 
 typedef struct {
+	char *name;
+	void *indiv_lead_fn;
+	void *indiv_lead_para;
+	void *indiv_gen_fn;
+	int def_pos; //0->left, 1->right, 2->top, 3->bottom
+}multiple_para;
+
+typedef struct {
 	double **shift_vecs;
 	void *hopfn;
 	void *leadsfn;
 	void *hoppara;
+	multiple_para **multiple;
 }lead_para;
 
+typedef struct {
+	double *shift_vec;
+	void *hopfn;
+	void *hoppara;
+	int geo;
+	int width;
+	int start_coord;
+	int def_pos; //0->left, 1->right, 2->top, 3->bottom
+}rib_lead_para;
+
+typedef struct {
+	void *hopfn;
+	void *hoppara;
+	int geo;
+	double width;	//x-dim
+	double width2;	//y-dim
+	double start_coord;
+	double start_coord2;
+	int def_pos; //0->left, 1->right, 2->top, 3->bottom, 4->fullwidth, 5-> absolute positioning
+}metal_lead_para;
+	
+	
+	
 typedef struct {
 	int buffer_rows;
 	double a_conc;
@@ -113,15 +145,26 @@ typedef struct {
 
 
 typedef void (generatefn) (RectRedux *, void *, int , char *);
+typedef void (leadgenfn) (RectRedux *, RectRedux *, int, void *);
+
 
 void genLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, int mode, lead_para *params);
 void HallBarify (RectRedux *System, RectRedux **Leads, hallbpara *hall_para, lead_para *params, int struc_out, char *filename);
+
+int HallPositioning(int length2, int num_side_probes, int this_probe, int buffer_rows, int geo_renorm, int width);
+
+void genCustomLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, lead_para *params);
+void genSingleRibbonLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, void *params);
+void genSingleMetalLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, void *params);
+
+
 
 void simpleRibbonGeo (RectRedux *SiteArray, void *p, int struc_out, char *filename);
 
 void genSublatticeDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 void genSublatticeInterface(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 void genSublatticeTwoInts(RectRedux *SiteArray, void *p, int struc_out, char *filename);
+void genSublatticeLeadPots(RectRedux **Leads, void *p);
 
 void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 

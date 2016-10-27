@@ -219,18 +219,241 @@ void genLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, int mode, 
     
   }
   
-// 	for(i=0; i<numleads; i++)
-// 	{
-// 	  for(j=0; j<*(Leads[i]->Ntot); j++)
-// 	  {
-// 	    printf("%lf	%lf\n", (Leads[i]->pos)[j][0], (Leads[i]->pos)[j][1]);
-// 	  }
-// 	  printf("\n");
-// 	}
+}
+ 
+void genSingleRibbonLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, void *params)
+{
+	int i, j;
+	rib_lead_para* ribpara = (rib_lead_para*)params;
+	
+	int devgeo = SiteArray->geo;
+	int length = (SiteArray->length);
+	int length2 = (SiteArray->length2);
+	double ybot, ytop, y_cell_diff;
+	double xleft, xright, x_cell_diff;
+	
+	if(devgeo == 0)
+	{
+		ybot = 1/(2*sqrt(3)) - sqrt(3);
+		ytop = 1/(2*sqrt(3)) + length * sqrt(3)/2;
+		xleft = 0.5;
+		xright = length2*1.0 - 0.5;
+		x_cell_diff = 1.0;
+		y_cell_diff = sqrt(3);
+	}
+	
+	if(devgeo == 1)
+	{
+		ybot = -1.0;
+		ytop = 0.5*length;
+		xleft = -1/(2*sqrt(3)) + sqrt(3)/2;
+		xright = -1/(2*sqrt(3))+ sqrt(3)/2 + (length2-1)*sqrt(3);
+		x_cell_diff = sqrt(3);
+		y_cell_diff = 1.0;
+	}
+    
+	
+	(Lead->geo) = (ribpara->geo);
+	(Lead->length) = (ribpara->width);
+	(Lead->length2) = 1;
+	
+	simpleRibbonGeo (Lead, NULL, 0, NULL);
+
+	//periodicity vectors for RGF leads
+	(ribpara->shift_vec) = createDoubleArray(3);
+    
+	if(ribpara->def_pos == 0)
+	{
+		(ribpara->shift_vec)[0] = -((SiteArray->pos)[2*(SiteArray->length)][0] - (SiteArray->pos)[0][0]);
+		(ribpara->shift_vec)[1] = 0.0;
+		for(i=0; i<*(Lead->Ntot); i++)
+		{
+			(Lead->pos)[i][0] += (ribpara->shift_vec)[0];
+			(Lead->pos)[i][1] += (ribpara->start_coord)*y_cell_diff/2;
+		}
+	}
+    
+	if(ribpara->def_pos == 1)
+	{
+		(ribpara->shift_vec)[0] = (SiteArray->pos)[2*(SiteArray->length)][0] - (SiteArray->pos)[0][0];
+		(ribpara->shift_vec)[1] = 0.0;
+		for(i=0; i<*(Lead->Ntot); i++)
+		{
+			(Lead->pos)[i][0] += (SiteArray->length2)*(ribpara->shift_vec)[0];
+			(Lead->pos)[i][1] += (ribpara->start_coord)*y_cell_diff/2;
+		}
+	}
+	if(ribpara->def_pos == 2)
+	{
+		(ribpara->shift_vec)[0] = 0.0;
+		(ribpara->shift_vec)[1] = y_cell_diff;
+		
+		swapxy((Lead->pos), *(Lead->Ntot));
+		
+		for(i=0; i<*(Lead->Ntot); i++)
+		{
+			(Lead->pos)[i][0] += (xleft + (ribpara->start_coord)*x_cell_diff);
+			(Lead->pos)[i][1] += (ytop);
+		}
+	}
+	if(ribpara->def_pos == 3)
+	{
+		(ribpara->shift_vec)[0] = 0.0;
+		(ribpara->shift_vec)[1] = -y_cell_diff;
+		
+		swapxy((Lead->pos), *(Lead->Ntot));
+		
+		for(i=0; i<*(Lead->Ntot); i++)
+		{
+			(Lead->pos)[i][0] += (xleft + (ribpara->start_coord)*x_cell_diff);
+			(Lead->pos)[i][1] += (ybot);
+		}
+		
+	}
+
+	
+} 
+
+//def_pos = 0,..3 - left, right, top, bottom - widths and coords in ribbonlike notation
+//def_pos = 4 - full width of ribbon, coords and length in ribbon like notation
+//def_pos = 5 - start_coord, start_coord2, witdth, width2 in absolute units
+void genSingleMetalLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, void *params)
+{
+	int i, j;
+	metal_lead_para* metpara = (metal_lead_para*)params;
+	
+	int devgeo = SiteArray->geo;
+	int length = (SiteArray->length);
+	int length2 = (SiteArray->length2);
+	double ybot, ytop, y_cell_diff;
+	double xleft, xright, x_cell_diff;
+	
+	if(devgeo == 0)
+	{
+		ybot = 0.0;
+		ytop = 1/(2*sqrt(3)) + length * sqrt(3)/2;
+		xleft = 0.5;
+		xright = length2*1.0 - 0.5;
+		x_cell_diff = 1.0;
+		y_cell_diff = sqrt(3);
+	}
+	
+	if(devgeo == 1)
+	{
+		ybot = 0.0;
+		ytop = 0.5*length;
+		xleft = -1/(2*sqrt(3)) + sqrt(3)/2;
+		xright = -1/(2*sqrt(3))+ sqrt(3)/2 + (length2-1)*sqrt(3);
+		x_cell_diff = sqrt(3);
+		y_cell_diff = 1.0;
+	}
+    
+
+	//Lead->pos is used here to give the max x/y of the lead
+	(Lead->pos) = createNonSquareDoubleMatrix(2, 3);
+    
+	//lead sizes etc are such that they correspond to that of a ribbon with the same width param
+	if(metpara->def_pos == 0)
+	{
+		(Lead->pos)[0][0] =xleft - (x_cell_diff/2);
+		(Lead->pos)[0][1] = xleft - (x_cell_diff/2) + (metpara->width)*x_cell_diff;
+		
+		(Lead->pos)[1][0] = (metpara->start_coord2)*y_cell_diff/2;
+		(Lead->pos)[1][1] = (metpara->start_coord2 + metpara->width2)*y_cell_diff/2;
+	}
+		
+    
+	if(metpara->def_pos == 1)
+	{
+		(Lead->pos)[0][0] =xright - (metpara->width)*x_cell_diff + (x_cell_diff/2);
+		(Lead->pos)[0][1] =xright + (x_cell_diff/2) ;
+		
+		(Lead->pos)[1][0] = (metpara->start_coord2)*y_cell_diff/2;
+		(Lead->pos)[1][1] = (metpara->start_coord2 + metpara->width2)*y_cell_diff/2;
+			
+	}
+	
+	if(metpara->def_pos == 2)
+	{
+		(Lead->pos)[0][0] = xleft + (metpara->start_coord)*x_cell_diff ;
+		(Lead->pos)[0][1] = (Lead->pos)[0][0] + (metpara->width)*x_cell_diff/2 -x_cell_diff/2 ;
+		
+		(Lead->pos)[1][0] = ytop - (metpara->width2)*y_cell_diff/2;
+		(Lead->pos)[1][1] = ytop ;
+		
+	}
+	
+	if(metpara->def_pos == 3)
+	{
+		(Lead->pos)[0][0] = xleft + (metpara->start_coord)*x_cell_diff;
+		(Lead->pos)[0][1] = (Lead->pos)[0][0] + (metpara->width)*x_cell_diff/2 -x_cell_diff/2;
+		
+		(Lead->pos)[1][0] = ybot -0.001;
+		(Lead->pos)[1][1] = ybot  -0.001 + (metpara->width2)*y_cell_diff/2;
+		
+	}
+	
+	if(metpara->def_pos == 4)
+	{
+		(Lead->pos)[0][0] = xleft + (metpara->start_coord)*x_cell_diff;
+		(Lead->pos)[0][1] = (Lead->pos)[0][0] + (metpara->width)*x_cell_diff/2 -x_cell_diff/2;
+		
+		(Lead->pos)[1][0] = ybot;
+		(Lead->pos)[1][1] = ytop;
+		
+	}
+
+	if(metpara->def_pos == 5)
+	{
+		(Lead->pos)[0][0] = (metpara->start_coord);
+		(Lead->pos)[0][1] = (metpara->start_coord) + (metpara->width);
+		
+		(Lead->pos)[1][1] = (metpara->start_coord2);
+		(Lead->pos)[1][1] = (metpara->start_coord2) + (metpara->width2);
+		
+	}
+	
+
+	
+} 
+
+
+
+//calls "generate" functions for each lead to turn the simple positions etc 
+//in the main code into structures that can be used for calculating the startng 
+//cells and later the self energies
+//maybe just generate starting cells here too?)
+void genCustomLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, lead_para *params)
+{
+  int i, j;
+  leadgenfn *leadgn;
+  void *indiv_params;
   
-  
+  for(i=0; i< numleads; i++)
+  {
+	Leads[i] = (RectRedux *)malloc(sizeof(RectRedux));
+	(Leads[i]->Nrem) = (int *)malloc(sizeof(int));
+	(Leads[i]->Ntot) = (int *)malloc(sizeof(int));
+	*(Leads[i]->Nrem)=0;
+	*(Leads[i]->Ntot)=0;
+	
+  }	
+	
+  for(i=0; i< numleads; i++)
+  {	
+	leadgn = ((params->multiple)[i])->indiv_gen_fn;
+	indiv_params = ((params->multiple)[i])->indiv_lead_para;
+	
+	(leadgn) (SiteArray, Leads[i], i, indiv_params);
+	
+  }
   
 }
+
+
+
+
+
 
 
 
@@ -1069,6 +1292,39 @@ void genSublatticeDevice(RectRedux *SiteArray, void *p, int struc_out, char *fil
 
 	
 }
+
+
+//generates averaged sublattice potentials in left right leads (leads 0 and 1)
+//this is useful for injection in and out of infinite devices
+void genSublatticeLeadPots(RectRedux **Leads, void *p)
+{
+	int i, j;
+	subl_para *params = (subl_para *)p;
+	double a_conc = (params->a_conc);
+	double b_conc = (params->b_conc);
+	double a_pot = (params->a_pot);
+	double b_pot = (params->b_pot);
+	
+	
+	for(i=0; i<2; i++)
+	{
+		for(j=0; j< *(Leads[i]->Ntot); j++)
+		{
+			if( (Leads[i]->siteinfo)[j][0] == 0 && (Leads[i]->siteinfo)[j][1] == 0)
+			{
+				(Leads[i]->site_pots)[j] = a_conc * a_pot;
+			}
+			
+			if( (Leads[i]->siteinfo)[j][0] == 0 && (Leads[i]->siteinfo)[j][1] == 1)
+			{
+				(Leads[i]->site_pots)[j] = b_conc * b_pot;
+			}
+		}
+	}
+	
+	
+}
+
 
 
 //A general (non-disordered) antidot barrier-type device 
@@ -2374,6 +2630,25 @@ void importRectConf(RectRedux *System, int length, int length2, char *filename)
   
 
 
+}
+
+//positions hall-type probes evenly along edges
+//calculates centre of leads, then edge position from width
+//returns starting chain index of probe
+//this_probe indexing starts at 0
+int HallPositioning(int length2, int num_side_probes, int this_probe, int buffer_rows, int geo_renorm, int width)
+{
+	int hall_denom=2*num_side_probes;
+	int hall_start = (int) (( ((length2-2*buffer_rows)/hall_denom) - (width/(2*geo_renorm)))) + buffer_rows;
+	if((hall_start % 2) == 1)
+		hall_start+=1;
+	int hall_jump =  2 * ((int) ((length2-2*buffer_rows)/hall_denom));
+	
+	
+// 	return 2 * (int) (( (hall_mid*(length2-2*buffer_rows)/hall_denom) - (width/(2*geo_renorm)))/2) + buffer_rows;
+	
+	return hall_start + this_probe*hall_jump;
+		
 }
 
 

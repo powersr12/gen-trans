@@ -30,6 +30,21 @@ main(int argc, char *argv[])
 	      int output_type=1;   //=0 no structure output, =1  atoms / holes
 	      double eta = 1.0E-6;
 	      int ishallbar=0;
+                                //common complex lead geometries can be chosen here
+                                //each have special settings throughout the code
+                                //be sure that, e.g., gauges, are carefully configured for each....
+                                //=0 (default) simple 2 lead left/right - works fine with periodicity
+                                    //output is TLR
+                                //=1 6 lead HALL BAR  - Rxy and Rxx are calculated and output based on left to right injected current
+                                    //bond currents in 'multi' show net current flow
+                                //=2 6 lead SPIN HALL BAR - same as Hall bar, but current is injected top to bottom, and the non local resistance (& spin hall angle if system is SPIN POLARISED) are output
+                                    //bond currents in 'multi' show net current flow
+                                    //shows total, and each spin version (will!)
+				//= 3 / four metal leads in a Hanle type configuration.
+				//=4 CUSTOM MODE
+				//allows each lead to be defined separately.
+              
+              
 	      int nngm = 1;	//default assumption is Nearest Neighbour graphene hopping parameters and lattice, 
 				//changing this to 2 or 3 uses 2NN or 3NN models
 				//future change - making this 0 should allow custom parameterisation somehow
@@ -46,6 +61,8 @@ main(int argc, char *argv[])
 	      int gauge = 0; 	//default gauge choice, phase is along x
 	      int potdis =0;	//is there an additional, random potential disorder in the system?
 	      int splitgen =0;	//if =1, splits the system generation and calculation
+	      int metal_leads = 0;      //if this is set to 1, metallic leads are used instead of ribbons -
+                                        //these need to be accounted for properly with positions etc...
 	  
 	      //check for command line arguments which vary these
 		  for(i=1; i<argc-1; i++)
@@ -174,6 +191,8 @@ main(int argc, char *argv[])
 		  }
 		  
 	//hopping related
+	gen_hop_params hoppara={};
+
 	int NNN=1;
 	double t0=-1.0, NNlowdis=0.56, NNhighdis=0.59, onsitec=0.0;
 	
@@ -281,6 +300,7 @@ main(int argc, char *argv[])
 			  {
 			    sprintf(job_name, "%s.ms2", job_name);
 			  }
+			
 
 		    int buffer_rows=0;
 		    for(i=1; i<argc-1; i++)
@@ -361,6 +381,8 @@ main(int argc, char *argv[])
 	      kstep = 0.0;
 	    }
 	    
+	    
+	    int starting_cell_mode=3;
 	    cnxRulesFn *connectrules;
 	    graph_conn_para cnxpara;
 	    
@@ -380,7 +402,15 @@ main(int argc, char *argv[])
 
 	    //lead info
 	  int num_leads=2;
-	    
+		for(i=1; i<argc-1; i++)
+		  {
+			if(strcmp("-numleads", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%d", &num_leads);
+			}
+		  }
+	  
+	  
 	      if(isperiodic==0)
 	      {
 		connectrules = &graph_conn_sep;
@@ -419,6 +449,7 @@ main(int argc, char *argv[])
 	  int xory=0;
 	  double interface_width=0.0, interface_position, interface_position2;
 	  double intreltoedge=2.0;
+	  int xleadsavgpot=0;
 	  
 	  
 	  
@@ -471,9 +502,18 @@ main(int argc, char *argv[])
 		      {
 			  sscanf(argv[i+1], "%d", &(sublp.buffer_rows));
 		      }
+		      if(strcmp("-xleadsavgpot", argv[i]) == 0)   //puts an average potential on the left/right leads
+		      {
+			  sscanf(argv[i+1], "%d", &xleadsavgpot);
+		      }
 		      
 		    }
 		    
+			if(xleadsavgpot==1)
+			{
+				sprintf(job_name, "%s.xlavgp", job_name);
+			}
+			
 		    //set functions and params for use below
 		    SysFunction = &genSublatticeDevice;
 		    SysPara = &sublp;
@@ -481,6 +521,7 @@ main(int argc, char *argv[])
 		    //set filename info - what to put in filename from these params
 		    sprintf(sysinfo, "L2_%d_BUF_%d_SUBA_%.2lfx%.3lf_SUBB_%.2lfx%.3lf", length2, buffer_rows, (sublp.a_conc), (sublp.a_pot),(sublp.b_conc), (sublp.b_pot)); 
 		}
+		
 		
 		
 		subint_para subintp = {};
@@ -985,6 +1026,26 @@ main(int argc, char *argv[])
 	  double cond2;
 	  
 	  
+	  double startloc, endloc, starty, endy;
+	  
+	  //approximate size values for lead generation...
+		if(geo==0)
+		{
+			endloc = length2*1.0 -0.5;
+			startloc = 0.0;
+			starty = 0.0;
+			endy = length1*sqrt(3)/2;
+		}
+		if(geo==1)
+		{
+			endloc = length2*sqrt(3) - (1/sqrt(3));
+			startloc= 0.0;
+			starty = -0.5;
+			endy = length1*1.0/2;
+		}
+		
+	  
+	  
 	  //potential disorder settings
 	      double pdconc=0.0, pddelta=0.0, pdxi=1.0;
 	      int pdmap=0;
@@ -1023,79 +1084,620 @@ main(int argc, char *argv[])
 	  
 	  
 	  
-	  //standard hall ssettings
-	   if(ishallbar==1)
-	      {
-		connectrules = &graph_conn_sep;
-		isperiodic=0;
-		cnxpara.periodic = 0;
-		kpts = 1;
-		
-		 for(i=1; i<argc-1; i++)
-		 {
-		    if(strcmp("-ntop", argv[i]) == 0)
-		    {
-			sscanf(argv[i+1], "%d", &ntop);
-		    }
-		    if(strcmp("-nbot", argv[i]) == 0)
-		    {
-			sscanf(argv[i+1], "%d", &nbot);
-		    }
-		    if(strcmp("-halldenom", argv[i]) == 0)
-		    {
-			sscanf(argv[i+1], "%d", &hall_denom);
-		    }
-		    if(strcmp("-hallrelwidth", argv[i]) == 0)
-		    {
-			sscanf(argv[i+1], "%d", &hall_rel_width);
-		    }
-		    if(strcmp("-hallstart", argv[i]) == 0)
-		    {
-			sscanf(argv[i+1], "%d", &hall_start);
-		    }
-		    hall_second_start = hall_denom - hall_start - hall_rel_width;
-		    //possibilities for fancier more probe geometries here
-		    if(strcmp("-hallsecstart", argv[i]) == 0)
-		    {
-			sscanf(argv[i+1], "%d", &hall_second_start);
-		    }
-		    if(strcmp("-hallycells", argv[i]) == 0)
-		    {
-			sscanf(argv[i+1], "%d", &hall_num_y_cells);
-		    }
-		
-		 }
-		  num_leads =2 + ntop + nbot;
-		  
-		  sprintf(peritype, "HALLBAR_%d_%d_rw_%d", ntop, nbot, hall_denom);
+	  //standard hall settings
+	   if(ishallbar==1 || ishallbar==2)
+            {
+            connectrules = &graph_conn_sep;
+            isperiodic=0;
+            cnxpara.periodic = 0;
+            kpts = 1;
+            
+                for(i=1; i<argc-1; i++)
+                {
+                if(strcmp("-ntop", argv[i]) == 0)
+                {
+                    sscanf(argv[i+1], "%d", &ntop);
+                }
+                if(strcmp("-nbot", argv[i]) == 0)
+                {
+                    sscanf(argv[i+1], "%d", &nbot);
+                }
+                if(strcmp("-halldenom", argv[i]) == 0)
+                {
+                    sscanf(argv[i+1], "%d", &hall_denom);
+                }
+                if(strcmp("-hallrelwidth", argv[i]) == 0)
+                {
+                    sscanf(argv[i+1], "%d", &hall_rel_width);
+                }
+                if(strcmp("-hallstart", argv[i]) == 0)
+                {
+                    sscanf(argv[i+1], "%d", &hall_start);
+                }
+                hall_second_start = hall_denom - hall_start - hall_rel_width;
+                //possibilities for fancier more probe geometries here
+                if(strcmp("-hallsecstart", argv[i]) == 0)
+                {
+                    sscanf(argv[i+1], "%d", &hall_second_start);
+                }
+                if(strcmp("-hallycells", argv[i]) == 0)
+                {
+                    sscanf(argv[i+1], "%d", &hall_num_y_cells);
+                }
+            
+                }
+                num_leads =2 + ntop + nbot;
+                
+                if(ishallbar==1)
+                {
+                    sprintf(peritype, "HALLBAR_%d_%d_rw_%d", ntop, nbot, hall_denom);
+                }
+                if(ishallbar==2)
+                {
+                    sprintf(peritype, "SHBAR_%d_%d_rw_%d", ntop, nbot, hall_denom);
+                }
+                
 
-		  
-		  hallp.num_top_probes=ntop, hallp.num_bot_probes=nbot;
-		  hallp.toppx = createIntArray(ntop);
-		  hallp.toppw = createIntArray(ntop);
-		  hallp.toppc = createIntArray(ntop);
-		  hallp.botpx = createIntArray(nbot);
-		  hallp.botpw = createIntArray(nbot);
-		  hallp.botpc = createIntArray(nbot);
-		  
-		  //THIS ASSUMES ntop and nbot = 2
-		  //NEEDS TO BE GENERALISED IF USED FOR OTHER CASES!
-		  hallp.toppx[0] = (int) ((hall_start)*(length2-2*buffer_rows)/hall_denom) + buffer_rows;
-		  hallp.toppw[0] = (int) (hall_rel_width*geo_renorm*(length2-2*buffer_rows)/hall_denom) ;
-		  hallp.toppx[1] = (int) ((hall_second_start)*(length2-2*buffer_rows)/hall_denom) + buffer_rows;
-		  hallp.toppw[1] = (int) (hall_rel_width*geo_renorm*(length2-2*buffer_rows)/hall_denom) ;
-		  hallp.botpx[0] = (int) ((hall_start)*(length2-2*buffer_rows)/hall_denom) + buffer_rows;
-		  hallp.botpw[0] = (int) (hall_rel_width*geo_renorm*(length2-2*buffer_rows)/hall_denom) ;
-		  hallp.botpx[1] = (int) ((hall_second_start)*(length2-2*buffer_rows)/hall_denom) + buffer_rows;
-		  hallp.botpw[1] = (int) (hall_rel_width*geo_renorm*(length2-2*buffer_rows)/hall_denom) ;
-		  
-		  hallp.toppc[0] = hall_num_y_cells; hallp.toppc[1] = hall_num_y_cells;
-		  hallp.botpc[0] = hall_num_y_cells; hallp.botpc[1] = hall_num_y_cells;
+                
+                hallp.num_top_probes=ntop, hallp.num_bot_probes=nbot;
+                hallp.toppx = createIntArray(ntop);
+                hallp.toppw = createIntArray(ntop);
+                hallp.toppc = createIntArray(ntop);
+                hallp.botpx = createIntArray(nbot);
+                hallp.botpw = createIntArray(nbot);
+                hallp.botpc = createIntArray(nbot);
+                
+                //THIS ASSUMES ntop and nbot = 2
+                //NEEDS TO BE GENERALISED IF USED FOR OTHER CASES!
+                hallp.toppx[0] = (int) ((hall_start)*(length2-2*buffer_rows)/hall_denom) + buffer_rows;
+                hallp.toppw[0] = (int) (hall_rel_width*geo_renorm*(length2-2*buffer_rows)/hall_denom) ;
+                hallp.toppx[1] = (int) ((hall_second_start)*(length2-2*buffer_rows)/hall_denom) + buffer_rows;
+                hallp.toppw[1] = (int) (hall_rel_width*geo_renorm*(length2-2*buffer_rows)/hall_denom) ;
+                hallp.botpx[0] = (int) ((hall_start)*(length2-2*buffer_rows)/hall_denom) + buffer_rows;
+                hallp.botpw[0] = (int) (hall_rel_width*geo_renorm*(length2-2*buffer_rows)/hall_denom) ;
+                hallp.botpx[1] = (int) ((hall_second_start)*(length2-2*buffer_rows)/hall_denom) + buffer_rows;
+                hallp.botpw[1] = (int) (hall_rel_width*geo_renorm*(length2-2*buffer_rows)/hall_denom) ;
+                
+                hallp.toppc[0] = hall_num_y_cells; hallp.toppc[1] = hall_num_y_cells;
+                hallp.botpc[0] = hall_num_y_cells; hallp.botpc[1] = hall_num_y_cells;
+            
+            }
+            
+            
+            double *leadsxmin, *leadsxmax;
+            double leadwidth, endsep, endpos, convunit;
+            int typeleads;
+	    int currIn, currOut;
+	    int *leadOrder;
+        
+            //settings for (generic) 4-probe configuration
+            //these leads are generally trivial self energies, rather than self consistent SGF based
+            //this should work for metallic (FM) contacts, STM tips etc with some modification
+            //this setup is based on simple metallic leads (typeleads 0), attaching across the entire device width within an x range.
+            
+            //positions at endpos from start and end, and at endpos +  endsep from each.
+            //make sure system is long enough to support this
+            //leads are of leadwidth units wide
+            if(ishallbar ==3)
+            {
+                num_leads=4; //default - checks again below!
+                connectrules = &graph_conn_sep;
+                isperiodic=0;
+                cnxpara.periodic = 0;
+                kpts = 1;
+		currIn=1;
+		currOut=0;
+                
+	      
+                //metallic leads are default for now...
+                //x direction divided in 20)
+                metal_leads=1;
+                
+                
+                //default lead geometries
+                    convunit = (endloc-startloc)/20;
+                    
+                    leadwidth = convunit;
+                    endpos = convunit;
+                    endsep = 3*convunit;
+                    
+                
+                
+                
+                for(i=1; i<argc-1; i++)
+                {
+                    if(strcmp("-numleads", argv[i]) == 0)
+                    {
+                        sscanf(argv[i+1], "%d", &num_leads);
+                    }
+                    if(strcmp("-mptypeleads", argv[i]) == 0)
+                    {
+                        sscanf(argv[i+1], "%d", &typeleads);
+                    }
+                    if(strcmp("-mpleadwidth", argv[i]) == 0)
+                    {
+                        sscanf(argv[i+1], "%lf", &leadwidth);
+                    }
+                    if(strcmp("-mpendsep", argv[i]) == 0)
+                    {
+                        sscanf(argv[i+1], "%lf", &endsep);
+                    }
+                    if(strcmp("-mpcurrin", argv[i]) == 0)
+                    {
+                        sscanf(argv[i+1], "%d", &currIn);
+                    }
+                    if(strcmp("-mpcurrout", argv[i]) == 0)
+                    {
+                        sscanf(argv[i+1], "%d", &currOut);
+                    }
+                }
+                
+                if(num_leads ==4)
+                {
+                        leadsxmin = createDoubleArray(4);
+                        leadsxmax = createDoubleArray(4);
+                        
+                        leadsxmin[0] = endpos;
+                        leadsxmax[0] = endpos + leadwidth;
+                        leadsxmin[1] = endpos + endsep;
+                        leadsxmax[1] = endpos + endsep + leadwidth;
+                        
+                        leadsxmin[2] = endloc -endpos -endsep -leadwidth;
+                        leadsxmax[2] = endloc -endpos -endsep;
+                        leadsxmin[3] = endloc - endpos - leadwidth;
+                        leadsxmax[3] = endloc - endpos;
+                        
+                    
+                }
+                
+                leadOrder = createIntArray(num_leads);
 		
-	      }
+		leadOrder[0] = currIn;
+		leadOrder[num_leads-1] = currOut;
+		j=1;
+		
+		for(i=0; i<num_leads; i++)
+		{
+			if(i != currIn && i != currOut)
+			{
+				leadOrder[j] = i;
+				j++;
+			}
+		}
+                
+//                 for(i=0; i<num_leads; i++)
+// 			printf("# lead order %d %d\n", i, leadOrder[i]);
+                
+                sprintf(peritype, "METAL_%d_PROBES_%d_to_%d_w%.0lf_s%.0lf_%.0lf", num_leads, currIn, currOut, leadwidth, endpos, endsep);
+                
+            }
+            
+		gen_hop_params metal_hop_p = {};
+		multix_start_params mxsp = {};
+		double metal_alpha=0.0, metal_sig=-1.0, metal_beta=1.0, metal_hop=t, metal_default_width=4;;
+		metal_hop_p.hops = createCompArray(4);
+		metal_hop_p.hops[0] = metal_sig;
+                metal_hop_p.hops[1] = metal_alpha;
+                metal_hop_p.hops[2] = metal_beta;
+                metal_hop_p.hops[3] = metal_hop;
+	    
+            if(metal_leads == 1)
+            {
+                starting_cell_mode=4;
+            
+                
+                for(i=1; i<argc-1; i++)
+                {
+                    if(strcmp("-metalalpha", argv[i]) == 0)
+                    {
+                        sscanf(argv[i+1], "%lf", &metal_alpha);
+                    }
+                    if(strcmp("-metalbeta", argv[i]) == 0)
+                    {
+                        sscanf(argv[i+1], "%lf", &metal_beta);
+                    }
+                    if(strcmp("-metalsig", argv[i]) == 0)
+                    {
+                        sscanf(argv[i+1], "%lf", &metal_sig);
+                    }
+                    if(strcmp("-metalhop", argv[i]) == 0)
+                    {
+                        sscanf(argv[i+1], "%lf", &metal_hop);
+                    }
+                    
+                }
+                
+                metal_hop_p.hops[0] = metal_sig;
+                metal_hop_p.hops[1] = metal_alpha;
+                metal_hop_p.hops[2] = metal_beta;
+                metal_hop_p.hops[3] = metal_hop;
+                
+                mxsp.num_leads=4;
+                mxsp.startx=leadsxmin;
+                mxsp.endx=leadsxmax;
+                
+            }
 	  
 
 
+	  
+		//CUSTOM LEADS MODE
+		char leadconf[40], temp_in_string[40], additional_lead_info[40];
+		multiple_para *mleadps[num_leads];
+		custom_start_params cstart_p ={};
+		cstart_p.leadtype = createIntArray(num_leads);
+		sprintf(leadconf, "CUSTOM");
+		int nleft, nright, nfull;
+		int counttop, countbot, countleft, countright, countfull;
+		double metaldim2=2.0;
+		if(ishallbar==4)
+		{
+			currIn=1;
+			currOut=0;
+			connectrules = &graph_conn_sep;
+			for(i=1; i<argc-1; i++)
+			{
+				//uses main code numleads check
+// 				if(strcmp("-numleads", argv[i]) == 0)
+// 				{
+// 					sscanf(argv[i+1], "%d", &num_leads);
+// 				}
+				if(strcmp("-mpcurrin", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &currIn);
+				}
+				if(strcmp("-mpcurrout", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &currOut);
+				}
+				if(strcmp("-leadconfname", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%s", leadconf);
+				}
+			}
+			
+			counttop=0; countbot=0; countleft=0; countright=0, countfull=0;
+			ntop=(int)(num_leads-2 - (num_leads-2)/2 );
+			nbot=(num_leads-2)/2;
+			nleft=1;
+			nright=1;
+			
+			leadOrder = createIntArray(num_leads);
+		
+			leadOrder[0] = currIn;
+			leadOrder[num_leads-1] = currOut;
+			j=1;
+			
+			for(i=0; i<num_leads; i++)
+			{
+				if(i != currIn && i != currOut)
+				{
+					leadOrder[j] = i;
+					j++;
+				}
+			}
+			
+			for(j=0; j<num_leads; j++)
+			{
+				mleadps[j] = (multiple_para *)malloc(sizeof(multiple_para));
+ 				(mleadps[j]->name) = (char *)malloc(sizeof(char) * (41));
+				sprintf(mleadps[j]->name, "RIBBON"); //default is ribbon
+				cstart_p.leadtype[j]=0;
+				
+
+								
+				if(j==0)
+					(mleadps[j]->def_pos)=0;
+				if(j==1)
+					(mleadps[j]->def_pos)=1;
+				if(j>1 && j<2+ ntop)
+					(mleadps[j]->def_pos)=2;
+				if(j>= 2+ (int)(num_leads-2 - (num_leads-2)/2 ))
+					(mleadps[j]->def_pos)=3;
+				
+				sprintf(temp_in_string, "-lead%dside", j);
+				for(i=1; i<argc-1; i++)
+				{
+					if(strcmp(temp_in_string, argv[i]) == 0)
+					{
+						sscanf(argv[i+1], "%d", &(mleadps[j]->def_pos));
+					}
+				}
+				
+				if((mleadps[j]->def_pos)==0)
+					countleft++;
+				if((mleadps[j]->def_pos)==1)
+					countright++;
+				if((mleadps[j]->def_pos)==2)
+					counttop++;
+				if((mleadps[j]->def_pos)==3)
+					countbot++;
+				if((mleadps[j]->def_pos)==4)
+					countfull++;
+			}
+			ntop=counttop; nbot=countbot; nleft=countleft; nright=countright, nfull = countfull;
+			counttop=0; countbot=0; countleft=0; countright=0, countfull=0;
+			
+			
+			//individual lead types and default settings
+			for(j=0; j<num_leads; j++)
+			{
+				sprintf(temp_in_string, "-lead%dtype", j);
+				
+				//set lead types and default settings
+				for(i=1; i<argc-1; i++)
+				{
+					if(strcmp(temp_in_string, argv[i]) == 0)
+					{
+						if(strcmp("RIBBON", argv[i+1]) == 0)
+						{
+							//lead j is a ribbon
+							sprintf(mleadps[j]->name, "RIBBON");
+							cstart_p.leadtype[j]=0;
+						}
+						
+						if(strcmp("METALX", argv[i+1]) == 0)
+						{
+							//lead j is a metallic strip with finite xdim
+							sprintf(mleadps[j]->name, "METALX");
+							cstart_p.leadtype[j]=1;
+						}
+						
+						if(strcmp("METALXY", argv[i+1]) == 0)
+						{
+							//lead j is a metallic strip with finite x&y dims
+							sprintf(mleadps[j]->name, "METALXY");
+							cstart_p.leadtype[j]=1;
+						}
+						
+						if(strcmp("STM", argv[i+1]) == 0)
+						{
+							//lead j is a simple STM tip
+							sprintf(mleadps[j]->name, "STM");
+							cstart_p.leadtype[j]=2;
+						}
+						
+						if(strcmp("PATCHED", argv[i+1]) == 0)
+						{
+							//lead j is a patched boundary
+							sprintf(mleadps[j]->name, "PATCHED");
+							cstart_p.leadtype[j]=3;
+						}
+						
+					}
+				}
+				
+				
+				//set other lead properties
+				if(strcmp("RIBBON", mleadps[j]->name) == 0)
+				{
+					(mleadps[j]->indiv_lead_para) = (rib_lead_para *)malloc(sizeof(rib_lead_para));
+					
+					(mleadps[j]->indiv_lead_fn) = &singleRibbonLead;
+					(mleadps[j]->indiv_gen_fn) = &genSingleRibbonLead;
+					((rib_lead_para *)(mleadps[j]->indiv_lead_para))->hopfn = hopfn;
+					((rib_lead_para *)(mleadps[j]->indiv_lead_para))->hoppara = &hoppara;
+
+					
+					//default sizes and geos
+						if((mleadps[j]->def_pos)==0)
+						{
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width=(length1 / (nleft)) - 2*(1 - (int)(nright/(nleft*nleft)) );
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->geo=geo;
+						}
+						if((mleadps[j]->def_pos)==1)
+						{
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width=(length1 / (nright)) - 2*(1 - (int)(nright/(nright*nright)) );
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->geo=geo;
+							
+						}
+						if((mleadps[j]->def_pos)==2)
+						{
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width= (int) 2*length2 / (3*ntop);
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->geo=1-geo;
+						}
+						if((mleadps[j]->def_pos)==3)
+						{
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width= (int) 2*length2 / (3*nbot);
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->geo=1-geo;
+						}
+						
+					//command line size and geo options
+						for(i=1; i<argc-1; i++)
+						{
+							sprintf(temp_in_string, "-lead%dsize", j);
+							if(strcmp(temp_in_string, argv[i]) == 0)
+							{
+								sscanf(argv[i+1], "%d", &((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width);
+							}
+							sprintf(temp_in_string, "-lead%dgeo", j);
+							if(strcmp(temp_in_string, argv[i]) == 0)
+							{
+								sscanf(argv[i+1], "%d", &(((rib_lead_para *)(mleadps[j]->indiv_lead_para))->geo));
+							}
+						}
+					
+					//default positioning
+						if((mleadps[j]->def_pos)==0)
+						{
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord = HallPositioning(length1, nleft, countleft, 0, 1, ((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width);
+							countleft++;
+						}
+						if((mleadps[j]->def_pos)==1)
+						{
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord = HallPositioning(length1, nright, countright, 0, 1, ((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width);
+							countright++;
+							
+						}
+						if((mleadps[j]->def_pos)==2)
+						{
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord = HallPositioning(length2, ntop, counttop, buffer_rows, 2, ((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width);
+							counttop++;
+						}
+						if((mleadps[j]->def_pos)==3)
+						{
+							((rib_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord = HallPositioning(length2, nbot, countbot, buffer_rows, 2, ((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width);
+							countbot++;
+						}
+						
+					//command line positioning options
+						for(i=1; i<argc-1; i++)
+						{
+							sprintf(temp_in_string, "-lead%dpos", j);
+							if(strcmp(temp_in_string, argv[i]) == 0)
+							{
+								sscanf(argv[i+1], "%d", &((rib_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord);
+							}
+							
+						}
+						
+					((rib_lead_para *)(mleadps[j]->indiv_lead_para))->def_pos=(mleadps[j]->def_pos);	
+					
+					printf("#lead %d: %s\n", j, mleadps[j]->name);
+					printf("#lead %d, defpos %d, width %d, start %d\n", j, (mleadps[j]->def_pos),  ((rib_lead_para *)(mleadps[j]->indiv_lead_para))->width, ((rib_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord);
+				
+				}
+				
+				
+				
+				if(strcmp("METALX", mleadps[j]->name) == 0 || strcmp("METALXY", mleadps[j]->name) == 0)
+				{
+					(mleadps[j]->indiv_lead_para) = (metal_lead_para *)malloc(sizeof(metal_lead_para));
+					
+					(mleadps[j]->indiv_lead_fn) = &singleSimplestMetalLead;
+					(mleadps[j]->indiv_gen_fn) = &genSingleMetalLead;
+					
+												
+					//default hopping paramaters
+						((metal_lead_para *)(mleadps[j]->indiv_lead_para))->hoppara = (gen_hop_params *)malloc(sizeof(gen_hop_params));
+						((gen_hop_params*)((metal_lead_para *)(mleadps[j]->indiv_lead_para))->hoppara)->hops = createCompArray(4);
+						((gen_hop_params*)((metal_lead_para *)(mleadps[j]->indiv_lead_para))->hoppara)->hops[0] = metal_sig;
+						((gen_hop_params*)((metal_lead_para *)(mleadps[j]->indiv_lead_para))->hoppara)->hops[1] = metal_alpha;
+						((gen_hop_params*)((metal_lead_para *)(mleadps[j]->indiv_lead_para))->hoppara)->hops[2] = metal_beta;
+						((gen_hop_params*)((metal_lead_para *)(mleadps[j]->indiv_lead_para))->hoppara)->hops[3] = metal_hop;
+					
+						
+						
+					//default sizes
+						if((mleadps[j]->def_pos)==0)
+						{
+							((metal_lead_para *)(mleadps[j]->indiv_lead_para))->width2=(length1 / (nleft)) - 2*(1 - (int)(nright/(nleft*nleft)) );
+							((metal_lead_para *)(mleadps[j]->indiv_lead_para))->width = metal_default_width;
+						}
+						if((mleadps[j]->def_pos)==1)
+						{
+							((metal_lead_para *)(mleadps[j]->indiv_lead_para))->width2=(length1 / (nright)) - 2*(1 - (int)(nright/(nright*nright)) );
+							((metal_lead_para *)(mleadps[j]->indiv_lead_para))->width = metal_default_width;
+						}
+						if((mleadps[j]->def_pos)==2)
+						{
+							((metal_lead_para *)(mleadps[j]->indiv_lead_para))->width= (int) 2*length2 / (3*ntop);
+							((metal_lead_para *)(mleadps[j]->indiv_lead_para))->width2 = metal_default_width;
+						}
+						if((mleadps[j]->def_pos)==3)
+						{
+							((metal_lead_para *)(mleadps[j]->indiv_lead_para))->width= (int) 2*length2 / (3*nbot);
+							((metal_lead_para *)(mleadps[j]->indiv_lead_para))->width2 = metal_default_width;
+						}
+
+						
+						//special settings for metalX!!
+						if(strcmp("METALX", mleadps[j]->name) == 0)
+						{
+							(mleadps[j]->def_pos)=4;
+							((metal_lead_para *)(mleadps[j]->indiv_lead_para))->width= ((int) 2*length2 / (5*num_leads))*1.0;
+// 							((metal_lead_para *)(mleadps[j]->indiv_lead_para))->width2= ((int) 2*length2 / (3*num_leads))*1.0;
+						}
+						
+						
+						
+					//command line size option	
+						for(i=1; i<argc-1; i++)
+						{
+							sprintf(temp_in_string, "-lead%dsize", j);
+							if(strcmp(temp_in_string, argv[i]) == 0)
+							{
+								sscanf(argv[i+1], "%lf", &((metal_lead_para *)(mleadps[j]->indiv_lead_para))->width);
+							}
+							sprintf(temp_in_string, "-lead%dsize2", j);
+							if(strcmp(temp_in_string, argv[i]) == 0)
+							{
+								sscanf(argv[i+1], "%lf", &((metal_lead_para *)(mleadps[j]->indiv_lead_para))->width2);
+							}
+							
+						}
+						
+					//default positioning (defpos5 gives absolute positioning, specified from command line)
+						if((mleadps[j]->def_pos)==0)
+						{
+							((metal_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord2 = (double) HallPositioning(length1, nleft, countleft, 0, 1, (int) ( ((metal_lead_para *)(mleadps[j]->indiv_lead_para))->width2));
+							countleft++;
+						}
+						if((mleadps[j]->def_pos)==1)
+						{
+							((metal_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord2 = (double) HallPositioning(length1, nright, countright, 0, 1, (int) ( ((metal_lead_para *)(mleadps[j]->indiv_lead_para))->width2));
+							countright++;
+							
+						}
+						if((mleadps[j]->def_pos)==2)
+						{
+							((metal_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord = (double) HallPositioning(length2, ntop, counttop, buffer_rows, 2, (int) ( ((metal_lead_para *)(mleadps[j]->indiv_lead_para))->width));
+							counttop++;
+						}
+						if((mleadps[j]->def_pos)==3)
+						{
+							((metal_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord = (double) HallPositioning(length2, nbot, countbot, buffer_rows, 2, (int) ( ((metal_lead_para *)(mleadps[j]->indiv_lead_para))->width));
+							countbot++;
+						}
+						
+						if((mleadps[j]->def_pos)==4)
+						{
+							((metal_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord = (double) HallPositioning(length2, num_leads, countfull, buffer_rows, 2, (int) ( ((metal_lead_para *)(mleadps[j]->indiv_lead_para))->width));
+							countfull++;
+						}
+						
+					//command line positioning options
+						for(i=1; i<argc-1; i++)
+						{
+							sprintf(temp_in_string, "-lead%dpos", j);
+							if(strcmp(temp_in_string, argv[i]) == 0)
+							{
+								sscanf(argv[i+1], "%lf", &((metal_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord);
+							}
+							sprintf(temp_in_string, "-lead%dpos2", j);
+							if(strcmp(temp_in_string, argv[i]) == 0)
+							{
+								sscanf(argv[i+1], "%lf", &((metal_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord2);
+							}
+							
+						}
+						
+					((metal_lead_para *)(mleadps[j]->indiv_lead_para))->def_pos=(mleadps[j]->def_pos);
+					
+					printf("#lead %d: %s\n", j, mleadps[j]->name);
+					printf("#lead %d, defpos %d, width %lf %lf, start %lf %lf\n", j, (mleadps[j]->def_pos),  ((metal_lead_para *)(mleadps[j]->indiv_lead_para))->width, ((metal_lead_para *)(mleadps[j]->indiv_lead_para))->width2, ((metal_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord,  ((metal_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord2);
+				
+				}
+				
+						
+				
+			
+				
+			
+				
+			}
+// 			printf("%d	%d\n", ntop, nbot);
+			for(j=0; j<num_leads; j++)
+			{
+				
+
+			}
+			
+			sprintf(peritype, "%s_%d_LEADS_%d_to_%d_%s", leadconf, num_leads, currIn, currOut, additional_lead_info);
+			
+		}
+		
+	  
 	  //loop info
 	      double loop_step, loop_min_temp, loopmax, loopmin;
 	      
@@ -1208,9 +1810,9 @@ main(int argc, char *argv[])
 	
 
 	//File I/O variables
-	    FILE *output;
-	    char filename[300], filename3[300], filename_temp[300];
-	    char checkname[300], direcname[300], conffile[350], strucfile[300], disorderfile[300];
+	    FILE *output, *fulloutput;
+	    char filename[300], filename3[300], filename_temp[300], fullfilename[300];
+	    char checkname[300], direcname[300], conffile[350], strucfile[300], lstrucfile[350], disorderfile[300];
 	    char bandname1[300], bandname2[300], bandname3[300], mapname[400];
             char command[600];
 	    FILE *bandfile;
@@ -1235,6 +1837,8 @@ main(int argc, char *argv[])
 	    sprintf(disorderfile, "%s/%s.disprof", direcname, filename_temp);
 
 	    sprintf(filename, "%s/.%s.part%02d", direcname, filename_temp, this_proc);
+		sprintf(fullfilename, "%s/.%s.full.part%02d", direcname, filename_temp, this_proc);
+
 	    
 	    sprintf(bandname1, "%s/%s.bands", direcname, filename_temp);
 	    sprintf(bandname3, "%s/%s.wbands", direcname, filename_temp);
@@ -1252,6 +1856,12 @@ main(int argc, char *argv[])
 	//Create main output file
 	    output =fopen(filename, "w");
 	    fclose(output);
+	    
+	    if (ishallbar==3 || ishallbar==4)
+	    {
+		    fulloutput = fopen(fullfilename, "w");
+		    fclose(fulloutput);
+	    }
 
 	    
  			  printf("#%s\n", systemtype);
@@ -1374,7 +1984,7 @@ main(int argc, char *argv[])
 	  }
 		  
 		  
-	  if(ishallbar == 1)
+	  if(ishallbar == 1 || ishallbar == 2)
 	  {
 		if(strcmp("VG", loop_type) == 0)
 		{
@@ -1396,25 +2006,25 @@ main(int argc, char *argv[])
 		printf("#converted to Hall Bar in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		time = clock();
 		
-		if(magsetup==0)
-		{
-		  gauge = 3;
-		}
-		if(magsetup==1)
-		{
-		  gauge = 2;
-		}
-		if(magsetup==2)
-		{
-		  gauge = 0;
-		}
+                if(ismagnetic != 0)
+                {
+                    if(magsetup==0)
+                    {
+                    gauge = 3;
+                    }
+                    if(magsetup==1)
+                    {
+                    gauge = 2;
+                    }
+                    if(magsetup==2)
+                    {
+                    gauge = 0;
+                    }
+                }
 		
 		
 		pos = System.pos;
 		
-		
-		
-
 	  }
 
 		
@@ -1427,11 +2037,21 @@ main(int argc, char *argv[])
 	    }
 	  
 	  
+		//adds (averaged) sublattice dependent potentials to left and right leads (leads 0 and 1)
+		if(xleadsavgpot==1 && strcmp("SUBLATTICEPOT", systemtype) == 0)
+		{
+			genSublatticeLeadPots(LeadCells, &sublp);
+		}
+	  
+	  if(ishallbar == 4)
+	  {
+		leadp.multiple = mleadps;
+		leadp.leadsfn = &multipleCustomLeads;
+		genCustomLeads (&System, LeadCells, num_leads, &leadp);
+	  }
+	  
+	  
 
-  
-	  
-	  
-	  
 
 	  cnxProfile cnxp;
 	 
@@ -1443,7 +2063,7 @@ main(int argc, char *argv[])
 		  time = clock();
 	  // printConnectivity (&System, &cnxp);
 	  
-		
+
 		
 	  gen_start_params start_p ={};
 	 
@@ -1452,34 +2072,58 @@ main(int argc, char *argv[])
 	    start_p.num_leads = num_leads;
 	    start_p.Leads = LeadCells;
 	  
+	  void *starting_ps;
+          starting_ps = &start_p;
+          
+	if(metal_leads ==1)
+              starting_ps = &mxsp;
 	  
+	if(ishallbar == 4)
+	{	
+		starting_ps = &cstart_p;
+		cstart_p.rule = &graph_conn_sep2;
+		cstart_p.rule_params = &cnxpara;
+		cstart_p.num_leads = num_leads;
+		cstart_p.Leads = LeadCells;
+		starting_cell_mode = 5;
+	}
 		
 	  cellDivision cellinfo;
 	 // genStartingCell(&System, &cellinfo, 2, NULL);
 	  
 	 if(bandsonly == 0)
-	  	  genStartingCell(&System, &cellinfo, 3, &start_p);
+		genStartingCell(&System, &cellinfo, starting_cell_mode, starting_ps);
+		  
 
+		if(output_type == 1)
+		{
+			sprintf(lstrucfile, "%s.leads", strucfile);
+			printOutLeadStrucs(&System, LeadCells, &cellinfo, lstrucfile);
+			
+		}
+		  
+		  
 	  
 		time = clock() - time;
 		printf("#generated starting cell in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		time = clock();
+		
 	if(bandsonly == 0)
 	  cellSplitter(&System, &cnxp, &cellinfo);
 	  
 		time = clock() - time;
 		printf("#split cells in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		time = clock();
-	  
+// 	  		  			  			exit(0);
 
-// exit(0);
+
+//   exit(0);
 		
 		
 	  //hopping parameters and gauge info
 
 //GAUGE NEEDS TO BE GENERALISED FOR HALL BAR CASE
 //TIDY THIS UP IN GENERAL TO ALLOW FIELD IN LEADS
-	  gen_hop_params hoppara={};
 	  hoppara.num_neigh = nngm;
 	  hoppara.hops=createCompArray(hoppara.num_neigh);
 	  hoppara.NN_lowdis=createDoubleArray(hoppara.num_neigh);
@@ -1570,12 +2214,22 @@ main(int argc, char *argv[])
 	  
 	 
 
-	  
-	  leadp.hopfn = hopfn;
-	  leadp.hoppara = &hoppara;
-// 	  
-	 // leadp.leadsfn = &simple2leads;
-	  	  leadp.leadsfn = &multipleLeads;
+	  //these are the default values for most cases, i.e. leads are continuation of system
+          //different functions are needed for different systems.
+            leadp.hopfn = hopfn;
+            leadp.hoppara = &hoppara;
+            leadp.leadsfn = &multipleLeads;
+            
+            if(metal_leads == 1)
+            {
+                leadp.hoppara = &metal_hop_p;
+                leadp.leadsfn = &multipleSimplestMetalLeads;
+            }
+            
+            if(ishallbar == 4)
+	    {
+		    leadp.leadsfn = &multipleCustomLeads;
+	    }
 
 	  
 	  trans_params tpara = {};
@@ -1864,7 +2518,9 @@ main(int argc, char *argv[])
 		kavg += (transmissions[0][1]/kpts);
 	      }
 
+	      
 	      output =fopen(filename, "a");
+	      
 	      
 	      if(ishallbar == 0)
 	      {
@@ -1892,7 +2548,10 @@ main(int argc, char *argv[])
 	      //print maps
 	      double xc, yc;
 	      double probe_pots[num_leads];
+	      double probe_currs[num_leads];
+
 	      
+              
 	      if(mapmode==1)
 	      {
 		     sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.ldos", direcname, realE, Bfield, job_name, conf_num);
@@ -1933,119 +2592,379 @@ main(int argc, char *argv[])
 	      
 	      
 	      
+	      int iprime, jprime; 
 	      
 	      //Standard 6 probe hall bar, outputs Rxy, Rxx and T_LR
 		//consider alternative hall bar arrangements later?
 		//generalise ishallbar=2, =3 etc for SHE setups?
-	      if (ishallbar==1)
-	      {
-		EmptyDoubleMatrix(ttildas, num_leads, num_leads);
-		EmptyDoubleMatrix(mtrans, num_leads-1, num_leads-1);
-		
-		for(i=0; i<num_leads; i++)
-		{
-		  for(j=0; j<num_leads; j++)
-		  {
-		    if(i!=j)
-		    {
-			    ttildas[i][i] += transmissions[j][i] ; 
-			    ttildas[i][j] = -transmissions[i][j] ;
-		    }
-		  }
-		}
-		
-		mtrans[0][0] = 1 / ttildas[0][0];
-		
-		for(i=1; i<num_leads-1; i++)
-		{
-		    mtrans[0][i] = - ttildas[0][i+1] / ttildas[0][0];
-		    mtrans[i][0] =  ttildas[i+1][0] / ttildas[0][0];
-		    
-		    for(j=1; j< num_leads-1; j++)
-		    {
-		      mtrans[i][j] = ttildas[i+1][j+1] - (ttildas[i+1][0] * ttildas[0][j+1])/ttildas[0][0] ;
-		      
-		    }
-		}
-		vecb[0] = 1.0; vecb[1] = 0.0;  vecb[2] = 0.0; vecb[3] = 0.0; vecb[4] = 0.0; 
-		vecx[0] = 0.0; vecx[1] = 0.0;  vecx[2] = 0.0; vecx[3] = 0.0; vecx[4] = 0.0; 
-		
-		LinEqnDouble (mtrans, vecb, vecx, num_leads-1);
-		
-		
-		
-		if(strcmp("E", loop_type) == 0)
-		{
-		  fprintf(output, "%lf	%.12e	%.12e	%.12e	%.12e	%.12e	%.12e	%.12e\n", realE, (vecx[1]-vecx[3])/vecx[0], (vecx[1]-vecx[2])/vecx[0], kavg, vecx[1], vecx[2], vecx[3], vecx[4]);		
-  // 		printf("%lf	%e	%e	%e	%e	%e\n", realE, transmissions[0][1], transmissions[0][2], transmissions[0][3], transmissions[0][4], transmissions[0][5]);
+                    if (ishallbar==1)
+                    {
+                        EmptyDoubleMatrix(ttildas, num_leads, num_leads);
+                        EmptyDoubleMatrix(mtrans, num_leads-1, num_leads-1);
+                        
+                        for(i=0; i<num_leads; i++)
+                        {
+                            for(j=0; j<num_leads; j++)
+                            {
+                                if(i!=j)
+                                {
+                                        ttildas[i][i] += transmissions[j][i] ; 
+                                        ttildas[i][j] = -transmissions[i][j] ;
+                                }
+                            }
+                        }
+                        
+                        mtrans[0][0] = 1 / ttildas[0][0];
+                        
+                        for(i=1; i<num_leads-1; i++)
+                        {
+                            mtrans[0][i] = - ttildas[0][i+1] / ttildas[0][0];
+                            mtrans[i][0] =  ttildas[i+1][0] / ttildas[0][0];
+                            
+                            for(j=1; j< num_leads-1; j++)
+                            {
+                            mtrans[i][j] = ttildas[i+1][j+1] - (ttildas[i+1][0] * ttildas[0][j+1])/ttildas[0][0] ;
+                            
+                            }
+                        }
+                        vecb[0] = 1.0; vecb[1] = 0.0;  vecb[2] = 0.0; vecb[3] = 0.0; vecb[4] = 0.0; 
+                        vecx[0] = 0.0; vecx[1] = 0.0;  vecx[2] = 0.0; vecx[3] = 0.0; vecx[4] = 0.0; 
+//                                                  printDMatrix(transmissions, 6);
+//                                                 printDMatrix(ttildas, 6);
+//                                                 printDMatrix(mtrans, 5);
 
-		  //printf( "%lf	%e\n", realE, kavg);
+                        LinEqnDouble (mtrans, vecb, vecx, num_leads-1);
+                        
+                        
+                        
+                        if(strcmp("E", loop_type) == 0)
+                        {
+                        fprintf(output, "%lf	%.12e	%.12e	%.12e	%.12e	%.12e	%.12e	%.12e\n", realE, (vecx[1]-vecx[3])/vecx[0], (vecx[1]-vecx[2])/vecx[0], kavg, vecx[1], vecx[2], vecx[3], vecx[4]);		
+        // 		printf("%lf	%e	%e	%e	%e	%e\n", realE, transmissions[0][1], transmissions[0][2], transmissions[0][3], transmissions[0][4], transmissions[0][5]);
 
-		}
-		if(strcmp("B", loop_type) == 0)
-		{
-		  fprintf(output, "%lf	%.12e	%.12e	%.12e	%.12e	%.12e	%.12e	%.12e\n", Bfield, (vecx[1]-vecx[3])/vecx[0], (vecx[1]-vecx[2])/vecx[0], kavg, vecx[1], vecx[2], vecx[3], vecx[4]);		
-  // 		printf("%lf	%e	%e	%e	%e	%e\n", Bfield, transmissions[0][1], transmissions[0][2], transmissions[0][3], transmissions[0][4], transmissions[0][5]);
-		}
-		
-		
-		
-		    //make a composite map for multiprobe systems
-		      if(mapmode == 1)
-		      {
-			probe_pots[0] = 1.0;
-			probe_pots[1] = 0.0;
-			probe_pots[2] = vecx[1];
-			probe_pots[3] = vecx[2];
-			probe_pots[4] = vecx[3];
-			probe_pots[5] = vecx[4];
-			
-// 			printf("#curr: %.10e\n", vecx[0]);
+                        //printf( "%lf	%e\n", realE, kavg);
 
-			sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.cmaps_multi", direcname, realE, Bfield, job_name, conf_num);
-			mapfile = fopen(mapname, "w");
-			for(i=0; i<Ntot; i++)
-			{ 
-			  xc=0.0; yc=0.0;
- 			  k=1;
-//  			  for(k=0; k<num_leads; k++)
-//  			  {
-			    for(j=0; j<num_leads; j++)
-			    {
-				if(j!=k)
+                        }
+                        if(strcmp("B", loop_type) == 0)
+                        {
+                        fprintf(output, "%lf	%.12e	%.12e	%.12e	%.12e	%.12e	%.12e	%.12e\n", Bfield, (vecx[1]-vecx[3])/vecx[0], (vecx[1]-vecx[2])/vecx[0], kavg, vecx[1], vecx[2], vecx[3], vecx[4]);		
+        // 		printf("%lf	%e	%e	%e	%e	%e\n", Bfield, transmissions[0][1], transmissions[0][2], transmissions[0][3], transmissions[0][4], transmissions[0][5]);
+                        }
+                        
+                        
+                        
+                            //make a composite map for multiprobe systems
+                            if(mapmode == 1)
+                            {
+                                probe_pots[0] = 1.0;
+                                probe_pots[1] = 0.0;
+                                probe_pots[2] = vecx[1];
+                                probe_pots[3] = vecx[2];
+                                probe_pots[4] = vecx[3];
+                                probe_pots[5] = vecx[4];
+                                
+        // 			printf("#curr: %.10e\n", vecx[0]);
+
+                                sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.cmaps_multi", direcname, realE, Bfield, job_name, conf_num);
+                                mapfile = fopen(mapname, "w");
+                                for(i=0; i<Ntot; i++)
+                                { 
+                                xc=0.0; yc=0.0;
+                                k=1;
+        //  			  for(k=0; k<num_leads; k++)
+        //  			  {
+                                    for(j=0; j<num_leads; j++)
+                                    {
+                                        if(j!=k)
+                                        {
+                                        if(probe_pots[k] > probe_pots[j])
+                                        {
+                                            xc += (probe_pots[k] - probe_pots[j])*currents[k][i][0];
+                                            yc += (probe_pots[k] - probe_pots[j])*currents[k][i][1];
+                                        }
+                                        
+                                        if(probe_pots[j] > probe_pots[k])
+                                        {
+                                            xc += (probe_pots[j] - probe_pots[k])*currents[j][i][0];
+                                            yc += (probe_pots[j] - probe_pots[k])*currents[j][i][1];
+                                        }
+                                        }
+                                    
+        //  			    }
+                                }
+                                
+                                
+                        
+                        
+                                
+                                    fprintf(mapfile, "%lf	%lf	%.12e %.12e\n", (pos)[i][0], (pos)[i][1], xc, yc);
+                                }
+                                fclose(mapfile);
+                            }
+                    }
+                                
+                     
+                    
+                    //spin hall bar transmissions and resistances
+                    if (ishallbar==2)
+                    {
+                        EmptyDoubleMatrix(ttildas, num_leads, num_leads);
+                        EmptyDoubleMatrix(mtrans, num_leads-1, num_leads-1);
+                        
+                        for(i=0; i<num_leads; i++)
+                        {
+                            for(j=0; j<num_leads; j++)
+                            {
+                                if(i!=j)
+                                {
+                                        ttildas[i][i] += transmissions[j][i] ; 
+                                        ttildas[i][j] = -transmissions[i][j] ;
+                                }
+                        }
+                        }
+                        
+                        mtrans[2][2] = 1 / ttildas[2][2];
+                        
+                        for(i=0; i<num_leads-1; i++)
+                        {
+                            if(i!=2)
+                            {
+                                iprime = i;
+                                if(i == 4)
+                                {
+                                    iprime = 5;
+                                }
+                                mtrans[2][i] = - ttildas[2][iprime] / ttildas[2][2];
+                                mtrans[i][2] =  ttildas[iprime][2] / ttildas[2][2];
+                                
+                                for(j=0; j< num_leads-1; j++)
+                                {
+                                    if(j!=2)
+                                    {
+                                        jprime = j;
+                                        if(j == 4)
+                                        {
+                                            jprime = 5;
+                                        }
+                                        mtrans[i][j] = ttildas[iprime][jprime] - (ttildas[iprime][2] * ttildas[2][jprime])/ttildas[2][2] ;
+                                    }
+                                }
+                            }
+                        }
+                        vecb[0] = 0.0; vecb[1] = 0.0;  vecb[2] = 1.0; vecb[3] = 0.0; vecb[4] = 0.0; 
+                        vecx[0] = 0.0; vecx[1] = 0.0;  vecx[2] = 0.0; vecx[3] = 0.0; vecx[4] = 0.0; 
+                        
+//                         printDMatrix(mtrans, 5);
+                        LinEqnDouble (mtrans, vecb, vecx, num_leads-1);
+                        
+                        
+                        
+                        if(strcmp("E", loop_type) == 0)
+                        {
+                            fprintf(output, "%lf	%.12e\n", realE, (vecx[3]-vecx[4])/vecx[2]);		
+
+                        }
+                        if(strcmp("B", loop_type) == 0)
+                        {
+                            fprintf(output, "%lf	%.12e\n", Bfield, (vecx[3]-vecx[4])/vecx[2]);		
+
+                        }
+                        
+                        
+                        
+                            //make a composite map for multiprobe systems
+                            if(mapmode == 1)
+                            {
+                                probe_pots[0] = vecx[0];
+                                probe_pots[1] = vecx[1];
+                                probe_pots[2] = 1.0;
+                                probe_pots[3] = vecx[3];
+                                probe_pots[4] = 0.0;
+                                probe_pots[5] = vecx[4];
+                                
+
+                                sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.cmaps_multi", direcname, realE, Bfield, job_name, conf_num);
+                                mapfile = fopen(mapname, "w");
+                                for(i=0; i<Ntot; i++)
+                                { 
+                                xc=0.0; yc=0.0;
+                                k=4;
+
+                                    for(j=0; j<num_leads; j++)
+                                    {
+                                        if(j!=k)
+                                        {
+                                            if(probe_pots[k] > probe_pots[j])
+                                            {
+                                                xc += (probe_pots[k] - probe_pots[j])*currents[k][i][0];
+                                                yc += (probe_pots[k] - probe_pots[j])*currents[k][i][1];
+                                            }
+                                            
+                                            if(probe_pots[j] > probe_pots[k])
+                                            {
+                                                xc += (probe_pots[j] - probe_pots[k])*currents[j][i][0];
+                                                yc += (probe_pots[j] - probe_pots[k])*currents[j][i][1];
+                                            }
+                                        }
+                                    
+                                }
+                                
+                                
+                        
+                        
+                                
+                                    fprintf(mapfile, "%lf	%lf	%.12e %.12e\n", (pos)[i][0], (pos)[i][1], xc, yc);
+                                }
+                                fclose(mapfile);
+                            }
+                        
+                        
+                        
+                        
+                        
+                    }
+                        
+                        
+                     
+                    //non local resistances in general multi probe measurements
+                    //currIn and currOut define the probes current is driven between
+                    //probes are reordered 0-N-1 (above) so that 0=currIn, N-2=currOut, 1 .. N-1 define the nonlocal potential difference
+                    if (ishallbar==3 || ishallbar==4)
+                    {	
+			//fulloutput prints potentials and currents of each lead
+			fulloutput =fopen(fullfilename, "a");
+//                         if(num_leads==4)
+// 			{
+				EmptyDoubleMatrix(ttildas, num_leads, num_leads);
+				EmptyDoubleMatrix(mtrans, num_leads-1, num_leads-1);
+				
+				for(i=0; i<num_leads; i++)
 				{
-				  if(probe_pots[k] > probe_pots[j])
-				  {
-				    xc += (probe_pots[k] - probe_pots[j])*currents[k][i][0];
-				    yc += (probe_pots[k] - probe_pots[j])*currents[k][i][1];
-				  }
-				  
-				  if(probe_pots[j] > probe_pots[k])
-				  {
-				    xc += (probe_pots[j] - probe_pots[k])*currents[j][i][0];
-				    yc += (probe_pots[j] - probe_pots[k])*currents[j][i][1];
-				  }
+					for(j=0; j<num_leads; j++)
+					{
+						if(i!=j)
+						{
+							ttildas[i][i] += transmissions[leadOrder[j]][leadOrder[i]] ; 
+							ttildas[i][j] = -transmissions[leadOrder[i]][leadOrder[j]] ;
+						}
+					}
 				}
-			      
-//  			    }
-			  }
-			  
-			  
-		
-		
-			  
-			    fprintf(mapfile, "%lf	%lf	%.12e %.12e\n", (pos)[i][0], (pos)[i][1], xc, yc);
-			}
-			fclose(mapfile);
-		      }
-			  
-		
+				
+				mtrans[0][0] = 1 / ttildas[0][0];
+				vecb[0] = 1.0;
+				
+				for(i=1; i<num_leads-1; i++)
+				{
+					mtrans[0][i] = - ttildas[0][i] / ttildas[0][0];
+					mtrans[i][0] =  ttildas[i][0] / ttildas[0][0];
+					
+					for(j=1; j< num_leads-1; j++)
+					{
+						mtrans[i][j] = ttildas[i][j] - (ttildas[i][0] * ttildas[0][j])/ttildas[0][0] ;
+					}
+					
+					vecb[i] = 0.0;
+					vecx[i] = 0.0;
+					
+					
+				}
 
-	      }
+				LinEqnDouble (mtrans, vecb, vecx, num_leads-1);
+				
+				
+				probe_pots[leadOrder[0]] = 1.0;
+				probe_pots[leadOrder[num_leads-1]] = 0.0;
+				probe_currs[leadOrder[0]] = vecx[0];
+				probe_currs[leadOrder[num_leads-1]] = -vecx[0];
+				
+				for(i=1; i<num_leads-1; i++)
+				{
+					probe_pots[leadOrder[i]] = vecx[i];
+					probe_currs[leadOrder[i]] = 0.0;
+				}
+					
+				
+				if(strcmp("E", loop_type) == 0)
+				{
+					fprintf(output, "%lf	%.12e\n", realE, (vecx[2]-vecx[1])/vecx[0]);	
+					fprintf(fulloutput, "%lf\t", realE);
+					for(i=0; i<num_leads; i++)
+					{
+						fprintf(fulloutput, "%.12e\t", probe_pots[i]);
+					}
+					for(i=0; i<num_leads; i++)
+					{
+						fprintf(fulloutput, "%.12e\t", probe_currs[i]);
+					}
+					fprintf(fulloutput, "\n");
+					
+				}
+				if(strcmp("B", loop_type) == 0)
+				{
+					fprintf(output, "%lf	%.12e\n", Bfield, (vecx[2]-vecx[1])/vecx[0]);	
+					fprintf(fulloutput, "%lf\t", Bfield);
+					for(i=0; i<num_leads; i++)
+					{
+						fprintf(fulloutput, "%.12e\t", probe_pots[i]);
+					}
+					for(i=0; i<num_leads; i++)
+					{
+						fprintf(fulloutput, "%.12e\t", probe_currs[i]);
+					}
+					fprintf(fulloutput, "\n");
+					
+				}
+				
+				
+				
+				
+				//make a composite map for multiprobe systems
+				if(mapmode == 1)
+				{
+					sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.cmaps_multi", direcname, realE, Bfield, job_name, conf_num);
+					mapfile = fopen(mapname, "w");
+					for(i=0; i<Ntot; i++)
+					{ 
+						xc=0.0; yc=0.0;
+						k=leadOrder[num_leads-1];
+
+						for(j=0; j<num_leads; j++)
+						{
+							if(j!=k)
+							{
+								if(probe_pots[k] > probe_pots[j])
+								{
+									xc += (probe_pots[k] - probe_pots[j])*currents[k][i][0];
+									yc += (probe_pots[k] - probe_pots[j])*currents[k][i][1];
+								}
+								
+								if(probe_pots[j] > probe_pots[k])
+								{
+									xc += (probe_pots[j] - probe_pots[k])*currents[j][i][0];
+									yc += (probe_pots[j] - probe_pots[k])*currents[j][i][1];
+								}
+							}
+						
+						}
+
+						fprintf(mapfile, "%lf	%lf	%.12e %.12e\n", (pos)[i][0], (pos)[i][1], xc, yc);
+					}
+					fclose(mapfile);
+				}
+				
+				
+				
+				
+// 			}
+                    }
+                    
 	      
 	      fclose(output);
 
-	      
+	      if (ishallbar==3 || ishallbar==4)
+		{
+			fclose(fulloutput);
+		}
 	      
 	  }
 			
@@ -2086,7 +3005,9 @@ main(int argc, char *argv[])
  		    sprintf(command, "cat %s.part* | sort -n > %s/%s.dat", filename, direcname, filename_temp);
 		    system(command);
 		    
-
+ 		    sprintf(command, "cat %s.full.part* | sort -n > %s/%s.full.dat", filename, direcname, filename_temp);
+		    system(command);
+		    
 		    
 		    
 		    if(conf_num != 0)

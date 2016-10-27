@@ -601,7 +601,21 @@
 		for(k=0; k<dim; k++) {
 			for(l=0; l<dim; l++) {
 				//printf("%.1e %+.1e i  \t", creal(aMatrix[k][l]), cimag(aMatrix[k][l]));
-				printf("%+.1lf \t", creal(aMatrix[k][l]));
+				printf("%+.1e \t", creal(aMatrix[k][l]));
+			}
+			printf("\n");
+		}
+	}
+	
+	void printDMatrix(double  **aMatrix, int dim)
+
+	{
+		int k, l;
+		printf("\n");
+		for(k=0; k<dim; k++) {
+			for(l=0; l<dim; l++) {
+				//printf("%.1e %+.1e i  \t", creal(aMatrix[k][l]), cimag(aMatrix[k][l]));
+				printf("%+.1e \t", aMatrix[k][l]);
 			}
 			printf("\n");
 		}
