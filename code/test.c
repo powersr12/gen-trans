@@ -1659,8 +1659,8 @@ main(int argc, char *argv[])
 	
 
 	//File I/O variables
-	    FILE *output;
-	    char filename[300], filename3[300], filename_temp[300];
+	    FILE *output, *fulloutput;
+	    char filename[300], filename3[300], filename_temp[300], fullfilename[300];
 	    char checkname[300], direcname[300], conffile[350], strucfile[300], lstrucfile[350], disorderfile[300];
 	    char bandname1[300], bandname2[300], bandname3[300], mapname[400];
             char command[600];
@@ -1686,6 +1686,8 @@ main(int argc, char *argv[])
 	    sprintf(disorderfile, "%s/%s.disprof", direcname, filename_temp);
 
 	    sprintf(filename, "%s/.%s.part%02d", direcname, filename_temp, this_proc);
+		sprintf(fullfilename, "%s/.%s.full.part%02d", direcname, filename_temp, this_proc);
+
 	    
 	    sprintf(bandname1, "%s/%s.bands", direcname, filename_temp);
 	    sprintf(bandname3, "%s/%s.wbands", direcname, filename_temp);
@@ -1703,6 +1705,12 @@ main(int argc, char *argv[])
 	//Create main output file
 	    output =fopen(filename, "w");
 	    fclose(output);
+	    
+	    if (ishallbar==3 || ishallbar==4)
+	    {
+		    fulloutput = fopen(fullfilename, "w");
+		    fclose(fulloutput);
+	    }
 
 	    
  			  printf("#%s\n", systemtype);
@@ -2361,6 +2369,7 @@ main(int argc, char *argv[])
 	      
 	      output =fopen(filename, "a");
 	      
+	      
 	      if(ishallbar == 0)
 	      {
 		if(strcmp("E", loop_type) == 0)
@@ -2387,6 +2396,8 @@ main(int argc, char *argv[])
 	      //print maps
 	      double xc, yc;
 	      double probe_pots[num_leads];
+	      double probe_currs[num_leads];
+
 	      
               
 	      if(mapmode==1)
@@ -2667,7 +2678,9 @@ main(int argc, char *argv[])
                     //currIn and currOut define the probes current is driven between
                     //probes are reordered 0-N-1 (above) so that 0=currIn, N-2=currOut, 1 .. N-1 define the nonlocal potential difference
                     if (ishallbar==3 || ishallbar==4)
-                    {
+                    {	
+			//fulloutput prints potentials and currents of each lead
+			fulloutput =fopen(fullfilename, "a");
 //                         if(num_leads==4)
 // 			{
 				EmptyDoubleMatrix(ttildas, num_leads, num_leads);
@@ -2709,20 +2722,45 @@ main(int argc, char *argv[])
 				
 				probe_pots[leadOrder[0]] = 1.0;
 				probe_pots[leadOrder[num_leads-1]] = 0.0;
+				probe_currs[leadOrder[0]] = vecx[0];
+				probe_currs[leadOrder[num_leads-1]] = -vecx[0];
 				
 				for(i=1; i<num_leads-1; i++)
 				{
 					probe_pots[leadOrder[i]] = vecx[i];
+					probe_currs[leadOrder[i]] = 0.0;
 				}
 					
 				
 				if(strcmp("E", loop_type) == 0)
 				{
-					fprintf(output, "%lf	%.12e\n", realE, (vecx[2]-vecx[1])/vecx[0]);		
+					fprintf(output, "%lf	%.12e\n", realE, (vecx[2]-vecx[1])/vecx[0]);	
+					fprintf(fulloutput, "%lf\t", realE);
+					for(i=0; i<num_leads; i++)
+					{
+						fprintf(fulloutput, "%.12e\t", probe_pots[i]);
+					}
+					for(i=0; i<num_leads; i++)
+					{
+						fprintf(fulloutput, "%.12e\t", probe_currs[i]);
+					}
+					fprintf(fulloutput, "\n");
+					
 				}
 				if(strcmp("B", loop_type) == 0)
 				{
-					fprintf(output, "%lf	%.12e\n", Bfield, (vecx[2]-vecx[1])/vecx[0]);		
+					fprintf(output, "%lf	%.12e\n", Bfield, (vecx[2]-vecx[1])/vecx[0]);	
+					fprintf(fulloutput, "%lf\t", Bfield);
+					for(i=0; i<num_leads; i++)
+					{
+						fprintf(fulloutput, "%.12e\t", probe_pots[i]);
+					}
+					for(i=0; i<num_leads; i++)
+					{
+						fprintf(fulloutput, "%.12e\t", probe_currs[i]);
+					}
+					fprintf(fulloutput, "\n");
+					
 				}
 				
 				
@@ -2771,7 +2809,10 @@ main(int argc, char *argv[])
 	      
 	      fclose(output);
 
-	      
+	      if (ishallbar==3 || ishallbar==4)
+		{
+			fclose(fulloutput);
+		}
 	      
 	  }
 			
@@ -2812,7 +2853,9 @@ main(int argc, char *argv[])
  		    sprintf(command, "cat %s.part* | sort -n > %s/%s.dat", filename, direcname, filename_temp);
 		    system(command);
 		    
-
+ 		    sprintf(command, "cat %s.full.part* | sort -n > %s/%s.full.dat", filename, direcname, filename_temp);
+		    system(command);
+		    
 		    
 		    
 		    if(conf_num != 0)

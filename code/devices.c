@@ -330,7 +330,7 @@ void genSingleMetalLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, vo
 	
 	if(devgeo == 0)
 	{
-		ybot = 1/(2*sqrt(3)) - sqrt(3);
+		ybot = 0.0;
 		ytop = 1/(2*sqrt(3)) + length * sqrt(3)/2;
 		xleft = 0.5;
 		xright = length2*1.0 - 0.5;
@@ -340,7 +340,7 @@ void genSingleMetalLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, vo
 	
 	if(devgeo == 1)
 	{
-		ybot = -1.0;
+		ybot = 0.0;
 		ytop = 0.5*length;
 		xleft = -1/(2*sqrt(3)) + sqrt(3)/2;
 		xright = -1/(2*sqrt(3))+ sqrt(3)/2 + (length2-1)*sqrt(3);
@@ -388,8 +388,8 @@ void genSingleMetalLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, vo
 		(Lead->pos)[0][0] = xleft + (metpara->start_coord)*x_cell_diff;
 		(Lead->pos)[0][1] = (Lead->pos)[0][0] + (metpara->width)*x_cell_diff/2 -x_cell_diff/2;
 		
-		(Lead->pos)[1][0] = ybot ;
-		(Lead->pos)[1][1] = ybot  + (metpara->width2)*y_cell_diff/2;
+		(Lead->pos)[1][0] = ybot -0.001;
+		(Lead->pos)[1][1] = ybot  -0.001 + (metpara->width2)*y_cell_diff/2;
 		
 	}
 	
