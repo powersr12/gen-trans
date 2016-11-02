@@ -61,15 +61,17 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
       //lead sigmas 
 	 (leadfn)(En, DeviceCell, Leads, cellinfo, leadsparams, SigmaR);
 	 
+	 
 
       //calculate retarded GF of system 
 
          genDeviceGF(En, DeviceCell, cnxp, cellinfo, hoppingfn, hoppingparams, devicemode, devicemode2, g_sys_r, gii, gi1, SigmaR);
 
-
+// 	 printEMatrix(g_sys_r, cell1dim);
+	 
       //calculate advanced quantities
-	 if( (tpara->TRsym) == 0)
-	 {
+// 	 if( (tpara->TRsym) == 0)
+// 	 {
 	   for(i=0; i<cell1dim; i++)
 	   {
 	     for(j=0; j<cell1dim; j++)
@@ -91,7 +93,7 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 		
 	    }
 	   
-	   
+	/*   
 	 }
 	 else if( (tpara->TRsym) == 1)
 	 {
@@ -103,8 +105,9 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 	   
 	    (leadfn)(creal(En) - I*cimag(En), DeviceCell, Leads, cellinfo, leadsparams, SigmaA);
 	    genDeviceGF(creal(En) - I*cimag(En), DeviceCell, cnxp, cellinfo, hoppingfn, hoppingparams, devicemode, devicemode2, g_sys_a, NULL, g1i, SigmaA);
-	 }
+	 }*/
 	 
+// 	 printEMatrix(g_sys_a, cell1dim);
 	 
 	 //Gamma
 	  for(i=0; i<cell1dim; i++)
@@ -114,6 +117,7 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 	      Gamma[i][j] = I*(SigmaR[i][j] - SigmaA[i][j]);
 	    }
 	  }
+// 	  printEMatrix(Gamma, cell1dim);
 //   	  listNonZero(SigmaR, cell1dim, cell1dim);
       FreeMatrix(SigmaR); FreeMatrix(SigmaA); 
       
@@ -148,6 +152,8 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 	  FreeMatrix(temp1);
 	  s2+=d2;
 	  FreeMatrix(gsr); FreeMatrix(Gamma2); FreeMatrix(gsa);
+	  
+// 	  printf("#%d	%d	%d	%d	%lf\n", i, j, d1, d2, (tpara->transmissions)[i][j]);
 	}
 	
 	s1+=d1;
@@ -3095,6 +3101,11 @@ void singleSimplestMetalLead (int leadnum, double _Complex En, RectRedux *Device
                     sep = sqrt( pow((DeviceCell->pos)[jprime][0] - (DeviceCell->pos)[iprime][0], 2) + pow((DeviceCell->pos)[jprime][1] - (DeviceCell->pos)[iprime][1], 2));
                     
                     Sigma[i][j] = I * hops[0] * hops[3] * conj(hops[3]);
+		    if(cimag(En)<0)
+		    {
+			    Sigma[i][j] = - Sigma[i][j];
+		    }
+		    
                     
                     if(i!=j)
                     {

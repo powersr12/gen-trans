@@ -1968,7 +1968,6 @@ main(int argc, char *argv[])
 	     //in theory cell Division could write to lead_para, so its defined here
 	  lead_para leadp={};
 	  
-	  
 
 	  	  int halloutput;
 		  
@@ -2027,15 +2026,13 @@ main(int argc, char *argv[])
 		
 	  }
 
-		
 	  
 	  
 	  
-	    if(ishallbar != 1 && bandsonly == 0)
+	    if(ishallbar ==0 && bandsonly == 0)
 	    {
 	      genLeads(&System, LeadCells, num_leads, 0, &leadp);
 	    }
-	  
 	  
 		//adds (averaged) sublattice dependent potentials to left and right leads (leads 0 and 1)
 		if(xleadsavgpot==1 && strcmp("SUBLATTICEPOT", systemtype) == 0)
@@ -2048,9 +2045,8 @@ main(int argc, char *argv[])
 		leadp.multiple = mleadps;
 		leadp.leadsfn = &multipleCustomLeads;
 		genCustomLeads (&System, LeadCells, num_leads, &leadp);
+		
 	  }
-	  
-	  
 
 
 	  cnxProfile cnxp;
@@ -2114,10 +2110,8 @@ main(int argc, char *argv[])
 		time = clock() - time;
 		printf("#split cells in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		time = clock();
-// 	  		  			  			exit(0);
 
 
-//   exit(0);
 		
 		
 	  //hopping parameters and gauge info
@@ -2518,8 +2512,10 @@ main(int argc, char *argv[])
 		kavg += (transmissions[0][1]/kpts);
 	      }
 
+// 	      printDMatrix(transmissions, 4);
 	      
 	      output =fopen(filename, "a");
+	      
 	      
 	      
 	      if(ishallbar == 0)
