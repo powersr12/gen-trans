@@ -38,11 +38,11 @@ void printConnectivity (RectRedux *DeviceCell, cnxProfile *cnxp)
 
   for(i=0; i<N; i++)
   {
-    printf("%lf	%lf\n", (DeviceCell->pos)[i][0], (DeviceCell->pos)[i][1]);
+    printf("%lf	%lf	%lf\n", (DeviceCell->pos)[i][0], (DeviceCell->pos)[i][1], (DeviceCell->pos)[i][2]);
     
     for(j=0; j<(cnxp->site_cnxnum)[i]; j++)
     {
-      printf("%lf	%lf\n%lf	%lf\n",(DeviceCell->pos)[cnxp->site_cnx[i][j]][0], (DeviceCell->pos)[cnxp->site_cnx[i][j]][1], (DeviceCell->pos)[i][0], (DeviceCell->pos)[i][1]  );
+      printf("%lf	%lf	%lf\n%lf	%lf 	%lf\n",(DeviceCell->pos)[cnxp->site_cnx[i][j]][0], (DeviceCell->pos)[cnxp->site_cnx[i][j]][1],(DeviceCell->pos)[cnxp->site_cnx[i][j]][2] , (DeviceCell->pos)[i][0], (DeviceCell->pos)[i][1], (DeviceCell->pos)[i][2]  );
     }
     
     printf("\n");
@@ -626,7 +626,7 @@ void cellSplitter (RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellin
 {
   int i, j, k, l, m;
   
-  
+//   printf("#started splitting\n");
   int dim = *(DeviceCell->Nrem);
   int alldim = *(DeviceCell->Ntot);
   //int *sites_left = createIntArray(dim);
@@ -652,6 +652,9 @@ void cellSplitter (RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellin
   
   while(num_sites_left>0)
   {
+// 	  if(cellindex < 20)
+//  	  printf("#cell %d, num of sites to be assigned: %d\n", cellindex, num_sites_left);
+
     cellindex++;
     //num_sites_still_left=0; 
     cell_start = last_cell_start+last_cell_size;
@@ -780,13 +783,13 @@ void printOutLeadStrucs(RectRedux *DeviceCell, RectRedux **Leads, cellDivision *
 			fprintf(struc, "%lf	%lf\n", (DeviceCell->pos)[(cellinfo->lead_sites)[k]][0], (DeviceCell->pos)[(cellinfo->lead_sites)[k]][1]);
 			k++;
 		}
-		for(j=0; j<*(Leads[i]->Ntot); j++)
-		{
-			if((Leads[i]->siteinfo)[j][0] == 0)
-			{
-				fprintf(struc,"%lf	%lf\n", (Leads[i]->pos)[j][0], (Leads[i]->pos)[j][1]);
-			}
-		}
+// 		for(j=0; j<*(Leads[i]->Ntot); j++)
+// 		{
+// 			if((Leads[i]->siteinfo)[j][0] == 0)
+// 			{
+// 				fprintf(struc,"%lf	%lf\n", (Leads[i]->pos)[j][0], (Leads[i]->pos)[j][1]);
+// 			}
+// 		}
 			
 		
 		fprintf(struc, "\n");
@@ -1242,7 +1245,7 @@ int zzacnnk (RectRedux *DeviceCell, void *rule_params, int a, int b)
 }
 
 
-//This function simply generates the connections present for a generic non periodic graphene system 
+//This function simply generates the connections present for a generic graphene system 
 //Works using a separation cut off
 int graph_conn_sep (RectRedux *DeviceCell, void *rule_params, int a, int b)
 {
@@ -1296,11 +1299,13 @@ int graph_conn_sep (RectRedux *DeviceCell, void *rule_params, int a, int b)
     return ans;
 }
 
-//This function simply generates the connections present for a generic non periodic graphene system 
+//This function simply generates the connections present for a generic graphene system 
 //Works using a separation cut off
 //version with two possible device cells
 int graph_conn_sep2 (RectRedux *DeviceCell, RectRedux *LeadCell, void *rule_params, int a, int b)
 {
+	   
+
     int i, j, k, l, ans;  //set ans =0 if there is a connection
     ans=1;
     
@@ -1355,6 +1360,121 @@ int graph_conn_sep2 (RectRedux *DeviceCell, RectRedux *LeadCell, void *rule_para
 
 
 
+//This function simply generates the connections present for a BILAYER graphene system 
+//Works using a separation cut off
+//version with two possible device cells
+int blg_conn_sep2 (RectRedux *DeviceCell, RectRedux *LeadCell, void *rule_params, int a, int b)
+{
+    int i, j, k, l, ans;  //set ans =0 if there is a connection
+    ans=1;
+//     printf("#blg_conn_sep2 called\n");
+    blg_conn_para *para = (blg_conn_para *) rule_params;
+    double thresh_min = (para->intra_thresh_min);
+    double thresh_max = (para->intra_thresh_max);
+    double thresh_min2 = (para->inter_thresh_min);
+    double thresh_max2 = (para->inter_thresh_max);
+    double zthresh1 = (para->zthresh1);
+    double zthresh2 = (para->zthresh2);
+    
+    double **pos = (DeviceCell->pos);
+    double **lpos = (LeadCell->pos);
+
+    double cellyshift;
+    int geo = (DeviceCell->geo);
+    int length = DeviceCell->length;
+    
+    double dist= sqrt( pow(lpos[b][0] - pos[a][0], 2) + pow(lpos[b][1] - pos[a][1], 2));
+    double zsep = fabs(lpos[b][2] - pos[a][2]);
+    
+    //within the same layer
+    if(dist <= thresh_max && dist >= thresh_min && zsep <= zthresh1)
+    {
+	ans = 0;
+    }
+    
+    
+    //on a neighbouring layer
+    if(dist <= thresh_max2 && dist >= thresh_min2 && zsep > zthresh1 && zsep <= zthresh2)
+    {
+	ans = 0;
+    }
+    
+    
+    //remove the smaller, additional skew hopping terms between dimers and NN sites from other layers
+    if(zsep > zthresh1 && dist > thresh_min2)
+    {
+	    if ((DeviceCell->siteinfo[a][1]) ==1 || (DeviceCell->siteinfo[a][1]) ==2 ||(DeviceCell->siteinfo[b][1]) ==1 || (DeviceCell->siteinfo[b][1]) ==2)
+	    {
+		    ans=1;
+	    }
+    }
+    
+    
+    
+     if(geo==0)
+      cellyshift = length * sqrt(3) / 2;
+    
+     else if (geo==1)
+      cellyshift = length * 0.5;
+    
+    
+    if( (para->periodic) == 1)
+    {
+      dist = sqrt( pow(lpos[b][0] - pos[a][0], 2) + pow(lpos[b][1] +cellyshift - pos[a][1], 2));
+      
+         if(dist <= thresh_max && dist >= thresh_min && zsep <= zthresh1)
+	{
+		ans = 0;
+	}
+	
+	if(dist <= thresh_max2 && dist >= thresh_min2 && zsep > zthresh1 && zsep <= zthresh2)
+	{
+		ans = 0;
+	}
+	
+	if(zsep > zthresh1 && dist > thresh_min2)
+	{
+		if ((DeviceCell->siteinfo[a][1]) ==1 || (DeviceCell->siteinfo[a][1]) ==2 ||(DeviceCell->siteinfo[b][1]) ==1 || (DeviceCell->siteinfo[b][1]) ==2)
+		{
+			ans=1;
+		}
+	}
+      
+      dist = sqrt( pow(lpos[b][0] - pos[a][0], 2) + pow(lpos[b][1] -cellyshift - pos[a][1], 2));
+      
+	if(dist <= thresh_max && dist >= thresh_min && zsep <= zthresh1)
+	{
+		ans = 0;
+	}
+	
+	if(dist <= thresh_max2 && dist >= thresh_min2 && zsep > zthresh1 && zsep <= zthresh2)
+	{
+		ans = 0;
+	}
+	
+	if(zsep > zthresh1 && dist > thresh_min2)
+	{
+		if ((DeviceCell->siteinfo[a][1]) ==1 || (DeviceCell->siteinfo[a][1]) ==2 ||(DeviceCell->siteinfo[b][1]) ==1 || (DeviceCell->siteinfo[b][1]) ==2)
+		{
+			ans=1;
+		}
+	}
+      
+    }
+      
+      
+
+    
+    return ans;
+}
+
+int blg_conn_sep (RectRedux *DeviceCell, void *rule_params, int a, int b)
+{
+    return blg_conn_sep2 (DeviceCell, DeviceCell,rule_params, a,  b);     
+
+
+    
+}
 
 
 

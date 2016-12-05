@@ -2,6 +2,7 @@
 #include "devices.h"
 #include "connect.h"
 
+
 typedef double _Complex (hoppingfunc) (RectRedux *,  RectRedux *, int, int, double *, void *p);
 typedef void (leadfunction) (double _Complex, RectRedux *, RectRedux **, cellDivision *, void *, double _Complex **); 
 typedef void (singleleadfunction) (int, double _Complex, RectRedux *, RectRedux **, cellDivision *, void *, double _Complex **); 
@@ -18,12 +19,15 @@ typedef void (singleleadfunction) (int, double _Complex, RectRedux *, RectRedux 
 
 typedef struct {
 	int num_neigh;
+	int *max_neigh;
 	double _Complex *hops;		
 	int isperiodic;
 	double kpar;
 	double *NN_lowdis;
 	double *NN_highdis;
 	double *NN_shifts;
+	double *NN_zmin;
+	double *NN_zmax;
 	int gauge;
 	double Btes;
 	int *restrics;	//are there limits on x, y with field

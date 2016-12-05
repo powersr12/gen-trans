@@ -35,6 +35,16 @@ typedef struct {
 	int periodic;
 }graph_conn_para;
 
+typedef struct {
+	double intra_thresh_min;
+	double intra_thresh_max;
+	double inter_thresh_min;
+	double inter_thresh_max;
+	double zthresh1;	//for deciding if two atoms in same layer
+	double zthresh2;	//max z sep for neighbouring layers.
+	int periodic;
+}blg_conn_para;
+
 
 typedef struct {
   cnxRulesFn2 *rule;
@@ -71,4 +81,6 @@ int zzacnnk (RectRedux *DeviceCell, void *rule_params, int a, int b);
 
 int graph_conn_sep (RectRedux *DeviceCell, void *rule_params, int a, int b);
 int graph_conn_sep2 (RectRedux *DeviceCell, RectRedux *LeadCell, void *rule_params, int a, int b);
+int blg_conn_sep2 (RectRedux *DeviceCell, RectRedux *LeadCell, void *rule_params, int a, int b);
+int blg_conn_sep (RectRedux *DeviceCell, void *rule_params, int a, int b);
 

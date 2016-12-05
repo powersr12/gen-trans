@@ -106,7 +106,7 @@ void simpleRibbonGeo (RectRedux *SiteArray, void *p, int struc_out, char *filena
 	          
 	      	      
 	      //chaininfo needed for conductance calcs (if atoms are missing)
-		      (SiteArray->chaininfo) = createNonSquareIntMatrix(length2, 4);
+// 		      (SiteArray->chaininfo) = createNonSquareIntMatrix(length2, 4);
 		      int tempint=0, tempint2=0;
 	 
 			for(l=0; l<length2; l++)
@@ -120,28 +120,28 @@ void simpleRibbonGeo (RectRedux *SiteArray, void *p, int struc_out, char *filena
 			      tempint2++;
 			    }
 			  }
-			  (SiteArray->chaininfo)[l][0] = tempint;
+// 			  (SiteArray->chaininfo)[l][0] = tempint;
 			}
 			*Nrem = tempint2;
 			
-			
+			/*
 			(SiteArray->chaininfo)[0][1] = 0;
 			for(l=1; l<length2; l++)
 			{
 			  (SiteArray->chaininfo)[l][1] = (SiteArray->chaininfo)[l-1][1] + (SiteArray->chaininfo)[l-1][0];
-			}
+			}*/
 
 
 			//are first and last atoms in each chain present?
-			for(l=1; l<length2; l++)
-			{
-			  if(siteinfo[l*2*length][0] == 1)
-			    (SiteArray->chaininfo)[l][2] = 1;
-			  
-			  if(siteinfo[(l+1)*2*length -1][0] == 1)
-			    (SiteArray->chaininfo)[l][3] = 1;
-			}
-	  
+// 			for(l=1; l<length2; l++)
+// 			{
+// 			  if(siteinfo[l*2*length][0] == 1)
+// 			    (SiteArray->chaininfo)[l][2] = 1;
+// 			  
+// 			  if(siteinfo[(l+1)*2*length -1][0] == 1)
+// 			    (SiteArray->chaininfo)[l][3] = 1;
+// 			}
+// 	  
 	  
 	  
 		      
@@ -175,9 +175,13 @@ void simpleRibbonGeo (RectRedux *SiteArray, void *p, int struc_out, char *filena
   
 }
 
+
+
+
+
 //generate lead geometries and rect_reduxes to match a device
 //mode=0 - basic left-right setup, same size 
-
+//mode=1 - BLG variant
 void genLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, int mode, lead_para *params)
 {
   int i, j;
@@ -217,6 +221,46 @@ void genLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, int mode, 
       (Leads[1]->pos)[i][0] += (SiteArray->length2)*(params->shift_vecs)[1][0];      
     }
     
+  }
+  
+  
+  if(mode==1)
+  {
+	//if this mode is called, bilayer_para are stored in "additional_params" in lead_para
+	  
+	for(i=0; i < numleads; i++)
+	{
+		Leads[i] = (RectRedux *)malloc(sizeof(RectRedux));
+		(Leads[i]->geo) = (SiteArray->geo);
+		(Leads[i]->length) = (SiteArray->length);
+		(Leads[i]->length2) = 1;
+		(Leads[i]->Nrem) = (int *)malloc(sizeof(int));
+		(Leads[i]->Ntot) = (int *)malloc(sizeof(int));
+		simpleBilayerGeo (Leads[i], params->additional_params, 0, NULL);
+	}
+	
+	
+	(params->shift_vecs) = createNonSquareDoubleMatrix(numleads, 3);
+	(params->shift_vecs)[0][0] = -((SiteArray->pos)[2*(SiteArray->length)][0] - (SiteArray->pos)[0][0]);
+	(params->shift_vecs)[1][0] = (SiteArray->pos)[2*(SiteArray->length)][0] - (SiteArray->pos)[0][0];
+	(params->shift_vecs)[0][1] = 0;
+	(params->shift_vecs)[1][1] = 0;
+	
+	if(numleads != 2)
+		exit(1);
+	
+	//shift leads accordingly to desired positions
+	for(i=0; i<*(Leads[0]->Ntot); i++)
+	{
+		(Leads[0]->pos)[i][0] += (params->shift_vecs)[0][0];      
+	}
+	
+	for(i=0; i<*(Leads[1]->Ntot); i++)
+	{
+		(Leads[1]->pos)[i][0] += (SiteArray->length2)*(params->shift_vecs)[1][0];      
+	}
+	
+	  
   }
   
 }
@@ -310,8 +354,99 @@ void genSingleRibbonLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, v
 		}
 		
 	}
+} 
 
+
+void genSingleBLGLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, void *params)
+{
+	int i, j;
+	blg_lead_para* ribpara = (blg_lead_para*)params;
 	
+	int devgeo = SiteArray->geo;
+	int length = (SiteArray->length);
+	int length2 = (SiteArray->length2);
+	double ybot, ytop, y_cell_diff;
+	double xleft, xright, x_cell_diff;
+	
+	if(devgeo == 0)
+	{
+		ybot = 1/(2*sqrt(3)) - sqrt(3);
+		ytop = 1/(2*sqrt(3)) + length * sqrt(3)/2;
+		xleft = 0.5;
+		xright = length2*1.0 - 0.5;
+		x_cell_diff = 1.0;
+		y_cell_diff = sqrt(3);
+	}
+	
+	if(devgeo == 1)
+	{
+		ybot = -1.0;
+		ytop = 0.5*length;
+		xleft = -1/(2*sqrt(3)) + sqrt(3)/2;
+		xright = -1/(2*sqrt(3))+ sqrt(3)/2 + (length2-1)*sqrt(3);
+		x_cell_diff = sqrt(3);
+		y_cell_diff = 1.0;
+	}
+    
+	
+	(Lead->geo) = (ribpara->geo);
+	(Lead->length) = (ribpara->width);
+	(Lead->length2) = 1;
+	
+	
+	simpleBilayerGeo (Lead, ribpara->bilayer_para, 0, NULL);
+
+	//periodicity vectors for RGF leads
+	(ribpara->shift_vec) = createDoubleArray(3);
+    
+	if(ribpara->def_pos == 0)
+	{
+		(ribpara->shift_vec)[0] = -((SiteArray->pos)[2*(SiteArray->length)][0] - (SiteArray->pos)[0][0]);
+		(ribpara->shift_vec)[1] = 0.0;
+		for(i=0; i<*(Lead->Ntot); i++)
+		{
+			(Lead->pos)[i][0] += (ribpara->shift_vec)[0];
+			(Lead->pos)[i][1] += (ribpara->start_coord)*y_cell_diff/2;
+		}
+	}
+    
+	if(ribpara->def_pos == 1)
+	{
+		(ribpara->shift_vec)[0] = (SiteArray->pos)[2*(SiteArray->length)][0] - (SiteArray->pos)[0][0];
+		(ribpara->shift_vec)[1] = 0.0;
+		for(i=0; i<*(Lead->Ntot); i++)
+		{
+			(Lead->pos)[i][0] += (SiteArray->length2)*(ribpara->shift_vec)[0];
+			(Lead->pos)[i][1] += (ribpara->start_coord)*y_cell_diff/2;
+		}
+	}
+	if(ribpara->def_pos == 2)
+	{
+		(ribpara->shift_vec)[0] = 0.0;
+		(ribpara->shift_vec)[1] = y_cell_diff;
+		
+		swapxy((Lead->pos), *(Lead->Ntot));
+		
+		for(i=0; i<*(Lead->Ntot); i++)
+		{
+			(Lead->pos)[i][0] += (xleft + (ribpara->start_coord)*x_cell_diff);
+			(Lead->pos)[i][1] += (ytop);
+		}
+	}
+	if(ribpara->def_pos == 3)
+	{
+		(ribpara->shift_vec)[0] = 0.0;
+		(ribpara->shift_vec)[1] = -y_cell_diff;
+		
+		swapxy((Lead->pos), *(Lead->Ntot));
+		
+		for(i=0; i<*(Lead->Ntot); i++)
+		{
+			(Lead->pos)[i][0] += (xleft + (ribpara->start_coord)*x_cell_diff);
+			(Lead->pos)[i][1] += (ybot);
+		}
+		
+	}
 } 
 
 //def_pos = 0,..3 - left, right, top, bottom - widths and coords in ribbonlike notation
@@ -378,7 +513,7 @@ void genSingleMetalLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, vo
 		(Lead->pos)[0][0] = xleft + (metpara->start_coord)*x_cell_diff ;
 		(Lead->pos)[0][1] = (Lead->pos)[0][0] + (metpara->width)*x_cell_diff/2 -x_cell_diff/2 ;
 		
-		(Lead->pos)[1][0] = ytop - (metpara->width2)*y_cell_diff/2;
+		(Lead->pos)[1][0] = ytop - (metpara->width2)*y_cell_diff/2 -0.001;
 		(Lead->pos)[1][1] = ytop ;
 		
 	}
@@ -2512,7 +2647,7 @@ void exportRectConf(RectRedux *System, char *filename)
   int length2 = System->length2;
   int geo = System->geo;
   int i, j, k;
-  int tot_sites = 2*length*length2;
+  int tot_sites = *(System->Ntot);
   
   
   sprintf(fullname, "%s.siteinfo", filename);
@@ -2541,14 +2676,6 @@ void exportRectConf(RectRedux *System, char *filename)
   fclose(fileout);
   
   
-  sprintf(fullname, "%s.chaininfo", filename);
-  fileout = fopen(fullname, "w");
-    for(j=0; j<length2; j++)
-    {
-      fprintf(fileout, "%d	%d	%d	%d\n", (System->chaininfo)[j][0], (System->chaininfo)[j][1], (System->chaininfo)[j][2], (System->chaininfo)[j][3]);
-    }
-  fclose(fileout);
-  
   
   sprintf(fullname, "%s.info", filename);
   fileout = fopen(fullname, "w");
@@ -2569,12 +2696,21 @@ void importRectConf(RectRedux *System, int length, int length2, char *filename)
  // int length2 = System->length2;
  // int geo = System->geo;
   int i, j, k, temp;
-  int tot_sites = 2*length*length2;
+  int tot_sites ;
+  
+ sprintf(fullname, "%s.info", filename);
+  fileout = fopen(fullname, "r");
+    
+       fscanf(fileout, "%d", (System->Nrem));
+       fscanf(fileout, "%d", (System->Ntot));
+
+  fclose(fileout);
+  tot_sites = *(System->Ntot);
   
 	  System->pos = createNonSquareDoubleMatrix(tot_sites, 3);
  	  System->site_pots = createDoubleArray(tot_sites);
 	  System->siteinfo = createNonSquareIntMatrix(tot_sites, 2);
-	  (System->chaininfo) = createNonSquareIntMatrix(length2, 4);
+// 	  (System->chaininfo) = createNonSquareIntMatrix(length2, 4);
 
 	  
   
@@ -2609,24 +2745,18 @@ void importRectConf(RectRedux *System, int length, int length2, char *filename)
 
     
     
-    sprintf(fullname, "%s.chaininfo", filename);
-    fileout = fopen(fullname, "r");
-    
-   
-      for(j=0; j<length2; j++)
-      {
-	fscanf(fileout, "%d	%d	%d	%d", &(System->chaininfo)[j][0], &(System->chaininfo)[j][1], &(System->chaininfo)[j][2], &(System->chaininfo)[j][3]);
-      }
-    fclose(fileout);
+//     sprintf(fullname, "%s.chaininfo", filename);
+//     fileout = fopen(fullname, "r");
+//     
+//    
+//       for(j=0; j<length2; j++)
+//       {
+// 	fscanf(fileout, "%d	%d	%d	%d", &(System->chaininfo)[j][0], &(System->chaininfo)[j][1], &(System->chaininfo)[j][2], &(System->chaininfo)[j][3]);
+//       }
+//     fclose(fileout);
    
   
-  sprintf(fullname, "%s.info", filename);
-  fileout = fopen(fullname, "r");
-    
-       fscanf(fileout, "%d", (System->Nrem));
-       fscanf(fileout, "%d", (System->Ntot));
 
-  fclose(fileout);
   
 
 
@@ -2995,4 +3125,267 @@ void HallBarify (RectRedux *System, RectRedux **Leads, hallbpara *hall_para, lea
   }
   
 }
+
+
+
+
+
+
+
+
+
+//BILAYER ROUTINES
+
+void simpleBilayerGeo (RectRedux *SiteArray, void *p, int struc_out, char *filename)
+{
+	  int length = SiteArray->length;
+	  int length2 = SiteArray->length2;
+	  int geo = SiteArray->geo;
+	    
+	  double smalldist;
+	  FILE *out;
+	  
+	  if(struc_out != 0)
+	  {
+	    out = fopen(filename, "w");
+	    
+	  }
+	    
+	 // srand(time(NULL) + seed);
+	  
+	bilayer_para *params = (bilayer_para *)p;
+	  
+	  //atomic coordinates and the atoms that are in and out, similar to previous cases
+	  int tot_sites = 4*length*length2;
+	  double **site_coords = createNonSquareDoubleMatrix(tot_sites, 3);
+	  double *site_pots = createDoubleArray(tot_sites);
+	  int **siteinfo = createNonSquareIntMatrix(tot_sites, 2);
+	  double *subpots = params->subpots;
+	  
+	  double xstart, ystart;
+	  int isclean, l, m;
+	  int *Nrem = (SiteArray->Nrem);
+	  int *Ntot = (SiteArray->Ntot);
+	  
+	  //in AB stackd, (type_shift=2), dimers are siteinfo[1] = 1, 2 (L1-B, L2-A)
+	  
+	  *Ntot = tot_sites;
+
+	  if(geo==0)
+	  {
+	    //layer 1
+	    for(l=0; l<length2; l++)
+	    {
+	      xstart=l*1.0;
+	      for(m=0; m<length; m++)
+	      {
+		ystart= m*sqrt(3)/2 + 1/(2*sqrt(3));
+		
+		if((m%2) == 0)
+		{
+		    site_coords[l*2*length + 2*m][0] = xstart+0.5;
+		    site_coords[l*2*length + 2*m + 1][0] = xstart;
+		}
+		
+		if((m%2) == 1)
+		{
+		    site_coords[l*2*length + 2*m][0] = xstart;
+		    site_coords[l*2*length + 2*m + 1][0] = xstart+0.5;
+		}
+		
+		    site_coords[l*2*length + 2*m][1] = ystart;
+		    site_coords[l*2*length + 2*m + 1][1] = ystart + 1/(2*sqrt(3));
+		    siteinfo[l*2*length + 2*m][1]=0;
+		    siteinfo[l*2*length + 2*m +1][1]=1;
+		  
+	      }
+	    }
+	    
+		//layer 2
+		if(params->type_shift==0)
+		{
+			params->shift_vec[0]=0.0;
+			params->shift_vec[1]=0.0;
+		}
+		
+		if(params->type_shift==1)
+		{
+			params->shift_vec[0]=0.5;
+			params->shift_vec[1]=1/(2*sqrt(3));
+		}
+	    
+	  }
+	  
+	  if(geo==1)
+	  {
+	      for(l=0; l<length2; l++)
+	      {
+		xstart = l*sqrt(3);
+		for(m=0; m<length; m++)
+		{
+		  if((m%2) == 0)
+		  {
+		    site_coords[l*2*length + m][0] = xstart;
+		    site_coords[l*2*length + length + m][0] = xstart +2 / sqrt(3);
+		    siteinfo[l*2*length + m][1] = 0;
+		    siteinfo[l*2*length + length + m][1] = 1;
+		  }
+		  if((m%2) == 1)
+		  {
+		    site_coords[l*2*length + m][0] = xstart +  1/(2*sqrt(3));
+		    site_coords[l*2*length + length + m][0] = xstart + (sqrt(3))/2;
+		    siteinfo[l*2*length + m][1] = 1;
+		    siteinfo[l*2*length + length + m][1] = 0;
+		  }
+		  
+		  site_coords[l*2*length + m][1] = m*0.5;
+		  site_coords[l*2*length + length + m][1] = m*0.5;
+
+		  
+		}
+		
+		
+	      }
+			//layer 2
+			if(params->type_shift==0)
+			{
+				params->shift_vec[0]=0.0;
+				params->shift_vec[1]=0.0;
+			}
+			
+			if(params->type_shift==1)
+			{
+				params->shift_vec[1]=0.5;
+				params->shift_vec[0]=1/(2*sqrt(3));
+			}
+		
+	  }
+	  
+	  
+	//layer 2
+		     
+	    for(m=0; m<2*length*length2; m++)
+	    {      
+		    site_coords[2*length*length2 + m][0] = site_coords[m][0] + params->shift_vec[0];
+		    site_coords[2*length*length2 + m][1] = site_coords[m][1] + params->shift_vec[1] ;
+		    site_coords[2*length*length2 + m][2] = params->zsep;
+		    siteinfo[2*length*length2 + m][1] = siteinfo[m][1] + 2;
+	     
+	    }
+	     
+	     
+	      	      
+	int tempint=0, tempint2=0;
+
+	
+	for(m=0; m<*Ntot; m++)
+	{
+		if(siteinfo[m][0] == 0)
+		{
+			tempint2++;
+		}
+	}
+	
+	*Nrem = tempint2;
+	
+	
+	//site potentials by sublattice
+	for(m=0; m<*Ntot; m++)
+	{
+		if(siteinfo[m][1] >=0 && siteinfo[m][1] < 4)
+		{
+// 			printf("# %d\n", siteinfo[m][1]);
+			site_pots[m] = subpots[siteinfo[m][1]];
+// 			printf("%lf\n", site_pots[m]);
+		}
+	}
+
+	
+	if(struc_out == 1)
+	{
+		for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+		for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 1)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+		for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 2)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+		for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 3)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+		
+		
+
+		
+	}
+			
+	if(struc_out != 0)
+	{
+		fclose(out);
+	}
+			    
+			
+			  
+	//Fill the array of data structures describing the system
+	(SiteArray->pos) = site_coords;
+	(SiteArray->site_pots) = site_pots;
+	(SiteArray->siteinfo) = siteinfo;
+
+  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -11,12 +11,14 @@
 #include "transport.h"
 #include "connect.h"
 #include "disorder.h"
+#include "useful_hops.h"
+
 
 #include "../libs/matrices.h"
 #include "../libs/hubbard.h"
 #include "../libs/graphene_gf.h"
 #include "../libs/suscept.h"
 #include "../libs/static.h"
+// #include "../libs/greenfns.h"
 
-
-
+#pragma once

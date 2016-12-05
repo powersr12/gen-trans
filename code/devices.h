@@ -33,6 +33,7 @@ typedef struct {
 	void *leadsfn;
 	void *hoppara;
 	multiple_para **multiple;
+	void *additional_params;
 }lead_para;
 
 typedef struct {
@@ -44,6 +45,17 @@ typedef struct {
 	int start_coord;
 	int def_pos; //0->left, 1->right, 2->top, 3->bottom
 }rib_lead_para;
+
+typedef struct {
+	double *shift_vec;
+	void *hopfn;
+	void *hoppara;
+	int geo;
+	int width;
+	int start_coord;
+	int def_pos; //0->left, 1->right, 2->top, 3->bottom
+	void *bilayer_para;
+}blg_lead_para;
 
 typedef struct {
 	void *hopfn;
@@ -66,6 +78,16 @@ typedef struct {
 	double b_pot;
 	int seed;
 }subl_para;
+
+
+typedef struct {
+	int type_shift; //=0 AA. =1 AB(Bernal), =2(Custom, uses *shiftvec and  shift_angle (ANGLE NOT IMPLEMENTED YET!)
+	double *shift_vec;
+	double shift_angle;
+	double zsep;
+	double *subpots;
+	int skews;
+}bilayer_para;
 
 typedef struct {
 	int buffer_rows;
@@ -173,3 +195,9 @@ void genEdgeDisorderedDevice(RectRedux *SiteArray, void *p, int struc_out, char 
 
 void exportRectConf(RectRedux *System, char *filename);
 void importRectConf(RectRedux *System, int length, int length2, char *filename);
+
+
+void simpleBilayerGeo (RectRedux *SiteArray, void *p, int struc_out, char *filename);
+void genSingleBLGLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, void *params);
+
+

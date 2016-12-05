@@ -49,6 +49,9 @@ main(int argc, char *argv[])
 				//changing this to 2 or 3 uses 2NN or 3NN models
 				//future change - making this 0 should allow custom parameterisation somehow
 	      
+	      int num_neigh; 	//this is connected to nngm, but is the index used in hopping arrays.
+				//used to allow the nngm=1 mode to have more than one hopping paramaters
+				//e.g. in bilayers
 	      
 	      int magsetup = 0;	//this indicates whether the magnetic field is present in the leads or not
 				//(if the system is magnetic)
@@ -63,6 +66,14 @@ main(int argc, char *argv[])
 	      int splitgen =0;	//if =1, splits the system generation and calculation
 	      int metal_leads = 0;      //if this is set to 1, metallic leads are used instead of ribbons -
                                         //these need to be accounted for properly with positions etc...
+                                        
+                                        
+                                        
+	     //lead_para moved here to allow additional_params to be specified in system generation
+	     //e.g. particularly for bilayers
+	     
+		lead_para leadp={};
+		int gen_leads_mode=0;
 	  
 	      //check for command line arguments which vary these
 		  for(i=1; i<argc-1; i++)
@@ -144,7 +155,9 @@ main(int argc, char *argv[])
 			sscanf(argv[i+1], "%d", &potdis);
 		    }
 		  }
-	  
+			//default value of num_neigh for single layer graphene.
+			//each mode increases the num of neighbour terms by 1
+			num_neigh=nngm;
 			 
 	 
 		  if(geo==0)
@@ -192,45 +205,14 @@ main(int argc, char *argv[])
 		  
 	//hopping related
 	gen_hop_params hoppara={};
-
-	int NNN=1;
-	double t0=-1.0, NNlowdis=0.56, NNhighdis=0.59, onsitec=0.0;
+	gen_hop_params *hop_to_load = &graphene_NNTB_hop_params;
+	int max_neigh=(hop_to_load->max_neigh)[num_neigh-1];
 	
-	//another one for onsites should be added for 2NN
-	
-	//check for command line arguments which vary these
-	    for(i=1; i<argc-1; i++)
-	    {
-	      if(strcmp("-t0", argv[i]) == 0)
-	      {
-		  sscanf(argv[i+1], "%lf", &t0);
-	      }
-	      if(strcmp("-NNlowdis", argv[i]) == 0)
-	      {
-		  sscanf(argv[i+1], "%lf", &NNlowdis);
-	      }
-	      if(strcmp("-NNhighdis", argv[i]) == 0)
-	      {
-		  sscanf(argv[i+1], "%lf", &NNhighdis);
-	      }
-	    }	  
-	    
-
-	    double t1=0.0740741*t0, NNlowdis1=0.98, NNhighdis1=1.02, onsitec1=3*t1;
-	    double t2=0.0666667*t0, NNlowdis2=1.13, NNhighdis2=1.17, onsitec2=0.0; 
-	    //these can possibly be adjusted by command line later
 		    
 	
 	
 	//array related constants
 	  int Ntot, Nrem;
-	  
-	//connectivity related constants
-	  int max_neigh=3;  //for graphene NN_shifts
-	  if(nngm == 2)
-	    max_neigh = 9;
-	  if(nngm == 3)
-	    max_neigh = 12;
 	  
 	
 	//processor and energy/magnetic loop related integers
@@ -386,22 +368,20 @@ main(int argc, char *argv[])
 	    cnxRulesFn *connectrules;
 	    graph_conn_para cnxpara;
 	    
-	    cnxpara.conn_sep_thresh_min = NNlowdis;
-	    cnxpara.conn_sep_thresh_max = NNhighdis;
+	    cnxRulesFn *default_connect_rule =  &graph_conn_sep;
+	    cnxRulesFn2 *defdouble_connect_rule =  &graph_conn_sep2;
+	    void *default_connection_params = &cnxpara;
+	   
+	    //default graphene settings - can be changed for BLG, etc
 	    
-	    if(nngm==2)
-	    {
-	      cnxpara.conn_sep_thresh_max = NNhighdis1;
-	    }
-	     if(nngm==3)
-	    {
-	      cnxpara.conn_sep_thresh_max = NNhighdis2;
-	    }
-	    
+		cnxpara.conn_sep_thresh_min = (hop_to_load->NN_lowdis)[0];
+		cnxpara.conn_sep_thresh_max = (hop_to_load->NN_highdis)[num_neigh-1];
+		
 	    
 
 	    //lead info
 	  int num_leads=2;
+	  
 		for(i=1; i<argc-1; i++)
 		  {
 			if(strcmp("-numleads", argv[i]) == 0)
@@ -413,7 +393,7 @@ main(int argc, char *argv[])
 	  
 	      if(isperiodic==0)
 	      {
-		connectrules = &graph_conn_sep;
+// 		connectrules = default_connect_rule;
 		cnxpara.periodic = 0;
 		sprintf(peritype, "RIBBON");
 		kpts = 1;
@@ -421,7 +401,7 @@ main(int argc, char *argv[])
 	      }
 	      if(isperiodic==1)
 	      {
-		connectrules = &graph_conn_sep;
+// 		connectrules = default_connect_rule;
 		cnxpara.periodic = 1;
 		sprintf(peritype, "PERIODIC");
 	      }
@@ -436,13 +416,6 @@ main(int argc, char *argv[])
 	      
 	      	hallbpara hallp={};
 	
-	      
-	     
-		
-	  
-	  
-	    
-	  
 	
 	//disorder / system config default parameters - for sublattice
 	  double suba_conc=1.0, suba_pot=0.062, subb_conc=1.0, subb_pot=-0.062;
@@ -1017,7 +990,146 @@ main(int argc, char *argv[])
 		}
 		
 	  
+		//BILAYER SYSTEMS
+		bilayer_para bilp = {};
+		blg_conn_para blg_cnxpara;
+		double *subpots = createDoubleArray(4);
+		double blgbias=0.0;
+		
+		if(strcmp("BLG", systemtype) == 0)
+		{	
+			//this system uses the bilayer graphene hopping parameters
+			//these are defined in 'useful_hops.c'
+			hop_to_load = &BLG_NNTB_hop_params;
+			
+			
+			
+			//default values
+			nngm=1; //mode 1 includes NN intra layer and direct inter layer.
+				//mode 2 adds skew hopping terms to and from nondimer sites
+				//mode 0 (never called), would decouple the two layers completely
+				//(would it??)
+				
+			
+			bilp.type_shift=1;	//default is AB
+			bilp.shift_angle=0;
+			char blgtype[6];
+			double blg_shift[2];
+			bilp.shift_vec = blg_shift;
+			bilp.zsep = 13.4;
+			
+			//default is to not include skew hopping terms between layers
+			bilp.skews = 0;
+			bilp.subpots = subpots;
+			
+			
+			
+			//check for command line arguments which vary these
+			for(i=1; i<argc-1; i++)
+			{
+				if(strcmp("-blgtype", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &(bilp.type_shift));
+					//0=AA, 1=AB, 2=CUSTOM
+				}
+				if(strcmp("-blgshiftx", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &(bilp.shift_vec)[0]);
+				}
+				if(strcmp("-blgshifty", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &(bilp.shift_vec)[1]);
+				}
+				//note shift angle not yet implemented
+				if(strcmp("-blgshiftangle", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &(bilp.shift_angle));
+				}
+				if(strcmp("-blgskews", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &(bilp.skews));
+				}
+				if(strcmp("-blgbias", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &blgbias);
+					subpots[0] = -blgbias;
+					subpots[1] = -blgbias;
+					subpots[2] = blgbias;
+					subpots[3] = blgbias;
+				}
+		
+			}
+			
+			
+			if(bilp.type_shift ==1)
+			{
+				sprintf(blgtype, "AB");
+			}
+			else if (bilp.type_shift ==0)
+			{
+				sprintf(blgtype, "AA");
+			}
+			else if (bilp.type_shift ==2)
+			{
+				sprintf(blgtype, "CUST");
+			}
 
+			//"blgskews" from command line turns on skew hopping terms if 1NN is being used
+			//else nngm in command line takes precedence.
+			if(bilp.skews == 1)
+			{
+				nngm = 2;
+			}
+			num_neigh=nngm+1;
+			max_neigh=(hop_to_load->max_neigh)[num_neigh-1];
+			
+			
+			//basic BLG connection stuff
+				blg_cnxpara.intra_thresh_min = BLG_NNTB_hop_params.NN_lowdis[0];
+				blg_cnxpara.intra_thresh_max = BLG_NNTB_hop_params.NN_highdis[0];
+				blg_cnxpara.inter_thresh_min = 0.0;
+				blg_cnxpara.inter_thresh_max = BLG_NNTB_hop_params.NN_highdis[num_neigh-1];
+				blg_cnxpara.zthresh1 = 0.1;
+				blg_cnxpara.zthresh2 = bilp.zsep + 0.1;
+		
+			
+			
+			blg_cnxpara.periodic = cnxpara.periodic;
+			
+
+			
+			
+			//set functions and params for use below
+			SysFunction = &simpleBilayerGeo;
+			SysPara = &bilp;
+			leadp.additional_params = &bilp;
+			gen_leads_mode=1;
+			
+			default_connect_rule = &blg_conn_sep;
+			defdouble_connect_rule = &blg_conn_sep2;
+			default_connection_params = &blg_cnxpara;
+			
+			
+			
+			//set filename info - what to put in filename from these params
+			sprintf(sysinfo, "%s_L2_%d", blgtype, length2);
+			if(blgbias !=0.0)
+			{
+				sprintf(sysinfo, "%s_b%.2lf_L2_%d", blgtype, blgbias, length2);
+			}
+			
+			if(bilp.skews == 1)
+			{
+				sprintf(sysinfo, "%s.s_L2_%d", blgtype, length2); 
+				if(blgbias !=0.0)
+				{
+					sprintf(sysinfo, "%s.s_b%.2lf_L2_%d", blgtype, blgbias, length2);
+				}
+			}
+			
+			
+			
+		}
 
 	  
 	  
@@ -1082,12 +1194,12 @@ main(int argc, char *argv[])
 	      }
 	  
 	  
-	  
+	  connectrules = default_connect_rule;
 	  
 	  //standard hall settings
 	   if(ishallbar==1 || ishallbar==2)
             {
-            connectrules = &graph_conn_sep;
+            connectrules = default_connect_rule;
             isperiodic=0;
             cnxpara.periodic = 0;
             kpts = 1;
@@ -1181,7 +1293,7 @@ main(int argc, char *argv[])
             if(ishallbar ==3)
             {
                 num_leads=4; //default - checks again below!
-                connectrules = &graph_conn_sep;
+                connectrules = default_connect_rule;
                 isperiodic=0;
                 cnxpara.periodic = 0;
                 kpts = 1;
@@ -1334,7 +1446,7 @@ main(int argc, char *argv[])
 		{
 			currIn=1;
 			currOut=0;
-			connectrules = &graph_conn_sep;
+			connectrules = default_connect_rule;
 			for(i=1; i<argc-1; i++)
 			{
 				//uses main code numleads check
@@ -1965,8 +2077,7 @@ main(int argc, char *argv[])
 	    int **siteinfo = System.siteinfo;
 	    double *site_pots = System.site_pots;
 	    
-	     //in theory cell Division could write to lead_para, so its defined here
-	  lead_para leadp={};
+	
 	  
 
 	  	  int halloutput;
@@ -2031,7 +2142,7 @@ main(int argc, char *argv[])
 	  
 	    if(ishallbar ==0 && bandsonly == 0)
 	    {
-	      genLeads(&System, LeadCells, num_leads, 0, &leadp);
+	      genLeads(&System, LeadCells, num_leads, gen_leads_mode, &leadp);
 	    }
 	  
 		//adds (averaged) sublattice dependent potentials to left and right leads (leads 0 and 1)
@@ -2051,20 +2162,19 @@ main(int argc, char *argv[])
 
 	  cnxProfile cnxp;
 	 
-	    cnxp.max_neigh=max_neigh;
-	    device_connectivity (&System, connectrules, &cnxpara, &cnxp);
+ 	    cnxp.max_neigh=max_neigh;
+	    device_connectivity (&System, connectrules, default_connection_params, &cnxp);
 	    
 		  time = clock() - time;
 		  printf("#made connection profile in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		  time = clock();
-	  // printConnectivity (&System, &cnxp);
+//   	   printConnectivity (&System, &cnxp);
 	  
-
 		
 	  gen_start_params start_p ={};
 	 
-	    start_p.rule = &graph_conn_sep2;
-	    start_p.rule_params = &cnxpara;
+	    start_p.rule = defdouble_connect_rule;
+	    start_p.rule_params = default_connection_params;
 	    start_p.num_leads = num_leads;
 	    start_p.Leads = LeadCells;
 	  
@@ -2077,8 +2187,8 @@ main(int argc, char *argv[])
 	if(ishallbar == 4)
 	{	
 		starting_ps = &cstart_p;
-		cstart_p.rule = &graph_conn_sep2;
-		cstart_p.rule_params = &cnxpara;
+		cstart_p.rule = defdouble_connect_rule;
+		cstart_p.rule_params = default_connection_params;
 		cstart_p.num_leads = num_leads;
 		cstart_p.Leads = LeadCells;
 		starting_cell_mode = 5;
@@ -2089,7 +2199,9 @@ main(int argc, char *argv[])
 	  
 	 if(bandsonly == 0)
 		genStartingCell(&System, &cellinfo, starting_cell_mode, starting_ps);
-		  
+	 
+// 	exit(0);
+	  
 
 		if(output_type == 1)
 		{
@@ -2116,39 +2228,67 @@ main(int argc, char *argv[])
 		
 	  //hopping parameters and gauge info
 
-//GAUGE NEEDS TO BE GENERALISED FOR HALL BAR CASE
-//TIDY THIS UP IN GENERAL TO ALLOW FIELD IN LEADS
-	  hoppara.num_neigh = nngm;
-	  hoppara.hops=createCompArray(hoppara.num_neigh);
-	  hoppara.NN_lowdis=createDoubleArray(hoppara.num_neigh);
-	  hoppara.NN_highdis=createDoubleArray(hoppara.num_neigh);
-	  hoppara.NN_shifts=createDoubleArray(hoppara.num_neigh);
-	  
-	  hoppara.hops[0]=t0;
-	  hoppara.NN_lowdis[0] = NNlowdis;
-	  hoppara.NN_highdis[0] = NNhighdis;
-	  
-	  if(nngm>1)
-	  {
-	    hoppara.hops[1]=t1;
-	    hoppara.NN_lowdis[1]=NNlowdis1;
-	    hoppara.NN_highdis[1]=NNhighdis1;
-	    hoppara.NN_shifts[1]= onsitec1;
-	  }
-	    
-	  if(nngm>2)
-	  {
-	    hoppara.hops[2]=t2;
-	    hoppara.NN_lowdis[2]=NNlowdis2;
-	    hoppara.NN_highdis[2]=NNhighdis2;
-	    hoppara.NN_shifts[2]= onsitec2;
-	    
-	  }
+	//LOAD HOPPING PARAMS
+
+		hoppara.num_neigh = num_neigh;
+		hoppara.hops=createCompArray(hoppara.num_neigh);
+		hoppara.NN_lowdis=createDoubleArray(hoppara.num_neigh);
+		hoppara.NN_highdis=createDoubleArray(hoppara.num_neigh);
+		hoppara.NN_shifts=createDoubleArray(hoppara.num_neigh);
+		hoppara.NN_zmin=createDoubleArray(hoppara.num_neigh);
+		hoppara.NN_zmax=createDoubleArray(hoppara.num_neigh);
+		
+		
+		
+		//read a hopping profile
+		//taken to nngm-th order
+		//nngm must be less than the maximum for this to work
+ 		if(num_neigh<=(hop_to_load->num_neigh))
+		{
+// 			hoppara.max_neigh = (hop_to_load->max_neigh)[nngm];
+			for(i=0; i<num_neigh; i++)
+			{
+				hoppara.hops[i]=(hop_to_load->hops)[i];	
+				hoppara.NN_lowdis[i] = (hop_to_load->NN_lowdis)[i];
+				hoppara.NN_highdis[i] = (hop_to_load->NN_highdis)[i];
+				hoppara.NN_shifts[i] = (hop_to_load->NN_shifts)[i];
+				hoppara.NN_zmin[i] = (hop_to_load->NN_zmin)[i];
+				hoppara.NN_zmax[i] = (hop_to_load->NN_zmax)[i];
+				
+			}
+		}
+		else
+			exit(1);
+// 	  
+// 	  hoppara.hops[0]=t0;
+// 	  hoppara.NN_lowdis[0] = NNlowdis;
+// 	  hoppara.NN_highdis[0] = NNhighdis;
+// 
+// 	  
+// 	  if(nngm>1)
+// 	  {
+// 	    hoppara.hops[1]=t1;
+// 	    hoppara.NN_lowdis[1]=NNlowdis1;
+// 	    hoppara.NN_highdis[1]=NNhighdis1;
+// 	    hoppara.NN_shifts[1]= onsitec1;
+// 	  }
+// 	    
+// 	  if(nngm>2)
+// 	  {
+// 	    hoppara.hops[2]=t2;
+// 	    hoppara.NN_lowdis[2]=NNlowdis2;
+// 	    hoppara.NN_highdis[2]=NNhighdis2;
+// 	    hoppara.NN_shifts[2]= onsitec2;
+// 	    
+// 	  }
 // 	  hoppara.t0=t0;
+		
+// 		hoppara.num_neigh = hop_to_load->num_neigh;
+		
 	  hoppara.isperiodic=isperiodic;
 	  hoppara.kpar=kmin;
-
 	  hoppara.gauge=gauge;
+	  
 	  int *res = createIntArray(2);
 	  double **reslimits = createNonSquareDoubleMatrix(2, 6);
 	  
@@ -3001,8 +3141,11 @@ main(int argc, char *argv[])
  		    sprintf(command, "cat %s.part* | sort -n > %s/%s.dat", filename, direcname, filename_temp);
 		    system(command);
 		    
- 		    sprintf(command, "cat %s.full.part* | sort -n > %s/%s.full.dat", filename, direcname, filename_temp);
-		    system(command);
+		    if(ishallbar==4 || ishallbar==3)
+		    {
+			sprintf(command, "cat %s.full.part* | sort -n > %s/%s.full.dat", filename, direcname, filename_temp);
+			system(command);
+		    }
 		    
 		    
 		    
