@@ -67,6 +67,8 @@ main(int argc, char *argv[])
 	      int metal_leads = 0;      //if this is set to 1, metallic leads are used instead of ribbons -
                                         //these need to be accounted for properly with positions etc...
                                         
+	      
+                                        
                                         
                                         
 	     //lead_para moved here to allow additional_params to be specified in system generation
@@ -1131,6 +1133,23 @@ main(int argc, char *argv[])
 			
 		}
 
+	  
+	  
+	  
+	  
+	  double kxmin=0.0, kxmax =(2*M_PI/length2);
+		for(i=1; i<argc-1; i++)
+		{
+			if(strcmp("-kxmin", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%lf", &kxmin);
+			}
+			if(strcmp("-kxmax", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%lf", &kxmax);
+			}
+
+		}
 	  
 	  
 	//misc  
@@ -2438,7 +2457,9 @@ main(int argc, char *argv[])
 	   weights = createNonSquareDoubleMatrix(Nrem, length2);
 	   projections = createNonSquareDoubleMatrix(Nrem, Nrem);
 	   bandmode=0;
-	   kxstep = (2*M_PI/length2)/(kxpoints -1);
+	   kxstep = (kxmax-kxmin)/(kxpoints -1);
+	   if(kxpoints ==1)
+		   kxstep=100.0;
 	   
 	   
 	    if(ismagnetic == 1)
@@ -2466,7 +2487,7 @@ main(int argc, char *argv[])
 	    }
 	    
 	    
-	      for(kxl=0; kxl< 2*M_PI/length2; kxl += kxstep)
+	      for(kxl=kxmin; kxl< kxmax; kxl += kxstep)
 	      {
       //  	   kxl=0.2;
 		 
