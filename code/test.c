@@ -22,7 +22,7 @@ main(int argc, char *argv[])
 	  
 	  //general system inputs and default values
 	      char systemtype[32];
-	      char geotype[32], peritype[40], leadtype[32], sysinfo[120], loopinfo[80], disinfo[40];
+	      char geotype[32], peritype[40], leadtype[32], sysinfo[120], loopinfo[80], loopmininfo[80], disinfo[40];
 	      sprintf(systemtype, "SUBLATTICEPOT");
 	      int length1=2, length2=3*length1, geo=0, isperiodic=1, ismagnetic=0;
 	      int makebands = 0, unfold=0, project=0, kxpoints=51, bandsonly=0, bandsminset=0, bandsmaxset=100000;
@@ -1838,6 +1838,7 @@ main(int argc, char *argv[])
 		loopmin = Emin;
 		loopmax = Emax;
 		sprintf(loopinfo, "Eloop_%+.2lf_to_%+.2lf_Bfixed_%+.3lf", Emin, Emax, Bfield);
+		sprintf(loopmininfo, "E_%+.3lf_B_%+.3lf", Emin, Bfield);
 	      }
 
 	      if(strcmp("B", loop_type) == 0)
@@ -1846,8 +1847,11 @@ main(int argc, char *argv[])
 		loopmin = Bmin;
 		loopmax = Bmax;
 		sprintf(loopinfo, "Bloop_%+.2lf_to_%+.2lf_Efixed_%+.3lf", Bmin, Bmax, realE);
+		sprintf(loopmininfo, "E_%+.3lf_B_%+.3lf", realE, Bmin);
+
 
 	      }
+	      
 	      
 	      
 	      double edge_cut=5.0, subs_thick=0.1E-6, subs_epsr=3.9;
@@ -2713,6 +2717,10 @@ main(int argc, char *argv[])
 	      {
 		     sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.ldos", direcname, realE, Bfield, job_name, conf_num);
 		     
+			if(strcmp("VG", loop_type) == 0)
+			{
+				sprintf(mapname, "%s/VG_%s_%.2lf_E_%+.2lf_B_%+.3lf_%s.conf%02d.ldos", direcname, vgtname, VG, realE, Bfield, job_name, conf_num);
+			}
 
 		      mapfile = fopen(mapname, "w");
 		      
@@ -2729,6 +2737,10 @@ main(int argc, char *argv[])
 			
 			sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.cmaps_l%d", direcname, realE, Bfield, job_name, conf_num, j);
 
+			if(strcmp("VG", loop_type) == 0)
+			{
+				sprintf(mapname, "%s/VG_%s_%.2lf_E_%+.2lf_B_%+.3lf_%s.conf%02d.cmaps_l%d", direcname, vgtname, VG, realE, Bfield, job_name, conf_num, j);
+			}
 
 			  mapfile = fopen(mapname, "w");
 			  for(i=0; i<Ntot; i++)
