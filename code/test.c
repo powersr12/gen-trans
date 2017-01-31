@@ -1900,6 +1900,9 @@ main(int argc, char *argv[])
 	
 		
 		sprintf(loopinfo, "VG_%s_loop_%+.2lf_to_%+.2lf_Bfixed_%+.3lf_Efixed_%+.3lf", vgtname, VGmin, VGmax, Bfield, realE);
+		sprintf(loopmininfo, "VG_%s_%+.2lf_E_%+.3lf_B_%+.3lf", VGmin, realE, Bfield);
+
+		
 	      }
 
 	      
