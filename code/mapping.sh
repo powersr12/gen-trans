@@ -11,8 +11,8 @@ MAXPTS=100000
 # PROJNAME=E_+0.40_B_+163.500_longbuf.conf00
 
 BASEFOLDER=/home/ICN2/spower/projects/gen-trans/res/
-PROJFOLDER=CLEAN_rnltest_4_LEADS_1_to_0__1e-06/ZZ200_clean_l2_1000/POTDIS_c_0.01_d_0.200_xi_3.0/
-PROJNAME=E_+0.00_B_+12.333_NEW.conf00
+PROJFOLDER=SUBLMOIRE_RIBBON_1e-06/ZZ59_L2_108_default_off_0.0_0.0/
+PROJNAME=E_-0.0022_B_+0.000_hidef.conf00
 
 # BASEFOLDER=/home/ICN2/spower/DTU_GEN_RES/
 # PROJFOLDER=ANTIDOTS_RIBBON_1e-05/ZZ720_rect_lat_L_60_104_circ_dot_R_20.0_6x8_xyf_0.0_rf_0.0/
@@ -28,9 +28,9 @@ DOSNAME=$BASENAME.ldos
 # CURRENTS="l0 l2 l3 l1 l4 l5 multi"
 # CURRENTS="l0 l2 l3 l1 l4 "
 
-# CURRENTS="l0 l1"
+ CURRENTS="l0"
 # CURRENTS="multi"
-CURRENTS="l0 l2 l3 l1 multi"
+# CURRENTS="l0 l2 l3 l1 multi"
 
 NUMPTS=`cat $DOSNAME | awk 'END{print NR}'`
 MAXDOS=`cat $DOSNAME | awk 'BEGIN{max=0} {if ($3>max) max=$3} END{printf "%lf",  max}'`

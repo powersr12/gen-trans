@@ -1428,6 +1428,370 @@ void genSublatticeDevice(RectRedux *SiteArray, void *p, int struc_out, char *fil
 	
 }
 
+void genSublatticeMoire(RectRedux *SiteArray, void *p, int struc_out, char *filename)
+{  
+	  submoire_para *params = (submoire_para *)p;
+		double AA_mass= (params->AA_mass);
+		double AA_pot= (params->AA_pot);
+		double AB_mass= (params->AB_mass);
+		double AB_pot= (params->AB_pot);
+		double BA_mass= (params->BA_mass);
+		double BA_pot= (params->BA_pot);
+		int lM= (params->lM);
+		double x_offset= (params->x_offset);
+		double y_offset= (params->y_offset);
+		int seed= (params->seed);
+	  
+		int i, j, k;
+	 
+	  
+		int length = SiteArray->length;
+		int length2 = SiteArray->length2;
+		int geo = SiteArray->geo;
+	    
+	  double smalldist;
+	  FILE *out;
+	  
+	  if(struc_out != 0)
+	  {
+	    out = fopen(filename, "w");
+	    
+	  }
+	    
+	  srand(time(NULL) + seed);
+	  
+	  
+	  //atomic coordinates and the atoms that are in and out, similar to previous cases
+		int tot_sites = 2*length*length2;
+		double **site_coords = createNonSquareDoubleMatrix(tot_sites, 3);
+		double *site_pots = createDoubleArray(tot_sites);
+		int **siteinfo = createNonSquareIntMatrix(tot_sites, 2);
+		double xstart, ystart;
+		int isclean, l, m;
+		int *Nrem = (SiteArray->Nrem);
+		int *Ntot = (SiteArray->Ntot);
+	  
+		*Ntot = tot_sites;
+	  
+		if(geo==0)
+		{
+			for(l=0; l<length2; l++)
+			{
+				xstart=l*1.0;
+				for(m=0; m<length; m++)
+				{
+					ystart= m*sqrt(3)/2 + 1/(2*sqrt(3));
+					
+					if((m%2) == 0)
+					{
+						site_coords[l*2*length + 2*m][0] = xstart+0.5;
+						site_coords[l*2*length + 2*m + 1][0] = xstart;
+					}
+					
+					if((m%2) == 1)
+					{
+						site_coords[l*2*length + 2*m][0] = xstart;
+						site_coords[l*2*length + 2*m + 1][0] = xstart+0.5;
+					}
+					
+					site_coords[l*2*length + 2*m][1] = ystart;
+					site_coords[l*2*length + 2*m + 1][1] = ystart + 1/(2*sqrt(3));
+					siteinfo[l*2*length + 2*m][1]=0;
+					siteinfo[l*2*length + 2*m +1][1]=1;
+
+					
+				}
+			}
+		}
+	  
+		if(geo==1)
+		{
+			for(l=0; l<length2; l++)
+			{
+				xstart = l*sqrt(3);
+				for(m=0; m<length; m++)
+				{
+					if((m%2) == 0)
+					{
+						site_coords[l*2*length + m][0] = xstart;
+						site_coords[l*2*length + length + m][0] = xstart +2 / sqrt(3);
+						siteinfo[l*2*length + m][1] = 0;
+						siteinfo[l*2*length + length + m][1] = 1;
+					}
+					if((m%2) == 1)
+					{
+						site_coords[l*2*length + m][0] = xstart +  1/(2*sqrt(3));
+						site_coords[l*2*length + length + m][0] = xstart + (sqrt(3))/2;
+						siteinfo[l*2*length + m][1] = 1;
+						siteinfo[l*2*length + length + m][1] = 0;
+					}
+					
+					site_coords[l*2*length + m][1] = m*0.5;
+					site_coords[l*2*length + length + m][1] = m*0.5;
+
+				
+				}
+				
+				
+			}
+			
+		}
+		
+		
+	      
+	//potentials and masses stuff here
+		//high symmetry AA, AB and BA points needed for the rectangular moire unit cell
+			//these are used to divide the cell into triangles
+			//the mass and potential at a point is interpolated from those at the high symm points 
+			//at the vertices of its containing triangles
+			
+		int i1, i2; 
+		if(geo==0)
+		{
+			i1=0; i2=1;
+		}
+		if(geo==1)
+		{
+			i1=1; i2=0;
+		}
+		
+		double AAtriag[5][2], ABtriag[4][2], BAtriag[4][2];
+		int celltriag[14][3];
+		
+		AAtriag[0][i1] = 0.0, 	AAtriag[0][i2] = 0.0;
+		AAtriag[1][i1] = 0.0, 	AAtriag[1][i2] = lM*sqrt(3);
+		AAtriag[2][i1] = lM/2.0, 	AAtriag[2][i2] = lM*sqrt(3)/2.0;
+		AAtriag[3][i1] = lM, 	AAtriag[3][i2] = 0.0;
+		AAtriag[4][i1] = lM, 	AAtriag[4][i2] = lM*sqrt(3.0);
+		
+		ABtriag[0][i1] = 0.0, 	ABtriag[0][i2] = lM/sqrt(3.0);
+		ABtriag[1][i1] = lM/2.0, 	ABtriag[1][i2] = -lM/(2*sqrt(3.0));
+		ABtriag[2][i1] = lM/2.0, 	ABtriag[2][i2] = 5.0*lM/(2*sqrt(3.0));
+		ABtriag[3][i1] = lM, 	ABtriag[3][i2] = lM/sqrt(3.0);
+		
+		BAtriag[0][i1] = 0.0, 	 BAtriag[0][i2] = 2.0*lM/sqrt(3.0);
+		BAtriag[1][i1] = lM/2.0, BAtriag[1][i2] = lM/(2.0*sqrt(3.0));
+		BAtriag[2][i1] = lM/2.0, BAtriag[2][i2] = 7.0*lM/(2*sqrt(3.0));
+		BAtriag[3][i1] = lM, BAtriag[3][i2] = 2.0*lM/(sqrt(3.0));
+		
+		celltriag[0][0] = 0; 	celltriag[0][1] = 1; 	celltriag[0][2]=1;
+		celltriag[1][0] = 3; 	celltriag[1][1] = 1; 	celltriag[1][2]=1;
+		celltriag[2][0] = 0; 	celltriag[2][1] = 0; 	celltriag[2][2]=1;
+		celltriag[3][0] = 3; 	celltriag[3][1] = 3; 	celltriag[3][2]=1;
+		celltriag[4][0] = 2; 	celltriag[4][1] = 0; 	celltriag[4][2]=1;
+		celltriag[5][0] = 2; 	celltriag[5][1] = 3; 	celltriag[5][2]=1;
+		celltriag[6][0] = 2; 	celltriag[6][1] = 0; 	celltriag[6][2]=0;
+		celltriag[7][0] = 2; 	celltriag[7][1] = 3; 	celltriag[7][2]=3;
+		celltriag[8][0] = 2; 	celltriag[8][1] = 2; 	celltriag[8][2]=0;
+		celltriag[9][0] = 2; 	celltriag[9][1] = 2; 	celltriag[9][2]=3;
+		celltriag[10][0] = 1; 	celltriag[10][1] = 2; 	celltriag[10][2]=0;
+		celltriag[11][0] = 4; 	celltriag[11][1] = 2; 	celltriag[11][2]=3;
+		celltriag[12][0] = 1; 	celltriag[12][1] = 2; 	celltriag[12][2]=2;
+		celltriag[13][0] = 4; 	celltriag[13][1] = 2; 	celltriag[13][2]=2;
+                                           
+
+// 		for(l=0; l<14; l++)
+// 		{
+// 			printf("%lf	%lf\n", AAtriag[celltriag[l][0]][0],  AAtriag[celltriag[l][0]][1]);
+// 			printf("%lf	%lf\n", ABtriag[celltriag[l][1]][0],  ABtriag[celltriag[l][1]][1]);
+// 			printf("%lf	%lf\n", BAtriag[celltriag[l][2]][0],  BAtriag[celltriag[l][2]][1]);
+// 			printf("%lf	%lf\n\n", AAtriag[celltriag[l][0]][0],  AAtriag[celltriag[l][0]][1]);
+// 		}
+// 		printf("\n");
+// 		exit(0);
+	
+		//for each site, determine it's position in the rectangular moire unit cell
+		double *polyx = createDoubleArray(3);
+		double *polyy = createDoubleArray(3);
+		double *temppolyx=createDoubleArray(3);
+		double *temppolyy = createDoubleArray(3);
+		double areaT, areaAA, areaAB, areaBA;
+		double siteposx, siteposy;
+		int mx=0, my=0;
+		double *masses = createDoubleArray(tot_sites);
+		double *potentials = createDoubleArray(tot_sites);
+		double norm;
+		
+		for(i=0; i<*Ntot; i++)
+		{
+			//Transform coordinate into main unit cell
+			siteposx = site_coords[i][0] - x_offset;
+			siteposy = site_coords[i][1] - y_offset;
+			
+			if(geo==0)
+			{
+				mx = (int) (siteposx / lM);
+				my = (int) (siteposy / (lM*sqrt(3)));
+				
+				if( mx != 0 )
+				{
+					siteposx = siteposx - mx * lM;
+				}
+				if( my != 0 )
+				{
+					siteposy = siteposy - my * lM * sqrt(3);
+				}
+				
+				
+				
+			}
+			
+			if(geo==1)
+			{
+				my = (int) (siteposy / lM);
+				mx = (int) (siteposx / (lM*sqrt(3)));
+				
+				if( my != 0 )
+				{
+					siteposy = siteposy - my * lM;
+				}
+				if( mx != 0 )
+				{
+					siteposx = siteposx - mx * lM * sqrt(3);
+				}
+				
+				
+			}
+			
+						
+			
+			//Loop over possible triangles in unit cell
+			for(j=0; j<14; j++)
+			{
+//  			j=2;
+				polyx[0] = AAtriag[celltriag[j][0]][0];
+				polyy[0] = AAtriag[celltriag[j][0]][1];
+				polyx[1] = ABtriag[celltriag[j][1]][0];
+				polyy[1] = ABtriag[celltriag[j][1]][1];
+				polyx[2] = BAtriag[celltriag[j][2]][0];
+				polyy[2] = BAtriag[celltriag[j][2]][1];
+				
+				
+				if(pntriangle(polyx, polyy, siteposx, siteposy))
+				{
+// 					areaT = areaTriangle(polyx, polyy);
+					
+					temppolyx[0] = siteposx;
+					temppolyy[0] = siteposy;
+					temppolyx[1] = polyx[1];
+					temppolyy[1] = polyy[1];
+					temppolyx[2] = polyx[2];
+					temppolyy[2] = polyy[2];
+					areaAA = areaTriangle(temppolyx, temppolyy);
+					
+					temppolyx[0] = polyx[0];
+					temppolyy[0] = polyy[0];
+					temppolyx[1] = siteposx;
+					temppolyy[1] = siteposy;
+					temppolyx[2] = polyx[2];
+					temppolyy[2] = polyy[2];
+					areaAB = areaTriangle(temppolyx, temppolyy);
+					
+					temppolyx[0] = polyx[0];
+					temppolyy[0] = polyy[0];
+					temppolyx[1] = polyx[1];
+					temppolyy[1] = polyy[1];
+					temppolyx[2] = siteposx;
+					temppolyy[2] = siteposy;
+					areaBA = areaTriangle(temppolyx, temppolyy);
+					
+					norm= areaAA*areaAA + areaAB*areaAB+ areaBA*areaBA;
+					
+ 					masses[i] = (areaAA*areaAA*AA_mass + areaAB*areaAB*AB_mass + areaBA*areaBA*BA_mass)/norm;
+					potentials[i] = (areaAA*areaAA*AA_pot + areaAB*areaAB*AB_pot + areaBA*areaBA*BA_pot)/norm;
+					
+					
+				}
+			}
+			
+			if(siteinfo[i][1] ==0)
+				site_pots[i] = potentials[i] + 0.5*masses[i];
+			
+			if(siteinfo[i][1] ==1)
+				site_pots[i] = potentials[i] - 0.5*masses[i];
+			
+						
+		}
+		//printf("\n");
+// 		for(i=0; i<*Ntot; i++)
+// 		{
+// 			printf("%lf	%lf	%e\n", site_coords[i][0], site_coords[i][1], masses[i]);
+// 		}
+// 		      
+// 		     exit(0);
+		
+		free(masses);
+		free(potentials);
+		
+		
+		
+		
+	      double temprandnum;
+	      
+	      
+	      	      
+	      //chaininfo needed for conductance calcs (if atoms are missing)
+		      (SiteArray->chaininfo) = createNonSquareIntMatrix(length2, 4);
+		      int tempint=0, tempint2=0;
+	 
+			for(l=0; l<length2; l++)
+			{
+			  tempint=0;
+			  for(m=0; m<2*length; m++)
+			  {
+			    if(siteinfo[l*2*length +m][0] == 0)
+			    {
+			      tempint ++;
+			      tempint2++;
+			    }
+			  }
+			  (SiteArray->chaininfo)[l][0] = tempint;
+			}
+			*Nrem = tempint2;
+			
+			
+			(SiteArray->chaininfo)[0][1] = 0;
+			for(l=1; l<length2; l++)
+			{
+			  (SiteArray->chaininfo)[l][1] = (SiteArray->chaininfo)[l-1][1] + (SiteArray->chaininfo)[l-1][0];
+			}
+
+
+			//are first and last atoms in each chain present?
+			for(l=1; l<length2; l++)
+			{
+			  if(siteinfo[l*2*length][0] == 1)
+			    (SiteArray->chaininfo)[l][2] = 1;
+			  
+			  if(siteinfo[(l+1)*2*length -1][0] == 1)
+			    (SiteArray->chaininfo)[l][3] = 1;
+			}
+	  
+	  
+	  
+		      
+			if(struc_out == 1)
+			{
+			
+			  
+			}
+			
+			  if(struc_out != 0)
+			  {
+			    fclose(out);
+			  }
+			    
+			
+			  
+			  //Fill the array of data structures describing the system
+			  (SiteArray->pos) = site_coords;
+			  (SiteArray->site_pots) = site_pots;
+			  (SiteArray->siteinfo) = siteinfo;
+			  
+			  
+}
+
+
 
 //generates averaged sublattice potentials in left right leads (leads 0 and 1)
 //this is useful for injection in and out of infinite devices
@@ -2742,7 +3106,6 @@ void importRectConf(RectRedux *System, int length, int length2, char *filename)
       }
    
     fclose(fileout);
-
     
     
 //     sprintf(fullname, "%s.chaininfo", filename);

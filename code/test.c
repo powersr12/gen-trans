@@ -768,6 +768,79 @@ main(int argc, char *argv[])
 		    sprintf(sysinfo, "L2_%d_%dINT_W%.1lf_SUBA_%.2lfx%.3lf_SUBB_%.2lfx%.3lf", length2, sub2intp.xory, sub2intp.int_width1, (sub2intp.a_conc2), (sub2intp.a_pot2),(sub2intp.b_conc2), (sub2intp.b_pot2)); 
 		}
 		
+		
+		
+		submoire_para sublmp = {};
+		double mev = 0.001/2.7;
+		//mev=1.0;
+		char moirename[40];
+		if(strcmp("SUBLMOIRE", systemtype) == 0)
+		{	
+		    //default values
+		    
+			//mass and potential vales at high symmetry points
+				sublmp.AA_mass = -40*mev;
+				sublmp.AA_pot = 0*mev;
+				sublmp.AB_mass = 30*mev;
+				sublmp.AB_pot = 40*mev;
+				sublmp.BA_mass = 15*mev;
+				sublmp.BA_pot = -40*mev;
+		    
+			//Moire lattice vector zigzag direction length	
+				sublmp.lM = 59;
+				
+			//Moire pattern origin offset
+				sublmp.x_offset=0.0;
+				sublmp.y_offset=0.0;
+		    
+				sprintf(moirename, "default");
+
+		    
+		    //check for command line arguments which vary these
+		    for(i=1; i<argc-1; i++)
+		    {
+		      if(strcmp("-moireaamass", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sublmp.AA_mass));
+		      }
+		      if(strcmp("-moireabmass", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sublmp.AB_mass));
+		      }
+		      if(strcmp("-moirebamass", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sublmp.BA_mass));
+		      }
+		       if(strcmp("-moireaapot", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sublmp.AA_pot));
+		      }
+		      if(strcmp("-moireabpot", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sublmp.AB_pot));
+		      }
+		      if(strcmp("-moirebapot", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sublmp.BA_pot));
+		      }
+		      if(strcmp("-moirename", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%s", moirename);
+		      }
+		      
+		    }
+		    
+			
+			
+		    //set functions and params for use below
+		    SysFunction = &genSublatticeMoire;
+		    SysPara = &sublmp;
+		    
+		    //set filename info - what to put in filename from these params
+		    sprintf(sysinfo, "L2_%d_%s_off_%.1lf_%.1lf", length2, moirename, sublmp.x_offset, sublmp.y_offset); 
+		}
+		
+		
 		adot_para adotp = {};
 		char lattice_info[35], dot_info[45];
 		if(strcmp("ANTIDOTS", systemtype) == 0)
@@ -2690,7 +2763,7 @@ main(int argc, char *argv[])
               
 	      if(mapmode==1)
 	      {
-		     sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.ldos", direcname, realE, Bfield, job_name, conf_num);
+		     sprintf(mapname, "%s/E_%+.4lf_B_%+.3lf_%s.conf%02d.ldos", direcname, realE, Bfield, job_name, conf_num);
 		     
 
 		      mapfile = fopen(mapname, "w");
@@ -2706,7 +2779,7 @@ main(int argc, char *argv[])
 		      for(j=0; j<num_leads; j++)
 		      {
 			
-			sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.cmaps_l%d", direcname, realE, Bfield, job_name, conf_num, j);
+			sprintf(mapname, "%s/E_%+.4lf_B_%+.3lf_%s.conf%02d.cmaps_l%d", direcname, realE, Bfield, job_name, conf_num, j);
 
 
 			  mapfile = fopen(mapname, "w");
@@ -2801,7 +2874,7 @@ main(int argc, char *argv[])
                                 
         // 			printf("#curr: %.10e\n", vecx[0]);
 
-                                sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.cmaps_multi", direcname, realE, Bfield, job_name, conf_num);
+                                sprintf(mapname, "%s/E_%+.4lf_B_%+.3lf_%s.conf%02d.cmaps_multi", direcname, realE, Bfield, job_name, conf_num);
                                 mapfile = fopen(mapname, "w");
                                 for(i=0; i<Ntot; i++)
                                 { 
@@ -2919,7 +2992,7 @@ main(int argc, char *argv[])
                                 probe_pots[5] = vecx[4];
                                 
 
-                                sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.cmaps_multi", direcname, realE, Bfield, job_name, conf_num);
+                                sprintf(mapname, "%s/E_%+.4lf_B_%+.3lf_%s.conf%02d.cmaps_multi", direcname, realE, Bfield, job_name, conf_num);
                                 mapfile = fopen(mapname, "w");
                                 for(i=0; i<Ntot; i++)
                                 { 
@@ -3057,7 +3130,7 @@ main(int argc, char *argv[])
 				//make a composite map for multiprobe systems
 				if(mapmode == 1)
 				{
-					sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.cmaps_multi", direcname, realE, Bfield, job_name, conf_num);
+					sprintf(mapname, "%s/E_%+.4lf_B_%+.3lf_%s.conf%02d.cmaps_multi", direcname, realE, Bfield, job_name, conf_num);
 					mapfile = fopen(mapname, "w");
 					for(i=0; i<Ntot; i++)
 					{ 

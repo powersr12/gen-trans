@@ -79,6 +79,19 @@ typedef struct {
 	int seed;
 }subl_para;
 
+typedef struct {
+	double AA_mass;
+	double AA_pot;
+	double AB_mass;
+	double AB_pot;
+	double BA_mass;
+	double BA_pot;
+	int lM;
+	double x_offset;
+	double y_offset;
+	int seed;
+}submoire_para;
+
 
 typedef struct {
 	int type_shift; //=0 AA. =1 AB(Bernal), =2(Custom, uses *shiftvec and  shift_angle (ANGLE NOT IMPLEMENTED YET!)
@@ -187,6 +200,8 @@ void genSublatticeDevice(RectRedux *SiteArray, void *p, int struc_out, char *fil
 void genSublatticeInterface(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 void genSublatticeTwoInts(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 void genSublatticeLeadPots(RectRedux **Leads, void *p);
+void genSublatticeMoire(RectRedux *SiteArray, void *p, int struc_out, char *filename);
+
 
 void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 
