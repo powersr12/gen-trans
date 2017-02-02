@@ -16,7 +16,8 @@
 
 main(int argc, char *argv[])
 {
-    
+	
+	
 	  //counters
 	  int i, j,k,l;
 	  
@@ -1998,13 +1999,26 @@ main(int argc, char *argv[])
 	    FILE *output, *fulloutput;
 	    char filename[300], filename3[300], filename_temp[300], fullfilename[300];
 	    char checkname[300], direcname[300], conffile[350], strucfile[300], lstrucfile[350], disorderfile[300];
-	    char bandname1[300], bandname2[300], bandname3[300], mapname[400];
-            char command[600];
+	    char bandname1[300], bandname2[300], bandname3[300], mapname[400], maindirec[100];
+            char command[600], inputlist[300];
 	    FILE *bandfile;
 	    FILE *mapfile;
 	    
 	//Create directory and filenaming convention
-	    sprintf(direcname, "../res/%s_%s_%.0e/%s%d_%s", systemtype, peritype, eta, geotype, length1, sysinfo);
+	    sprintf(maindirec, "..");
+	    
+	     //check for command line arguments which vary these
+		    for(i=1; i<argc-1; i++)
+		    {
+		      if(strcmp("-maindirec", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%s", maindirec);
+		      }
+		    }
+	    
+	    
+	    
+	    sprintf(direcname, "%s/res/%s_%s_%.0e/%s%d_%s", maindirec, systemtype, peritype, eta, geotype, length1, sysinfo);
 	    
 	    if(potdis==1)
 	    {
@@ -2019,6 +2033,8 @@ main(int argc, char *argv[])
 	    sprintf(filename_temp, "%s_%s.conf%02d", loopinfo, job_name, conf_num); 
 
 	    sprintf(strucfile, "%s/%s.struct", direcname, filename_temp);
+	    sprintf(inputlist, "%s/%s.inputs", direcname, filename_temp);
+
 	    sprintf(disorderfile, "%s/%s.disprof", direcname, filename_temp);
 
 	    sprintf(filename, "%s/.%s.part%02d", direcname, filename_temp, this_proc);
@@ -2036,7 +2052,8 @@ main(int argc, char *argv[])
 	      }
 	    }
 	    
-
+	FILE *listinputs;
+	
 	
 	//Create main output file
 	    output =fopen(filename, "w");
@@ -2053,6 +2070,7 @@ main(int argc, char *argv[])
 	  	  	  printf("#loop type %s \n", loop_type);
 
 	    
+			  
 	    
       
 	//Status files for multiprocessor runs
@@ -2121,6 +2139,14 @@ main(int argc, char *argv[])
 		  fprintf(check, "%d", 0);
 		  fclose(check);
 		  
+		  
+		  listinputs=fopen(inputlist, "w");
+		  for(i=1; i<argc; i++)
+		  {
+			fprintf(listinputs, "%s ", argv[i]);
+		  }
+		  fprintf(listinputs, "\n");
+		  fclose(listinputs);
 		}
 		
 
