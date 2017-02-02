@@ -23,7 +23,7 @@ main(int argc, char *argv[])
 	  
 	  //general system inputs and default values
 	      char systemtype[32];
-	      char geotype[32], peritype[40], leadtype[32], sysinfo[120], loopinfo[80], disinfo[40];
+	      char geotype[32], peritype[40], leadtype[32], sysinfo[120], loopinfo[80], loopmininfo[80], disinfo[40];
 	      sprintf(systemtype, "SUBLATTICEPOT");
 	      int length1=2, length2=3*length1, geo=0, isperiodic=1, ismagnetic=0;
 	      int makebands = 0, unfold=0, project=0, kxpoints=51, bandsonly=0, bandsminset=0, bandsmaxset=100000;
@@ -67,6 +67,8 @@ main(int argc, char *argv[])
 	      int splitgen =0;	//if =1, splits the system generation and calculation
 	      int metal_leads = 0;      //if this is set to 1, metallic leads are used instead of ribbons -
                                         //these need to be accounted for properly with positions etc...
+                                        
+	      
                                         
                                         
                                         
@@ -1207,6 +1209,23 @@ main(int argc, char *argv[])
 
 	  
 	  
+	  
+	  
+	  double kxmin=0.0, kxmax =(2*M_PI/length2);
+		for(i=1; i<argc-1; i++)
+		{
+			if(strcmp("-kxmin", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%lf", &kxmin);
+			}
+			if(strcmp("-kxmax", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%lf", &kxmax);
+			}
+
+		}
+	  
+	  
 	//misc  
 	  
 	  double cond2;
@@ -1893,6 +1912,7 @@ main(int argc, char *argv[])
 		loopmin = Emin;
 		loopmax = Emax;
 		sprintf(loopinfo, "Eloop_%+.2lf_to_%+.2lf_Bfixed_%+.3lf", Emin, Emax, Bfield);
+		sprintf(loopmininfo, "E_%+.3lf_B_%+.3lf", Emin, Bfield);
 	      }
 
 	      if(strcmp("B", loop_type) == 0)
@@ -1901,8 +1921,11 @@ main(int argc, char *argv[])
 		loopmin = Bmin;
 		loopmax = Bmax;
 		sprintf(loopinfo, "Bloop_%+.2lf_to_%+.2lf_Efixed_%+.3lf", Bmin, Bmax, realE);
+		sprintf(loopmininfo, "E_%+.3lf_B_%+.3lf", realE, Bmin);
+
 
 	      }
+	      
 	      
 	      
 	      double edge_cut=5.0, subs_thick=0.1E-6, subs_epsr=3.9;
@@ -1951,6 +1974,9 @@ main(int argc, char *argv[])
 	
 		
 		sprintf(loopinfo, "VG_%s_loop_%+.2lf_to_%+.2lf_Bfixed_%+.3lf_Efixed_%+.3lf", vgtname, VGmin, VGmax, Bfield, realE);
+		sprintf(loopmininfo, "VG_%s_%+.2lf_E_%+.3lf_B_%+.3lf", VGmin, realE, Bfield);
+
+		
 	      }
 
 	      
@@ -2537,7 +2563,9 @@ main(int argc, char *argv[])
 	   weights = createNonSquareDoubleMatrix(Nrem, length2);
 	   projections = createNonSquareDoubleMatrix(Nrem, Nrem);
 	   bandmode=0;
-	   kxstep = (2*M_PI/length2)/(kxpoints -1);
+	   kxstep = (kxmax-kxmin)/(kxpoints -1);
+	   if(kxpoints ==1)
+		   kxstep=100.0;
 	   
 	   
 	    if(ismagnetic == 1)
@@ -2565,7 +2593,7 @@ main(int argc, char *argv[])
 	    }
 	    
 	    
-	      for(kxl=0; kxl< 2*M_PI/length2; kxl += kxstep)
+	      for(kxl=kxmin; kxl< kxmax; kxl += kxstep)
 	      {
       //  	   kxl=0.2;
 		 
@@ -2791,6 +2819,10 @@ main(int argc, char *argv[])
 	      {
 		     sprintf(mapname, "%s/E_%+.4lf_B_%+.3lf_%s.conf%02d.ldos", direcname, realE, Bfield, job_name, conf_num);
 		     
+			if(strcmp("VG", loop_type) == 0)
+			{
+				sprintf(mapname, "%s/VG_%s_%.2lf_E_%+.2lf_B_%+.3lf_%s.conf%02d.ldos", direcname, vgtname, VG, realE, Bfield, job_name, conf_num);
+			}
 
 		      mapfile = fopen(mapname, "w");
 		      
@@ -2807,6 +2839,10 @@ main(int argc, char *argv[])
 			
 			sprintf(mapname, "%s/E_%+.4lf_B_%+.3lf_%s.conf%02d.cmaps_l%d", direcname, realE, Bfield, job_name, conf_num, j);
 
+			if(strcmp("VG", loop_type) == 0)
+			{
+				sprintf(mapname, "%s/VG_%s_%.2lf_E_%+.2lf_B_%+.3lf_%s.conf%02d.cmaps_l%d", direcname, vgtname, VG, realE, Bfield, job_name, conf_num, j);
+			}
 
 			  mapfile = fopen(mapname, "w");
 			  for(i=0; i<Ntot; i++)
