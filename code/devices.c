@@ -1772,7 +1772,14 @@ void genSublatticeMoire(RectRedux *SiteArray, void *p, int struc_out, char *file
 		      
 			if(struc_out == 1)
 			{
-			
+				for(l=0; l<*Ntot; l++)
+				{
+					if(siteinfo[l][0] == 0 )
+					{  
+						fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+					}
+				}
+				fprintf(out, "\n");
 			  
 			}
 			

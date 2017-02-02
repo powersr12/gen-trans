@@ -11,8 +11,8 @@ MAXPTS=100000
 # PROJNAME=E_+0.40_B_+163.500_longbuf.conf00
 
 BASEFOLDER=/home/ICN2/spower/projects/gen-trans/res/
-PROJFOLDER=SUBLMOIRE_RIBBON_1e-06/ZZ59_L2_108_default_off_0.0_0.0/
-PROJNAME=E_-0.0022_B_+0.000_hidef.conf00
+PROJFOLDER=SUBLMOIRE_RIBBON_1e-06/AC110_L2_108_default_off_0.0_0.0/
+PROJNAME=E_+0.0005_B_+0.000_hidef.conf00
 
 # BASEFOLDER=/home/ICN2/spower/DTU_GEN_RES/
 # PROJFOLDER=ANTIDOTS_RIBBON_1e-05/ZZ720_rect_lat_L_60_104_circ_dot_R_20.0_6x8_xyf_0.0_rf_0.0/
