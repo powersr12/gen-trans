@@ -2022,8 +2022,8 @@ main(int argc, char *argv[])
 	
 
 	//File I/O variables
-	    FILE *output, *fulloutput;
-	    char filename[300], filename3[300], filename_temp[300], fullfilename[300];
+	    FILE *output, *fulloutput, *tsoutput;
+	    char filename[300], filename3[300], filename_temp[300], fullfilename[300], tsfilename[300];
 	    char checkname[300], direcname[300], conffile[350], strucfile[300], lstrucfile[350], disorderfile[300];
 	    char bandname1[300], bandname2[300], bandname3[300], mapname[400], maindirec[100];
             char command[600], inputlist[300];
@@ -2065,7 +2065,7 @@ main(int argc, char *argv[])
 
 	    sprintf(filename, "%s/.%s.part%02d", direcname, filename_temp, this_proc);
 		sprintf(fullfilename, "%s/.%s.full.part%02d", direcname, filename_temp, this_proc);
-
+		sprintf(tsfilename, "%s/.%s.ts.part%02d", direcname, filename_temp, this_proc);
 	    
 	    sprintf(bandname1, "%s/%s.bands", direcname, filename_temp);
 	    sprintf(bandname3, "%s/%s.wbands", direcname, filename_temp);
@@ -2089,6 +2089,9 @@ main(int argc, char *argv[])
 	    {
 		    fulloutput = fopen(fullfilename, "w");
 		    fclose(fulloutput);
+		    tsoutput = fopen(tsfilename, "w");
+		    fclose(tsoutput);
+		    
 	    }
 
 	    
@@ -3104,6 +3107,10 @@ main(int argc, char *argv[])
                     {	
 			//fulloutput prints potentials and currents of each lead
 			fulloutput =fopen(fullfilename, "a");
+			
+			//tsoutput prints all elements of the transmission matrix
+			tsoutput =fopen(tsfilename, "a");
+			
 //                         if(num_leads==4)
 // 			{
 				EmptyDoubleMatrix(ttildas, num_leads, num_leads);
@@ -3159,6 +3166,8 @@ main(int argc, char *argv[])
 				{
 					fprintf(output, "%lf	%.12e\n", realE, (vecx[2]-vecx[1])/vecx[0]);	
 					fprintf(fulloutput, "%lf\t", realE);
+					fprintf(tsoutput, "%lf\t", realE);
+
 					for(i=0; i<num_leads; i++)
 					{
 						fprintf(fulloutput, "%.12e\t", probe_pots[i]);
@@ -3169,11 +3178,21 @@ main(int argc, char *argv[])
 					}
 					fprintf(fulloutput, "\n");
 					
+					for(i=0; i<num_leads; i++)
+					{
+						for(j=0; j<num_leads; j++)
+						{	
+							fprintf(tsoutput, "%.12e\t", transmissions[i][j]);
+						}
+					}
+					fprintf(tsoutput, "\n");
+					
 				}
 				if(strcmp("B", loop_type) == 0)
 				{
 					fprintf(output, "%lf	%.12e\n", Bfield, (vecx[2]-vecx[1])/vecx[0]);	
 					fprintf(fulloutput, "%lf\t", Bfield);
+					fprintf(tsoutput, "%lf\t", Bfield);
 					for(i=0; i<num_leads; i++)
 					{
 						fprintf(fulloutput, "%.12e\t", probe_pots[i]);
@@ -3183,6 +3202,15 @@ main(int argc, char *argv[])
 						fprintf(fulloutput, "%.12e\t", probe_currs[i]);
 					}
 					fprintf(fulloutput, "\n");
+					
+					for(i=0; i<num_leads; i++)
+					{
+						for(j=0; j<num_leads; j++)
+						{	
+							fprintf(tsoutput, "%.12e\t", transmissions[i][j]);
+						}
+					}
+					fprintf(tsoutput, "\n");
 					
 				}
 				
@@ -3235,6 +3263,7 @@ main(int argc, char *argv[])
 	      if (ishallbar==3 || ishallbar==4)
 		{
 			fclose(fulloutput);
+			fclose(tsoutput);
 		}
 	      
 	  }
@@ -3279,6 +3308,9 @@ main(int argc, char *argv[])
 		    if(ishallbar==4 || ishallbar==3)
 		    {
 			sprintf(command, "cat %s.full.part* | sort -n > %s/%s.full.dat", filename, direcname, filename_temp);
+			system(command);
+			
+			sprintf(command, "cat %s.ts.part* | sort -n > %s/%s.ts.dat", filename, direcname, filename_temp);
 			system(command);
 		    }
 		    
