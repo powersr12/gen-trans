@@ -17,6 +17,10 @@ typedef struct {
 	int **chaininfo;
 	int *Nrem;
 	int *Ntot;
+	int spindep;
+	int are_spin_pots;
+	double **spin_pots;
+	double *const_spin_pots;
 }RectRedux;
 
 typedef struct {

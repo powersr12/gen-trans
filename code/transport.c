@@ -5,255 +5,232 @@
 //mode=0 - just transmissions!
 //mode=1 - transmissions and ldos/current maps - can be generalised further later
 void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Leads, cnxProfile *cnxp, 
-		      cellDivision *cellinfo, hoppingfunc *hoppingfn, void *hoppingparams,
+		      cellDivision *cellinfo, hoppingfunc *hoppingfn, gen_hop_params *hoppingparams,
 		      lead_para *leadsparams, trans_params *tpara, int mode, double *ldoses, double ***currents)
 {
-    //important definitions and quantities
-//     int length1 = (DeviceCell->length);
-//     int length2 = (DeviceCell->length2);
 
-//     printf("#started transmission calc\n");
-    int geo = (DeviceCell->geo);
+
+	//device parameters, modes, matrix declarations etc.
+		int geo = (DeviceCell->geo);
+		
+		int cell1dim = (cellinfo->cell1dim);
+		int num_leads = tpara->num_leads;
+		
+		int this_cell, dim, dim_old=0, dim_new;
+		int Nrem = *(DeviceCell->Nrem);
+		int Ntot = *(DeviceCell->Ntot);
+		int spindep = (DeviceCell->spindep);
+
+		double _Complex **g_old, g_new, g00inv;
+		double _Complex **g_sys_r, **g_sys_a, **SigmaR, **SigmaA, **Gamma, **temp1, **temp2, *gii, **gi1, **g1i;
+		double _Complex **Gamma1, **Gamma2, **gsr, **gsa;
+		int d1, d2, s1, s2;
+		
+		int i, j, k, l, m, n;
+		
+		int devicemode=0, devicemode2=0; 
+		int spinA = 0, spinB=0;
+		
+		if(mode==0)
+		{
+			devicemode = 0; 
+			devicemode2 = 0;
+		}
+		
+		if(mode==1)
+		{
+			devicemode = 1;
+			devicemode2 = 1;
+		}
     
-    int cell1dim = (cellinfo->cell1dim);
-    int num_leads = tpara->num_leads;
     
-    int this_cell, dim, dim_old=0, dim_new;
-    int Nrem = *(DeviceCell->Nrem);
-    int Ntot = *(DeviceCell->Ntot);
-    double _Complex **g_old, g_new, g00inv;
-    double _Complex **g_sys_r, **g_sys_a, **SigmaR, **SigmaA, **Gamma, **temp1, **temp2, *gii, **gi1, **g1i;
-    double _Complex **Gamma1, **Gamma2, **gsr, **gsa;
-    int d1, d2, s1, s2;
-    
-    int i, j, k, l, m, n;
-    
-    int devicemode=0, devicemode2=0; 
-    
-    if(mode==0)
-    {
-      devicemode = 0; 
-      devicemode2 = 0;
-    }
-    
-    if(mode==1)
-    {
-     devicemode = 1;
-     devicemode2 = 1;
-    }
-    
-    gii=NULL; gi1=NULL; g1i=NULL;
-    if(mode ==1)
-    {
-      gii = createCompArray(Ntot);
-      gi1 = createNonSquareMatrix(Ntot, cell1dim);
-      g1i = createNonSquareMatrix(cell1dim, Ntot);
-    }
+	//GFs for LDOS/currents
+		gii=NULL; gi1=NULL; g1i=NULL;
+		if(mode ==1)
+		{
+			gii = createCompArray(Ntot);
+			gi1 = createNonSquareMatrix(Ntot, cell1dim);
+			g1i = createNonSquareMatrix(cell1dim, Ntot);
+		}
           
     
-    SigmaR = createSquareMatrix(cell1dim);
-    SigmaA = createSquareMatrix(cell1dim);
-    g_sys_r = createSquareMatrix(cell1dim);
-    g_sys_a = createSquareMatrix(cell1dim);
-    Gamma = createSquareMatrix(cell1dim);
+	//retarded and advanced self energies and device GFs
+		SigmaR = createSquareMatrix(cell1dim);
+		SigmaA = createSquareMatrix(cell1dim);
+		g_sys_r = createSquareMatrix(cell1dim);
+		g_sys_a = createSquareMatrix(cell1dim);
+		Gamma = createSquareMatrix(cell1dim);
 
-      leadfunction *leadfn = (leadfunction *)(leadsparams->leadsfn);
-
-      //lead sigmas 
-	 (leadfn)(En, DeviceCell, Leads, cellinfo, leadsparams, SigmaR);
-	 
-	 
-
-      //calculate retarded GF of system 
-
-         genDeviceGF(En, DeviceCell, cnxp, cellinfo, hoppingfn, hoppingparams, devicemode, devicemode2, g_sys_r, gii, gi1, SigmaR);
-
-// 	 printEMatrix(g_sys_r, cell1dim);
-// 	 listNonZero(g_sys_r, cell1dim, cell1dim);
-	 
-      //calculate advanced quantities
-// 	 if( (tpara->TRsym) == 0)
-// 	 {
-	   for(i=0; i<cell1dim; i++)
-	   {
-	     for(j=0; j<cell1dim; j++)
-	     {
-		SigmaA[i][j] = conj(SigmaR[j][i]);
-		g_sys_a[i][j] = conj(g_sys_r[j][i]);		
-	     }
-	   }
-	   
-	   if(mode==1)
-	   {
-	      for(i=0; i<cell1dim; i++)
-	      {
-		  for(j=0; j<Ntot; j++)
-		  {
-		    g1i[i][j] = conj(gi1[j][i]);
-		  }
-	      }
 		
-	    }
-	   
-	/*   
-	 }
-	 else if( (tpara->TRsym) == 1)
-	 {
-	   
-	   if(mode==1)
-	   {
-	      devicemode2 = 2;
-	   }
-	   
-	    (leadfn)(creal(En) - I*cimag(En), DeviceCell, Leads, cellinfo, leadsparams, SigmaA);
-	    genDeviceGF(creal(En) - I*cimag(En), DeviceCell, cnxp, cellinfo, hoppingfn, hoppingparams, devicemode, devicemode2, g_sys_a, NULL, g1i, SigmaA);
-	 }*/
+	//specify lead generation function, and calculate self energies of the leads
+		leadfunction *leadfn = (leadfunction *)(leadsparams->leadsfn);
+		(leadfn)(En, DeviceCell, Leads, cellinfo, leadsparams, SigmaR);
 	 
-// 	 printEMatrix(g_sys_a, cell1dim);
 	 
-	 //Gamma
-	  for(i=0; i<cell1dim; i++)
-	  {
-	    for(j=0; j<cell1dim; j++)
-	    {
-	      Gamma[i][j] = I*(SigmaR[i][j] - SigmaA[i][j]);
-	    }
-	  }
-// 	  printEMatrix(Gamma, cell1dim);
-//   	  listNonZero(SigmaR, cell1dim, cell1dim);
-      FreeMatrix(SigmaR); FreeMatrix(SigmaA); 
-      
-      s1=0; 
-      for(i=0; i<num_leads; i++)
-      {
-	d1=(cellinfo->lead_dims)[i];
-	s2=0;
-	Gamma1 = createSquareMatrix(d1);
-	MatrixCopyPart(Gamma, Gamma1, s1, s1, 0, 0, d1, d1);
-	
-	for(j=0; j< num_leads; j++)
-	{
-	  d2=(cellinfo->lead_dims)[j];
-	  gsr = createNonSquareMatrix(d1, d2);
-	  MatrixCopyPart(g_sys_r, gsr, s1, s2, 0, 0, d1, d2);
-	  Gamma2 = createSquareMatrix(d2);
-	  MatrixCopyPart(Gamma, Gamma2, s2, s2, 0, 0, d2, d2);
-	  gsa = createNonSquareMatrix(d2, d1);
-	  MatrixCopyPart(g_sys_a, gsa, s2, s1, 0, 0, d2, d1);
-	  
-	  temp1=createNonSquareMatrix(d1, d2);
-	  MatrixMultNS(Gamma1, gsr, temp1, d1, d1, d2);
-	  temp2=createNonSquareMatrix(d1, d2);
-	  MatrixMultNS(temp1, Gamma2, temp2, d1, d2, d2);
-	  FreeMatrix(temp1);
-	  temp1=createSquareMatrix(d1);
-	  MatrixMultNS(temp2, gsa, temp1, d1, d2, d1);
-	  FreeMatrix(temp2);
-	  
-	  (tpara->transmissions)[i][j] = creal(MatrixTrace(temp1, d1));
-	  FreeMatrix(temp1);
-	  s2+=d2;
-	  FreeMatrix(gsr); FreeMatrix(Gamma2); FreeMatrix(gsa);
-	  
-// 	  printf("#%d	%d	%d	%d	%lf\n", i, j, d1, d2, (tpara->transmissions)[i][j]);
-	}
-	
-	s1+=d1;
-	FreeMatrix(Gamma1);
-      }
-        double *bshifts = createDoubleArray(3);
-	double current_mag;
-	double _Complex hopmag;
-	
-	FILE *bigdump;
-	char bigfile[200];
-	
-	
 
-      if(mode==1)
-      {
-	
-	// a way to bulk print out all the bond currents.
-	//for debugging only. see loop below also.
-// 	for(i=0; i<num_leads; i++)
-// 	{
-// 	  sprintf(bigfile, "current_dump_l%d", i);
-// 	  bigdump = fopen(bigfile, "w");
-// 	  fclose(bigdump);
-// 	}
-	
-	for(i=0; i<Ntot; i++)
-	{
-	  ldoses[i] = -cimag(gii[i])/M_PI;
-	
-	  s1=0; d1=0;
-	  for(k=0; k<num_leads; k++)
-	  {
-	      d1=(cellinfo->lead_dims)[k];
- 	      currents[k][i][0] = 0.0;
-	      currents[k][i][1] = 0.0;
-	      
-	      for(l=0; l<(cnxp->site_cnxnum)[i]; l++)
-	      {
-		j = (cnxp->site_cnx)[i][l];
-		hopmag = hoppingfn(DeviceCell, DeviceCell, j, i, bshifts, hoppingparams);
-		current_mag=0;
-		
-		for(m=0; m<d1; m++)
+     
+	//calculate retarded GF of system 
+		genDeviceGF(En, DeviceCell, cnxp, cellinfo, hoppingfn, hoppingparams, devicemode, devicemode2, spinA, spinB, g_sys_r, gii, gi1, SigmaR);
+
+
+	//calculate advanced quantities from the retarded versions 
+		for(i=0; i<cell1dim; i++)
 		{
-		  for(n=0; n<d1; n++)
-		  {
-		    current_mag += cimag(hopmag * gi1[i][s1+m]  * Gamma[s1+m][s1+n]  *g1i[s1+n][j]);
-		  }
-		}
-// 		sprintf(bigfile, "current_dump_l%d", k);
-// 		bigdump = fopen(bigfile, "a");
-//  		if((DeviceCell->pos)[j][0]>=(DeviceCell->pos)[i][0])
-// 		  fprintf(bigdump, "%lf	%lf	%lf	%lf	%.15e\n", (DeviceCell->pos)[i][0], (DeviceCell->pos)[i][1], (DeviceCell->pos)[j][0],(DeviceCell->pos)[j][1], current_mag);
-// 		fclose(bigdump);
-		
-	
-		
-		if(current_mag>0)
-		{
-		  currents[k][i][0] += current_mag * ( (DeviceCell->pos)[j][0] -(DeviceCell->pos)[i][0]  );
-		  currents[k][i][1] += current_mag * ( (DeviceCell->pos)[j][1] -(DeviceCell->pos)[i][1]  );
+			for(j=0; j<cell1dim; j++)
+			{
+				SigmaA[i][j] = conj(SigmaR[j][i]);
+				g_sys_a[i][j] = conj(g_sys_r[j][i]);		
+			}
 		}
 		
-	      }
-	      
-	      s1+=d1;
-	      
-	  }
-	      
-	    
-	  
-	  
-	}
-	
-	
-	
-	
-      }
+		if(mode==1)
+		{
+			for(i=0; i<cell1dim; i++)
+			{
+				for(j=0; j<Ntot; j++)
+				{
+					g1i[i][j] = conj(gi1[j][i]);
+				}
+			}
+			
+		}
+	   
+	 
+	 //calculate the Gamma (broadening) matrices for the leads
+		for(i=0; i<cell1dim; i++)
+		{
+			for(j=0; j<cell1dim; j++)
+			{
+				Gamma[i][j] = I*(SigmaR[i][j] - SigmaA[i][j]);
+			}
+		}
+		FreeMatrix(SigmaR); FreeMatrix(SigmaA); 
       
+		
+	//Calculate the transmissions between all the leads	
+		//s1 and s2 keep track of cumulative dimensions (i.e starting indices)
+		s1=0; 
+		for(i=0; i<num_leads; i++)
+		{
+			d1=(cellinfo->lead_dims)[i];
+			s2=0;
+			Gamma1 = createSquareMatrix(d1);
+			MatrixCopyPart(Gamma, Gamma1, s1, s1, 0, 0, d1, d1);
+			
+			for(j=0; j< num_leads; j++)
+			{
+				d2=(cellinfo->lead_dims)[j];
+				gsr = createNonSquareMatrix(d1, d2);
+				MatrixCopyPart(g_sys_r, gsr, s1, s2, 0, 0, d1, d2);
+				Gamma2 = createSquareMatrix(d2);
+				MatrixCopyPart(Gamma, Gamma2, s2, s2, 0, 0, d2, d2);
+				gsa = createNonSquareMatrix(d2, d1);
+				MatrixCopyPart(g_sys_a, gsa, s2, s1, 0, 0, d2, d1);
+				
+				temp1=createNonSquareMatrix(d1, d2);
+				MatrixMultNS(Gamma1, gsr, temp1, d1, d1, d2);
+				temp2=createNonSquareMatrix(d1, d2);
+				MatrixMultNS(temp1, Gamma2, temp2, d1, d2, d2);
+				FreeMatrix(temp1);
+				temp1=createSquareMatrix(d1);
+				MatrixMultNS(temp2, gsa, temp1, d1, d2, d1);
+				FreeMatrix(temp2);
+				
+				(tpara->transmissions)[i][j] = creal(MatrixTrace(temp1, d1));
+				FreeMatrix(temp1);
+				s2+=d2;
+				FreeMatrix(gsr); FreeMatrix(Gamma2); FreeMatrix(gsa);
+				
+			
+			}
+			
+			s1+=d1;
+			FreeMatrix(Gamma1);
+		}
+		
+		
+	//Quantities needed for LDOS/current mapping
+		double *bshifts = createDoubleArray(3);
+		double current_mag;
+		double _Complex hopmag;
+		FILE *bigdump;
+		char bigfile[200];
+	
+	
+
+	//Calculate and output LDOS and current maps if required
+		if(mode==1)
+		{
+			
+					// a way to bulk print out all the bond currents.
+					//for debugging only. see loop below also.
+					// 	for(i=0; i<num_leads; i++)
+					// 	{
+					// 	  sprintf(bigfile, "current_dump_l%d", i);
+					// 	  bigdump = fopen(bigfile, "w");
+					// 	  fclose(bigdump);
+					// 	}
+			
+			//loop over sites
+			for(i=0; i<Ntot; i++)
+			{
+				ldoses[i] = -cimag(gii[i])/M_PI;
+				s1=0; d1=0;
+				
+				//get contribution from each lead
+				for(k=0; k<num_leads; k++)
+				{
+					d1=(cellinfo->lead_dims)[k];
+					currents[k][i][0] = 0.0;
+					currents[k][i][1] = 0.0;
+			
+					//sum over neighbours of the site
+					for(l=0; l<(cnxp->site_cnxnum)[i]; l++)
+					{
+						j = (cnxp->site_cnx)[i][l];
+						hopmag = hoppingfn(DeviceCell, DeviceCell, j, i, bshifts, hoppingparams);
+						current_mag=0;
+				
+						for(m=0; m<d1; m++)
+						{
+							for(n=0; n<d1; n++)
+							{
+								current_mag += cimag(hopmag * gi1[i][s1+m]  * Gamma[s1+m][s1+n]  *g1i[s1+n][j]);
+							}
+						}
+				
+						// 		sprintf(bigfile, "current_dump_l%d", k);
+						// 		bigdump = fopen(bigfile, "a");
+						//  		if((DeviceCell->pos)[j][0]>=(DeviceCell->pos)[i][0])
+						// 		  fprintf(bigdump, "%lf	%lf	%lf	%lf	%.15e\n", (DeviceCell->pos)[i][0], 			(DeviceCell->pos)[i][1], (DeviceCell->pos)[j][0],(DeviceCell->pos)[j][1], current_mag);
+						// 		fclose(bigdump);
+				
+			
+						//only consider positive (outgoing) contributions
+						if(current_mag>0)
+						{
+							currents[k][i][0] += current_mag * ( (DeviceCell->pos)[j][0] -(DeviceCell->pos)[i][0]  );
+							currents[k][i][1] += current_mag * ( (DeviceCell->pos)[j][1] -(DeviceCell->pos)[i][1]  );
+						}
+					}
+					s1+=d1;
+				}
+			}
+		}
       
-      
-//       for(i=0; i<Ntot; i++)
-//       {
-// 	printf("%lf	%lf	%e\n", (DeviceCell->pos)[i][0], (DeviceCell->pos)[i][1], -cimag(gii[i]));
-//       }
+     
        
-	
-       if(mode ==1)
-	{
-	  free(gii); 
-	  FreeMatrix(g1i); 
-	  FreeMatrix(gi1); 
-	}
+	//Free up memory
+		if(mode ==1)
+		{
+			free(gii); 
+			FreeMatrix(g1i); 
+			FreeMatrix(gi1); 
+		}
          
-      free(bshifts);
-      FreeMatrix(Gamma);
-      FreeMatrix(g_sys_r); FreeMatrix(g_sys_a);
+		free(bshifts);
+		FreeMatrix(Gamma);
+		FreeMatrix(g_sys_r); FreeMatrix(g_sys_a);
         
   
   
@@ -265,437 +242,479 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 //0 - Gii only (e.g. for DOS maps only)
 //1 - Gii and Gi1 (e.g. for LDOS maps and current maps with time reversal symmetry)
 //2 - G1i only (for advanced GFs in second current map sweep where TRS is broken)
-
 void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp, 
-		      cellDivision *cellinfo, hoppingfunc *hoppingfn, void *hoppingparams, int mode, int mode2, 
+		      cellDivision *cellinfo, hoppingfunc *hoppingfn, gen_hop_params *hoppingparams, int mode, int mode2, int spinA, int spinB,
 		      double _Complex **Gon, double _Complex *Gdiags, double _Complex **Goff, double _Complex **Sigma)
 {
 
-  int geo = (DeviceCell->geo);
-    
-  int num_cells = (cellinfo->num_cells);
-  
-  int this_cell, dim, dim_old=0, dim_new;
-  double _Complex **g_old,  **g00inv, **V12, **V21, **smallSigma, **temp1, **temp2;
-  int i, j, k, l, index1, index2, this0, last0;
-  
-  int cell_start, cell_end, cell_iter, it_count;
-  int dim1  = (cellinfo->cell_dims)[0];
-  int Nrem = *(DeviceCell->Nrem);
-    int Ntot = *(DeviceCell->Ntot);
-
-  double *bshifts = createDoubleArray(3);
-  
-  double _Complex ***allgs, **gtemp, **off_old, **off_new, **t1, **t2, **gprev;
-  
-  
-  if(mode == 0 || mode == 1)
-  {
-    cell_start = num_cells-1;
-    cell_end = 0;
-    cell_iter = -1;
-  }
-  
-  if(mode == 2)
-  {
-    cell_start = 0 ;
-    cell_end = num_cells-1;
-    cell_iter = 1;
-  }
-  
-  
-  if(mode>0)
-  {
-    //requests memory for an array of pointers to matrices
-    allgs = (double _Complex ***)malloc(num_cells * sizeof(double _Complex **));
-    
-  }
-
-
-  //calculate system GF	
-  //backwards recursive sweep!
-  for(it_count=0; it_count<(cellinfo->num_cells); it_count ++)
-  {
-	this_cell = cell_start + it_count*cell_iter;
-  
-//    	printf("########\n#cell %d\n", this_cell);
 	
-// 	printf("### backwards sweep, cell %3d of %3d\n", this_cell, (cellinfo->num_cells));
-    //generate disconnected cell GF
-	dim = (cellinfo->cell_dims)[this_cell];
-	g00inv = createSquareMatrix(dim);
-	
-	this0=(cellinfo->starting_index)[this_cell];
-	if(it_count>0)
-	{
-	  last0=(cellinfo->starting_index)[this_cell-cell_iter];
-	  
-	  V21 = createNonSquareMatrix(dim, dim_old);
-	  V12 = createNonSquareMatrix(dim_old, dim);
-	}
-	
-	
-	//onsites
-	for(i=0; i<dim; i++)
-	{
-	  index1 = (cellinfo->cells_site_order)[this0 +i];
-	  
-	  g00inv[i][i] = En - (DeviceCell->site_pots)[index1] - hoppingfn(DeviceCell, DeviceCell, index1, index1, bshifts, hoppingparams);;
-	  
-	  
-	  
-	}
+	//device parameters, modes, variables
+		int geo = (DeviceCell->geo);
+		int num_cells = (cellinfo->num_cells);
+		int this_cell, dim, dim_old=0, dim_new;
+		double _Complex **g_old,  **g00inv, **V12, **V21, **smallSigma, **temp1, **temp2;
+		int i, j, k, l, index1, index2, this0, last0;
+		int cell_start, cell_end, cell_iter, it_count;
+		int dim1  = (cellinfo->cell_dims)[0];
+		int Nrem = *(DeviceCell->Nrem);
+		int Ntot = *(DeviceCell->Ntot);
+		int spindep = (DeviceCell->spindep);
+		int are_spin_pots = (DeviceCell->are_spin_pots);	//possibly not needed
+		double **spin_pots = (DeviceCell->spin_pots);
+		double *const_spin_pots= (DeviceCell->const_spin_pots);
 
-	//internal (& external?) hoppings
-	for(i=0; i<dim; i++)
-	{
-	  
-	  index1 = (cellinfo->cells_site_order)[this0 +i];
-	  for(j=0; j<(cnxp->site_cnxnum)[index1]; j++)
-	  {
-	    index2 = (cnxp->site_cnx)[index1][j];
-	    
-	    //is this neighbour in the same cell?
-	    if( (cellinfo->sites_by_cell)[index2] == this_cell)
-	    {
-		//what is its index within the cell?
-		k=0;
-		for(l=0; l<dim; l++)
+		double *bshifts = createDoubleArray(3);
+		double _Complex ***allgs, **gtemp, **off_old, **off_new, **t1, **t2, **gprev;
+		
+		
+		if(mode == 0 || mode == 1)
 		{
-		  if( index2 == (cellinfo->cells_site_order)[this0 +l])
-		  {
-		    k=l;
-		  }
+			cell_start = num_cells-1;
+			cell_end = 0;
+			cell_iter = -1;
 		}
-		//printf("neighbours	%d	%d\n", i, k);
- 		g00inv[i][k] -= hoppingfn(DeviceCell, DeviceCell, index1, index2, bshifts, hoppingparams);
-	      
-	    }
-	    
-	    
-	    //is this neighbour in the previous cell?
-	    if( (cellinfo->sites_by_cell)[index2] == (this_cell-cell_iter))
-	    {
-		//what is its index within the cell?
-		k=0;
-		for(l=0; l<dim_old; l++)
+		
+		if(mode == 2)
 		{
-		  if( index2 == (cellinfo->cells_site_order)[last0 +l])
-		  {
-		    k=l;
-		  }
+			cell_start = 0 ;
+			cell_end = num_cells-1;
+			cell_iter = 1;
 		}
- 		V21[i][k] = hoppingfn(DeviceCell, DeviceCell, index1, index2, bshifts, hoppingparams);
-		V12[k][i] = hoppingfn(DeviceCell, DeviceCell, index2, index1, bshifts, hoppingparams);
-	      
-	    }
-	    
-	    
-	  }
-	}
+		
+		
+	//NORMAL, SPIN-UNPOLARISED RUN SETTINGS
+		if(spindep==0)
+		{
+			
+			
+		}
+		
+	//TWO INDEPENDENT SPIN CHANNELS SETTINGS
+		//spin channel chosen is given by spinmode (0=spin_up, 1=spindown)
+		if(spindep==2)
+		{
+		
+			
+		}
+  
+	
+	//a large storage space for a lot of Green's functions used in double sweep recursive GF method
+		if(mode>0)
+		{
+			//requests memory for an array of pointers to matrices
+			allgs = (double _Complex ***)malloc(num_cells * sizeof(double _Complex **));
+		}
 
-	  	//check non-zero elements at the cell stage
-//  	  	printf("#g00inv\n");
-//  	  	listNonZero(g00inv, dim, dim);
-// // 	  
-// 	  	if(it_count>0)
-// 	  	{
-// 	  	  printf("#V21\n");
-// 	  	  listNonZero(V21, dim, dim_old);
-// 	  	  
-// 	  	  printf("#V12\n");
-// 	  	  listNonZero(V12, dim_old, dim);
-// 	  	}
-      
-      
-      	  
+		
+	
+	
+	//SWEEP 1 - backwards recursive sweep from the final cell
+		for(it_count=0; it_count<(cellinfo->num_cells); it_count ++)
+		{
+			this_cell = cell_start + it_count*cell_iter;
+		
+				//printf("########\n#cell %d\n", this_cell);
+				//printf("### backwards sweep, cell %3d of %3d\n", this_cell, (cellinfo->num_cells));
+			
+			
+			//generate cell GF
+				dim = (cellinfo->cell_dims)[this_cell];
+				g00inv = createSquareMatrix(dim);
+			
+				this0=(cellinfo->starting_index)[this_cell];
+				if(it_count>0)
+				{
+					last0=(cellinfo->starting_index)[this_cell-cell_iter];
+					V21 = createNonSquareMatrix(dim, dim_old);
+					V12 = createNonSquareMatrix(dim_old, dim);
+				}
+			
+			
+			//onsites 
+				//contributions from site_pots, and onsite hopping correction terms
+				for(i=0; i<dim; i++)
+				{
+					index1 = (cellinfo->cells_site_order)[this0 +i];
+					(hoppingparams->spinA)=spinA;
+					(hoppingparams->spinB)=spinB;
+					g00inv[i][i] = En - (DeviceCell->site_pots)[index1] - hoppingfn(DeviceCell, DeviceCell, index1, index1, bshifts, hoppingparams);
+					
+					//...and spin dependent potentials
+					if(spindep==1)
+					{
+						if(spinA==0 && spinB==0)
+						{
+							g00inv[i][i] -= (const_spin_pots[2] + spin_pots[index1][2]);
+						}
+						if(spinA==0 && spinB==1)
+						{
+							g00inv[i][i] -= (const_spin_pots[0] + spin_pots[index1][0] - I*(const_spin_pots[1] + spin_pots[index1][1]));
+						}
+						
+						if(spinA==1 && spinB==0)
+						{
+							g00inv[i][i] -= (const_spin_pots[0] + spin_pots[index1][0] + I*(const_spin_pots[1] + spin_pots[index1][1]));
+						}
+						
+						if(spinA==0 && spinB==0)
+						{
+							g00inv[i][i] -= (-const_spin_pots[2] - spin_pots[index1][2]);
+						}
+						
+					}
+				}
 
-    //generate self energy term from previous cells
-	smallSigma=createSquareMatrix(dim);
-	
-	if(it_count>0)
-	{
-	  //previous cells self energy: smallSigma = V21 g_old V12
-	    temp1 = createNonSquareMatrix(dim, dim_old);
-	    MatrixMultNS(V21, g_old, temp1, dim, dim_old, dim_old);
-	    MatrixMultNS(temp1, V12, smallSigma, dim, dim_old, dim);
-	    FreeMatrix(temp1);
-	  
-	  
-	}
-      
-	
-	
-	
-    //account for lead self energies if this is cell 0
-	if(this_cell==0)
-	{
-	  temp1 = createSquareMatrix(dim);
-	  MatrixAdd(smallSigma, Sigma, temp1, dim);
-	  MatrixCopy(temp1, smallSigma, dim);
-// 	  	listNonZero(Sigma, dim, dim);
+			
+			
+			//internal & external cell hoppings
+				//loop over sites in cell
+				for(i=0; i<dim; i++)
+				{
+					index1 = (cellinfo->cells_site_order)[this0 +i];
+					
+					//loop over neighbours of site
+					for(j=0; j<(cnxp->site_cnxnum)[index1]; j++)
+					{
+						index2 = (cnxp->site_cnx)[index1][j];
+					
+						//if this neighbour in the same cell, calculate hopping param and place in unit cell Hamiltonian
+						if( (cellinfo->sites_by_cell)[index2] == this_cell)
+						{
+							//what is its index within the cell?
+							k=0;
+							for(l=0; l<dim; l++)
+							{
+								if( index2 == (cellinfo->cells_site_order)[this0 +l])
+								{
+									k=l;
+								}
+							}
+							
+							(hoppingparams->spinA)=spinA;
+							(hoppingparams->spinB)=spinB;
+							g00inv[i][k] -= hoppingfn(DeviceCell, DeviceCell, index1, index2, bshifts, hoppingparams);
+							
+						}
+					
+					
+						//if this neighbour in the previous cell, add hopping to the connection matrices 
+						if( (cellinfo->sites_by_cell)[index2] == (this_cell-cell_iter))
+						{
+							//what is its index within the cell?
+							k=0;
+							for(l=0; l<dim_old; l++)
+							{
+								if( index2 == (cellinfo->cells_site_order)[last0 +l])
+								{
+									k=l;
+								}
+							}
+							
+							
+							
+							(hoppingparams->spinA)=spinA;
+							(hoppingparams->spinB)=spinB;
+							V21[i][k] = hoppingfn(DeviceCell, DeviceCell, index1, index2, bshifts, hoppingparams);
+								
+							(hoppingparams->spinA)=spinB;
+							(hoppingparams->spinB)=spinA;
+							V12[k][i] = hoppingfn(DeviceCell, DeviceCell, index2, index1, bshifts, hoppingparams);
+							
+						}
+					}
+				}
 
-	  FreeMatrix(temp1);
-	}
-	
-	temp1 = createSquareMatrix(dim);
-	MatrixSubtract(g00inv, smallSigma, temp1, dim);
-	if(it_count>0)
-	{
-	  FreeMatrix(g_old);
-	}
-	g_old = createSquareMatrix(dim);
-	InvertMatrixGSL(temp1, g_old, dim);
-// 	printf("# it: %d, %e %e\n", it_count, creal(g_old[1][1]), cimag(g_old[1][1]));
-	FreeMatrix(temp1); FreeMatrix(g00inv); FreeMatrix(smallSigma);
-	
-	if(it_count>0)
-	{
-	  FreeMatrix(V12); FreeMatrix(V21);
-	}
-	
-	//save the temporary edges if needed for the dual sweep
+						//check non-zero elements at the cell stage
+						//printf("#g00inv\n");
+						//listNonZero(g00inv, dim, dim);
+						//if(it_count>0)
+						// {
+						// 	  printf("#V21\n");
+						// 	  listNonZero(V21, dim, dim_old);
+						// 	  printf("#V12\n");
+						// 	  listNonZero(V12, dim_old, dim);
+						// }
+		
+		
+			
+
+			
+			//generate self energy term from previous cells
+				smallSigma=createSquareMatrix(dim);
+				
+				if(it_count>0)
+				{
+					//previous cells self energy: smallSigma = V21 g_old V12
+					temp1 = createNonSquareMatrix(dim, dim_old);
+					MatrixMultNS(V21, g_old, temp1, dim, dim_old, dim_old);
+					MatrixMultNS(temp1, V12, smallSigma, dim, dim_old, dim);
+					FreeMatrix(temp1);
+				}
+		
+			
+			
+			
+			//account for lead self energies if this is cell 0
+				if(this_cell==0)
+				{
+					temp1 = createSquareMatrix(dim);
+					MatrixAdd(smallSigma, Sigma, temp1, dim);
+					MatrixCopy(temp1, smallSigma, dim);
+					FreeMatrix(temp1);
+				}
+				
+				
+				
+			//add self energies to the GF and update the edge GF in g_old
+			//free memory used in this cell iteration
+				temp1 = createSquareMatrix(dim);
+				MatrixSubtract(g00inv, smallSigma, temp1, dim);
+				if(it_count>0)
+				{
+					FreeMatrix(g_old);
+				}
+				g_old = createSquareMatrix(dim);
+				InvertMatrixGSL(temp1, g_old, dim);
+				FreeMatrix(temp1); FreeMatrix(g00inv); FreeMatrix(smallSigma);
+				if(it_count>0)
+				{
+					FreeMatrix(V12); FreeMatrix(V21);
+				}
+			
+			
+			
+			//save the temporary edges if a dual sweep will be performed below
+				if(mode>0)
+				{
+					allgs[this_cell] = createSquareMatrix(dim);
+					MatrixCopy(g_old, allgs[this_cell], dim);
+				}
+			
+			
+			//update dimension of edge cell
+				dim_old=dim;
+			
+		
+		}//end of first sweep 
+		
+	//
+
+	MatrixCopy(g_old, Gon, dim1);
+	FreeMatrix(g_old);
+
+  
+	//SWEEP2 - forward sweep for LDOS/current map details 
+		if(mode>0)
+		{
+			//setups and initialisations before running loop
+			
+				//copy info about cell 0
+					off_old = createNonSquareMatrix(dim1, dim1);
+					MatrixCopyPart(Gon, off_old, 0, 0, 0, 0, dim1, dim1);
+
+					if(mode2<2)
+					{
+						gprev = createSquareMatrix(dim1);
+						MatrixCopyPart(Gon, gprev, 0, 0, 0, 0, dim1, dim1);
+					}
+			
+
+					if(mode2==1)
+					{
+						for(i=0; i<dim1; i++)
+						{
+							Gdiags[(cellinfo->cells_site_order)[i]] = Gon[i][i];
+							for(j=0; j<dim1; j++)
+							{
+								Goff[(cellinfo->cells_site_order)[i]][j] = Gon[i][j];
+							}
+						}
+					}
+					
+					//mode 2 is now pretty much redundant, but kept here just in case
+					if(mode2==2)
+					{
+						for(i=0; i<dim1; i++)
+						{
+							for(j=0; j<dim1; j++)
+							{           	        	
+								Goff[i][(cellinfo->cells_site_order)[j]] = Gon[i][j];
+							}
+						}
+					}
+
+			//LOOP OVER CELLS STARTS HERE
+				for(it_count=1; it_count<(cellinfo->num_cells); it_count ++)
+				{
+					//dimensions and starting indices
+						this_cell = cell_end - it_count*cell_iter;
+						dim = (cellinfo->cell_dims)[this_cell];
+						dim_old = (cellinfo->cell_dims)[this_cell + cell_iter];
+						this0=(cellinfo->starting_index)[this_cell];
+						last0=(cellinfo->starting_index)[this_cell+cell_iter];
+					
+					
+					//g_old is the current cell but before update
+						g_old = createSquareMatrix(dim);
+						MatrixCopyPart(allgs[this_cell], g_old, 0,0,0,0, dim, dim);
+					
+					//gtemp is the fully connected and updated version of the current cell
+						if(mode2<2)
+						{
+							gtemp = createSquareMatrix(dim);
+						}
+					
+					//gprev is the fully connected version of the previous cell
+						//it is filled at the end of the loop, and before the 1st iteration begins
+
+					//off_old 
+						//old version of off diagonal GF
+						//is filled at the end of the iteration by copying off_new
+						//has dimension (dim_old, dim1) (or vice versa) and is the connected version
+					
+					//off_new - to be calculated below
+						if(mode2 == 1)
+						{
+							off_new = createNonSquareMatrix(dim, dim1);
+						}
+						if(mode2 == 2)
+						{
+							off_new = createNonSquareMatrix(dim1, dim);
+						}
+					
+					
+					//generate V matrices as in reverse loop
+						V12 = createNonSquareMatrix(dim_old, dim);
+						V21 = createNonSquareMatrix(dim, dim_old);
+					
+						//loop over sites in cell
+						for(i=0; i<dim; i++)
+						{
+							index1 = (cellinfo->cells_site_order)[this0 +i];
+							
+							//loop over neighbours
+							for(j=0; j<(cnxp->site_cnxnum)[index1]; j++)
+							{
+								index2 = (cnxp->site_cnx)[index1][j];
+							
+								//is this neighbour in the previous cell?
+								if( (cellinfo->sites_by_cell)[index2] == (this_cell + cell_iter))
+								{
+									//what is its index within the cell?
+									k=0;
+									for(l=0; l<dim_old; l++)
+									{
+										if( index2 == (cellinfo->cells_site_order)[last0 +l])
+										{
+											k=l;
+										}
+									}
+									
+									(hoppingparams->spinA)=spinA;
+									(hoppingparams->spinB)=spinB;
+									V21[i][k] = hoppingfn(DeviceCell, DeviceCell, index1, index2, bshifts, hoppingparams);
+										
+									(hoppingparams->spinA)=spinB;
+									(hoppingparams->spinB)=spinA;
+									V12[k][i] = hoppingfn(DeviceCell, DeviceCell, index2, index1, bshifts, hoppingparams);
+								}
+							}
+						}
+					
+					
+					//updates if mode 1
+						if(mode2<2)
+						{
+							t1 = createNonSquareMatrix(dim, dim_old);
+							MatrixMultNS(g_old, V21, t1, dim, dim, dim_old);
+							
+							//update off-diagonals
+								if(mode2==1)
+								{
+									MatrixMultNS(t1, off_old, off_new, dim, dim_old, dim1);
+								}
+							
+							
+							//update diagonals
+								t2 = createNonSquareMatrix(dim, dim_old);
+								MatrixMultNS(t1, gprev, t2, dim, dim_old, dim_old);
+								FreeMatrix(t1);
+								t1 = createNonSquareMatrix(dim, dim);
+								MatrixMultNS(t2, V12, t1, dim, dim_old, dim);
+								FreeMatrix(t2); 
+								t2= createSquareMatrix(dim);
+								MatrixMult(t1, g_old, t2, dim);
+								FreeMatrix(t1);
+								MatrixAdd(g_old, t2, gtemp, dim);
+								FreeMatrix(t2);
+					
+						
+							//Freeing, and copying what needs to be saved
+								FreeMatrix(g_old);
+								FreeMatrix(V12);
+								FreeMatrix(V21);
+								FreeMatrix(gprev);
+							
+								gprev = createSquareMatrix(dim);
+								MatrixCopy(gtemp, gprev, dim);
+							
+								for(i=0; i<dim; i++)
+								{
+									Gdiags[(cellinfo->cells_site_order)[this0 +i]] = gtemp[i][i];
+									
+									for(j=0; j<dim1; j++)
+									{
+										Goff[(cellinfo->cells_site_order)[this0 +i]][j] = off_new[i][j];
+									}
+								}
+							
+								FreeMatrix(gtemp);
+								FreeMatrix(off_old);
+								
+								off_old=createNonSquareMatrix(dim, dim1);
+								MatrixCopyPart(off_new, off_old, 0, 0, 0, 0, dim, dim1);
+								FreeMatrix(off_new);
+							
+						}
+					
+					//updates if mode 2
+						if(mode2 == 2)
+						{
+							t1 = createNonSquareMatrix(dim1, dim);
+							MatrixMultNS(off_old, V12, t1, dim1, dim_old, dim);
+							MatrixMultNS(t1, g_old, off_new, dim1, dim, dim);
+							
+							FreeMatrix(t1);
+							FreeMatrix(g_old);
+							FreeMatrix(V12);
+							FreeMatrix(V21);
+						
+							for(i=0; i<dim; i++)
+							{
+								for(j=0; j<dim1; j++)
+								{
+									Goff[j][(cellinfo->cells_site_order)[this0 +i]] = off_new[j][i];
+								}
+							}
+							FreeMatrix(off_old);
+							off_old=createNonSquareMatrix(dim1, dim);
+							MatrixCopyPart(off_new, off_old, 0, 0, 0, 0, dim1, dim);
+							FreeMatrix(off_new);
+						}
+				}
+		}//SWEEP 2 COMPLETE
+
+		
+	free(bshifts);
+   
 	if(mode>0)
 	{
-	  allgs[this_cell] = createSquareMatrix(dim);
-	  MatrixCopy(g_old, allgs[this_cell], dim);
-	}
-	
-	dim_old=dim;
-// 		listNonZero(g_old, dim, dim);
-		
-	
-	
-      
-  }//end of first sweep 
-
-  MatrixCopy(g_old, Gon, dim1);
-  FreeMatrix(g_old);
-
-  
-  //perform forward sweep
-  if(mode>0)
-  {
-
-    //setups and initialisations before running loop
-    
-    //copy info about cell 0
-    off_old = createNonSquareMatrix(dim1, dim1);
-    MatrixCopyPart(Gon, off_old, 0, 0, 0, 0, dim1, dim1);
-
-    if(mode2<2)
-    {
-      gprev = createSquareMatrix(dim1);
-      MatrixCopyPart(Gon, gprev, 0, 0, 0, 0, dim1, dim1);
-    }
-//           	        	printf("ok-tz %d\n", this0);
-
-    if(mode2==1)
-    {
-	for(i=0; i<dim1; i++)
-	{
-// 	  printf("ok %d / %d\n", i, dim1);
-	  Gdiags[(cellinfo->cells_site_order)[i]] = Gon[i][i];
-// 		printf("ok %d / %d	Nr %d\n", i, dim1, Nrem);
-
-	
-	  for(j=0; j<dim1; j++)
-	  {
-// 	    printf("okj %d / %d siteorder %d\n", j, dim1, (cellinfo->cells_site_order)[i]);
-	    Goff[(cellinfo->cells_site_order)[i]][j] = Gon[i][j];
-	  }
-// 	  printf("ok %d / %d\n", i, dim1);
-	}
-            
-
-    }
-		
-    if(mode2==2)
-    {
-	for(i=0; i<dim1; i++)
-	{
-	  for(j=0; j<dim1; j++)
-	  {           	        	
-	    Goff[i][(cellinfo->cells_site_order)[j]] = Gon[i][j];
-	  }
-	}
-    }
-
-//     printf ("\n"); 
-    //insert second sweep here
-    for(it_count=1; it_count<(cellinfo->num_cells); it_count ++)
-    {
-	this_cell = cell_end - it_count*cell_iter;
-	
-// 	printf("### forwards sweep, cell %3d of %3d\n", this_cell, (cellinfo->num_cells));
-
-    
-	dim = (cellinfo->cell_dims)[this_cell];
-	dim_old = (cellinfo->cell_dims)[this_cell + cell_iter];
-	
-	this0=(cellinfo->starting_index)[this_cell];
-	last0=(cellinfo->starting_index)[this_cell+cell_iter];
-	
-	
-	//g_old is the current cell but before update
-	g_old = createSquareMatrix(dim);
-	MatrixCopyPart(allgs[this_cell], g_old, 0,0,0,0, dim, dim);
-	
-	//gtemp is the fully connected and updated version of the current cell
-	if(mode2<2)
-	{
-	  gtemp = createSquareMatrix(dim);
-	}
-	
-	//gprev is the fully connected version of the previous cell
-
-	
-	//off_old 
-	    //is filled at the end of the iteration by copying off_new
-	    //has dimension (dim_old, dim1) (or vice versa) and is the connected version
-	
-	//off_new
-	if(mode2 == 1)
-	{
-	    off_new = createNonSquareMatrix(dim, dim1);
-	}
-	if(mode2 == 2)
-	{
-	    off_new = createNonSquareMatrix(dim1, dim);
-	}
-	    
-	    
-	//generate V matrices as above 
-		V12 = createNonSquareMatrix(dim_old, dim);
-		V21 = createNonSquareMatrix(dim, dim_old);
-	    
-		for(i=0; i<dim; i++)
+		for(i=0; i<num_cells; i++)
 		{
-		  
-		  index1 = (cellinfo->cells_site_order)[this0 +i];
-		  for(j=0; j<(cnxp->site_cnxnum)[index1]; j++)
-		  {
-		    index2 = (cnxp->site_cnx)[index1][j];
-		    
-		    //is this neighbour in the previous cell?
-		    if( (cellinfo->sites_by_cell)[index2] == (this_cell + cell_iter))
-		    {
-			//what is its index within the cell?
-			k=0;
-			for(l=0; l<dim_old; l++)
-			{
-			  if( index2 == (cellinfo->cells_site_order)[last0 +l])
-			  {
-			    k=l;
-			  }
-			}
-			
-			V21[i][k] = hoppingfn(DeviceCell, DeviceCell, index1, index2, bshifts, hoppingparams);
-			V12[k][i] = hoppingfn(DeviceCell, DeviceCell, index2, index1, bshifts, hoppingparams);
-		      
-		    }
-		    
-		    
-		  }
+			FreeMatrix(allgs[i]);
 		}
-		
-	
-	
-	if(mode2<2)
-	{
-	
-	
-		t1 = createNonSquareMatrix(dim, dim_old);
-		MatrixMultNS(g_old, V21, t1, dim, dim, dim_old);
-		
-		//update off-diagonals
-		if(mode2==1)
-		{
-		  MatrixMultNS(t1, off_old, off_new, dim, dim_old, dim1);
-		}
-		
-		
-	//update diagonals
-		t2 = createNonSquareMatrix(dim, dim_old);
-		MatrixMultNS(t1, gprev, t2, dim, dim_old, dim_old);
-		FreeMatrix(t1);
-		t1 = createNonSquareMatrix(dim, dim);
-		MatrixMultNS(t2, V12, t1, dim, dim_old, dim);
-		FreeMatrix(t2); 
-		t2= createSquareMatrix(dim);
-		MatrixMult(t1, g_old, t2, dim);
-		FreeMatrix(t1);
-		MatrixAdd(g_old, t2, gtemp, dim);
-		FreeMatrix(t2);
-      
-	    
-	//copying and freeing
-		FreeMatrix(g_old);
-		FreeMatrix(V12);
-		FreeMatrix(V21);
-		FreeMatrix(gprev);
-		
-		gprev = createSquareMatrix(dim);
-		MatrixCopy(gtemp, gprev, dim);
-		
-		for(i=0; i<dim; i++)
-		{
-		  Gdiags[(cellinfo->cells_site_order)[this0 +i]] = gtemp[i][i];
-		  
-		  for(j=0; j<dim1; j++)
-		  {
-		    Goff[(cellinfo->cells_site_order)[this0 +i]][j] = off_new[i][j];
-		  }
-		}
-		
-		FreeMatrix(gtemp);
-		FreeMatrix(off_old);
-		
-		off_old=createNonSquareMatrix(dim, dim1);
-		MatrixCopyPart(off_new, off_old, 0, 0, 0, 0, dim, dim1);
-		FreeMatrix(off_new);
-		
+		free(allgs);
 	}
-	
-	if(mode2 == 2)
-	{
-		t1 = createNonSquareMatrix(dim1, dim);
-		MatrixMultNS(off_old, V12, t1, dim1, dim_old, dim);
-		MatrixMultNS(t1, g_old, off_new, dim1, dim, dim);
-		
-		FreeMatrix(t1);
-		FreeMatrix(g_old);
-		FreeMatrix(V12);
-		FreeMatrix(V21);
-	
-		for(i=0; i<dim; i++)
-		{
-		  for(j=0; j<dim1; j++)
-		  {
-		    Goff[j][(cellinfo->cells_site_order)[this0 +i]] = off_new[j][i];
-		  }
-		}
-		FreeMatrix(off_old);
-		off_old=createNonSquareMatrix(dim1, dim);
-		MatrixCopyPart(off_new, off_old, 0, 0, 0, 0, dim1, dim);
-		FreeMatrix(off_new);
-	}
-    }
-	
-
-    
-  }
-
-   free(bshifts);
-   
-   if(mode>0)
-   {
-     for(i=0; i<num_cells; i++)
-     {
-       FreeMatrix(allgs[i]);
-     }
-     free(allgs);
-   }
   
 }
 

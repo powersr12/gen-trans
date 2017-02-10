@@ -444,7 +444,209 @@
 		gsl_matrix_complex_free (inverse);
 		gsl_permutation_free (p);
 	}
+	
+	
+	//This should replace matrix inversion followed by multiplication
+	//returns B for X=A-1 B, i.e. solves AX =B 
+	void SolveMatrixGSL(double _Complex **MatrixA, double _Complex **MatrixB, double _Complex **MatrixX, int dim)
+	{
+		gsl_matrix_complex *orig;
+		orig = gsl_matrix_complex_calloc (dim, dim);
+		gsl_complex elem;
+		gsl_permutation *p = gsl_permutation_calloc (dim);
+		
+		gsl_vector_complex *b, *x;
+		b = gsl_vector_complex_calloc(dim);
+		x = gsl_vector_complex_calloc(dim);
+		
+		double elem1, elem2;
+		double repart, impart;
+		int signum;
+		int i, j;
 
+		//convert matrix to gsl format
+		for(i = 0; i<dim; i++)
+		{
+			for(j=0; j<dim; j++)
+			{	
+				elem1 = creal(MatrixA[i][j]);
+				elem2 = cimag(MatrixA[i][j]);
+				GSL_SET_COMPLEX (&elem, elem1, elem2);
+				gsl_matrix_complex_set (orig, i,  j, elem);
+			}
+		}
+		//perform LU decomposition
+		gsl_linalg_complex_LU_decomp (orig,p, &signum);
+		//gsl_linalg_complex_LU_invert (orig,p, inverse);
+
+		
+		//solve for each column in X and B separately
+		for(j=0; j< dim; j++)
+		{
+			for(i=0; i<dim; i++)
+			{
+				elem1 = creal(MatrixB[i][j]);
+				elem2 = cimag(MatrixB[i][j]);
+				GSL_SET_COMPLEX (&elem, elem1, elem2);
+				gsl_vector_complex_set(b, i, elem);
+			}
+			
+			gsl_linalg_complex_LU_solve(orig, p, b, x);
+			
+			for(i=0; i<dim; i++)
+			{
+				elem = gsl_vector_complex_get (x, i);
+				repart = GSL_REAL(elem);
+				impart = GSL_IMAG(elem);
+				MatrixX[i][j] = repart + impart*I;
+			}
+			
+		}
+		
+		
+
+		gsl_matrix_complex_free (orig);
+		gsl_vector_complex_free(b);
+		gsl_vector_complex_free(x);
+		gsl_permutation_free (p);
+	}
+	
+	
+	
+	//This should replace matrix inversion followed by multiplication
+	//returns B for X=A-1 B, i.e. solves AX =B 
+	//This version saves the result of LU decomposition for further use
+	void SolveMatrixGSL_save (double _Complex **MatrixA, double _Complex **MatrixB, double _Complex **MatrixX, int dim, gsl_matrix_complex *orig, gsl_permutation *p)
+	{
+		//gsl_matrix_complex *orig;
+		//orig = gsl_matrix_complex_calloc (dim, dim);
+		gsl_complex elem;
+		//gsl_permutation *p;
+		//p = gsl_permutation_calloc (dim);
+		
+		gsl_vector_complex *b, *x;
+		b = gsl_vector_complex_calloc(dim);
+		x = gsl_vector_complex_calloc(dim);
+		
+		double elem1, elem2;
+		double repart, impart;
+		int signum;
+		int i, j;
+
+		//convert matrix to gsl format
+		for(i = 0; i<dim; i++)
+		{
+			for(j=0; j<dim; j++)
+			{	
+				elem1 = creal(MatrixA[i][j]);
+				elem2 = cimag(MatrixA[i][j]);
+				GSL_SET_COMPLEX (&elem, elem1, elem2);
+				gsl_matrix_complex_set (orig, i,  j, elem);
+			}
+		}
+		//perform LU decomposition
+		gsl_linalg_complex_LU_decomp (orig,p, &signum);
+		//gsl_linalg_complex_LU_invert (orig,p, inverse);
+
+		
+		//solve for each column in X and B separately
+		for(j=0; j< dim; j++)
+		{
+			for(i=0; i<dim; i++)
+			{
+				elem1 = creal(MatrixB[i][j]);
+				elem2 = cimag(MatrixB[i][j]);
+				GSL_SET_COMPLEX (&elem, elem1, elem2);
+				gsl_vector_complex_set(b, i, elem);
+			}
+			
+			gsl_linalg_complex_LU_solve(orig, p, b, x);
+			
+			for(i=0; i<dim; i++)
+			{
+				elem = gsl_vector_complex_get (x, i);
+				repart = GSL_REAL(elem);
+				impart = GSL_IMAG(elem);
+				MatrixX[i][j] = repart + impart*I;
+			}
+			
+		}
+		
+		
+
+		//gsl_matrix_complex_free (orig);
+		gsl_vector_complex_free(b);
+		gsl_vector_complex_free(x);
+		//gsl_permutation_free (p);
+	}
+
+	//This should replace matrix inversion followed by multiplication
+	//returns B for X=A-1 B, i.e. solves AX =B 
+	//This version uses the result of LU decomposition 
+	void SolveMatrixGSL_reuse (double _Complex **MatrixB, double _Complex **MatrixX, int dim, gsl_matrix_complex *orig, gsl_permutation *p)
+	{
+		//gsl_matrix_complex *orig;
+		//orig = gsl_matrix_complex_calloc (dim, dim);
+		gsl_complex elem;
+		//gsl_permutation *p;
+		//p = gsl_permutation_calloc (dim);
+		
+		gsl_vector_complex *b, *x;
+		b = gsl_vector_complex_calloc(dim);
+		x = gsl_vector_complex_calloc(dim);
+		
+		double elem1, elem2;
+		double repart, impart;
+		int signum;
+		int i, j;
+
+		//convert matrix to gsl format
+// 		for(i = 0; i<dim; i++)
+// 		{
+// 			for(j=0; j<dim; j++)
+// 			{	
+// 				elem1 = creal(MatrixA[i][j]);
+// 				elem2 = cimag(MatrixA[i][j]);
+// 				GSL_SET_COMPLEX (&elem, elem1, elem2);
+// 				gsl_matrix_complex_set (orig, i,  j, elem);
+// 			}
+// 		}
+// 		//perform LU decomposition
+		//gsl_linalg_complex_LU_decomp (orig,p, &signum);
+		//gsl_linalg_complex_LU_invert (orig,p, inverse);
+
+		
+		//solve for each column in X and B separately
+		for(j=0; j< dim; j++)
+		{
+			for(i=0; i<dim; i++)
+			{
+				elem1 = creal(MatrixB[i][j]);
+				elem2 = cimag(MatrixB[i][j]);
+				GSL_SET_COMPLEX (&elem, elem1, elem2);
+				gsl_vector_complex_set(b, i, elem);
+			}
+			//printf("here ok\n");
+			gsl_linalg_complex_LU_solve(orig, p, b, x);
+			//printf("here not ok\n");
+
+			for(i=0; i<dim; i++)
+			{
+				elem = gsl_vector_complex_get (x, i);
+				repart = GSL_REAL(elem);
+				impart = GSL_IMAG(elem);
+				MatrixX[i][j] = repart + impart*I;
+			}
+			
+		}
+		
+		
+
+		//gsl_matrix_complex_free (orig);
+		gsl_vector_complex_free(b);
+		gsl_vector_complex_free(x);
+		//gsl_permutation_free (p);
+	}
 
 //Inverts a square complex matrix using GSL
 	double _Complex GetDeterminantGSL(double _Complex **origMatrix, int dim)

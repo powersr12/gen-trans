@@ -3017,6 +3017,7 @@ void exportRectConf(RectRedux *System, char *filename)
   int length = System->length;
   int length2 = System->length2;
   int geo = System->geo;
+  int are_spin_pots = System-> are_spin_pots;
   int i, j, k;
   int tot_sites = *(System->Ntot);
   
@@ -3046,6 +3047,17 @@ void exportRectConf(RectRedux *System, char *filename)
     }
   fclose(fileout);
   
+  if(are_spin_pots == 1)
+  {
+	sprintf(fullname, "%s.spin_pots", filename);
+	fileout = fopen(fullname, "w");
+	for(j=0; j<tot_sites; j++)
+	{
+		fprintf(fileout, "%.10lf	%.10lf	%.10lf\n", (System->spin_pots)[j][0], (System->spin_pots)[j][1], (System->spin_pots)[j][2]);
+	}
+	fclose(fileout);
+  }
+  
   
   
   sprintf(fullname, "%s.info", filename);
@@ -3066,6 +3078,8 @@ void importRectConf(RectRedux *System, int length, int length2, char *filename)
  // int length = System->length;
  // int length2 = System->length2;
  // int geo = System->geo;
+	int are_spin_pots = System-> are_spin_pots;
+
   int i, j, k, temp;
   int tot_sites ;
   
@@ -3113,6 +3127,18 @@ void importRectConf(RectRedux *System, int length, int length2, char *filename)
       }
    
     fclose(fileout);
+    
+    
+	if(are_spin_pots == 1)
+	{
+		sprintf(fullname, "%s.spin_pots", filename);
+		fileout = fopen(fullname, "r");
+		for(j=0; j<tot_sites; j++)
+		{
+			fscanf(fileout, "%lf	%lf	%lf", &(System->spin_pots)[j][0], &(System->spin_pots)[j][1], &(System->spin_pots)[j][2]);
+		}
+		fclose(fileout);
+	}
     
     
 //     sprintf(fullname, "%s.chaininfo", filename);

@@ -61,3 +61,9 @@ void dyson(double _Complex **g, double _Complex **V, double _Complex **G, int N)
 	void listNonZero(double _Complex **Matrix, int dim1, int dim2);
 
 	void LinEqnDouble (double **MatrixA, double *VectorB, double *VectorX, int dim);
+	
+	void SolveMatrixGSL(double _Complex **MatrixA, double _Complex **MatrixB, double _Complex **MatrixX, int dim);
+
+	void SolveMatrixGSL_save (double _Complex **MatrixA, double _Complex **MatrixB, double _Complex **MatrixX, int dim, gsl_matrix_complex *orig, gsl_permutation *p);
+	void SolveMatrixGSL_reuse (double _Complex **MatrixB, double _Complex **MatrixX, int dim, gsl_matrix_complex *orig, gsl_permutation *p);
+

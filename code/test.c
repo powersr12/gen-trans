@@ -228,6 +228,8 @@ main(int argc, char *argv[])
 	  int mappings=0, mapnow=0, mapmode=0;
 	  int map_all_leads=1, map_lead=0;
 	  
+	  
+	  
 	  char job_name[64] = "";	//an addendum to folder names to 
 
 	  
@@ -295,6 +297,50 @@ main(int argc, char *argv[])
 			    sscanf(argv[i+1], "%d", &buffer_rows);
 			}
 		    }
+		    
+		    
+	//spindep =0 for unpolarised, =1 for fully polarised, =2 for 2 independent channels
+		//eventually each lead should also have this option...
+		//for the moment all leads are non-magnetic, and have same self energies for both channels
+	//spindep_pots =0 - no spin dependent potentials to be generated and/or saved 
+		int spindep=0, spindep_pots=0;
+		for(i=1; i<argc-1; i++)
+		{
+			if(strcmp("-spindep", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%d", &spindep);
+			}
+			if(strcmp("-spindep_pots", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%d", &spindep_pots);
+			}
+			
+			
+		}
+		
+		//constant spin dependent potentials that are added during the loop
+		//these are not included in the spinpots files which are intended for local fluctuations
+		//these terms should mimic the effect of Zeeman splitting from randomly oriented external B fields.
+		//only spinzpot included for 2 indepedent channels mode
+		//these terms enter by multiplying the corresponding spin-space pauli matrix
+		double spinxpot=0.0, spinypot=0.0, spinzpot=0.0;
+		    
+		for(i=1; i<argc-1; i++)
+		{
+			if(strcmp("-spinxpot", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%lf", &spinxpot);
+			}
+			if(strcmp("-spinypot", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%lf", &spinypot);
+			}
+			if(strcmp("-spinzpot", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%lf", &spinypot);
+			}
+		}
+		
 		    
 		    
 	//energy and magfield loop related doubles 
@@ -1290,8 +1336,8 @@ main(int argc, char *argv[])
 	  connectrules = default_connect_rule;
 	  
 	  //standard hall settings
-	   if(ishallbar==1 || ishallbar==2)
-            {
+	if(ishallbar==1 || ishallbar==2)
+	{
             connectrules = default_connect_rule;
             isperiodic=0;
             cnxpara.periodic = 0;
@@ -1366,7 +1412,7 @@ main(int argc, char *argv[])
                 hallp.toppc[0] = hall_num_y_cells; hallp.toppc[1] = hall_num_y_cells;
                 hallp.botpc[0] = hall_num_y_cells; hallp.botpc[1] = hall_num_y_cells;
             
-            }
+	}
             
             
             double *leadsxmin, *leadsxmax;
@@ -1375,7 +1421,9 @@ main(int argc, char *argv[])
 	    int currIn, currOut;
 	    int *leadOrder;
         
-            //settings for (generic) 4-probe configuration
+            
+	    
+	    //settings for (generic) 4-probe configuration
             //these leads are generally trivial self energies, rather than self consistent SGF based
             //this should work for metallic (FM) contacts, STM tips etc with some modification
             //this setup is based on simple metallic leads (typeleads 0), attaching across the entire device width within an x range.
@@ -1383,8 +1431,8 @@ main(int argc, char *argv[])
             //positions at endpos from start and end, and at endpos +  endsep from each.
             //make sure system is long enough to support this
             //leads are of leadwidth units wide
-            if(ishallbar ==3)
-            {
+	if(ishallbar ==3)
+	{
                 num_leads=4; //default - checks again below!
                 connectrules = default_connect_rule;
                 isperiodic=0;
@@ -1475,8 +1523,11 @@ main(int argc, char *argv[])
                 
                 sprintf(peritype, "METAL_%d_PROBES_%d_to_%d_w%.0lf_s%.0lf_%.0lf", num_leads, currIn, currOut, leadwidth, endpos, endsep);
                 
-            }
+	}
             
+            
+            
+            //METAL LEAD DEFAULT SETTINGS
 		gen_hop_params metal_hop_p = {};
 		multix_start_params mxsp = {};
 		double metal_alpha=0.0, metal_sig=-1.0, metal_beta=1.0, metal_hop=t, metal_default_width=4;;
@@ -1486,6 +1537,7 @@ main(int argc, char *argv[])
                 metal_hop_p.hops[2] = metal_beta;
                 metal_hop_p.hops[3] = metal_hop;
 	    
+		//METAL LEAD CUSTOM SETTINGS
             if(metal_leads == 1)
             {
                 starting_cell_mode=4;
@@ -1526,7 +1578,7 @@ main(int argc, char *argv[])
 
 
 	  
-		//CUSTOM LEADS MODE
+	//CUSTOM LEADS MODE
 		char leadconf[40], temp_in_string[40], additional_lead_info[40];
 		multiple_para *mleadps[num_leads];
 		custom_start_params cstart_p ={};
@@ -1535,8 +1587,8 @@ main(int argc, char *argv[])
 		int nleft, nright, nfull;
 		int counttop, countbot, countleft, countright, countfull;
 		double metaldim2=2.0;
-		if(ishallbar==4)
-		{
+	if(ishallbar==4)
+	{
 			currIn=1;
 			currOut=0;
 			connectrules = default_connect_rule;
@@ -1900,7 +1952,7 @@ main(int argc, char *argv[])
 			
 			sprintf(peritype, "%s_%d_LEADS_%d_to_%d_%s", leadconf, num_leads, currIn, currOut, additional_lead_info);
 			
-		}
+	}
 		
 	  
 	  //loop info
@@ -1974,7 +2026,7 @@ main(int argc, char *argv[])
 	
 		
 		sprintf(loopinfo, "VG_%s_loop_%+.2lf_to_%+.2lf_Bfixed_%+.3lf_Efixed_%+.3lf", vgtname, VGmin, VGmax, Bfield, realE);
-		sprintf(loopmininfo, "VG_%s_%+.2lf_E_%+.3lf_B_%+.3lf", VGmin, realE, Bfield);
+		sprintf(loopmininfo, "VG_%s_%+.2lf_E_%+.3lf_B_%+.3lf", vgtname, VGmin, realE, Bfield);
 
 		
 	      }
@@ -2134,7 +2186,11 @@ main(int argc, char *argv[])
 	    System.length2=length2;
 	    System.Nrem=&Nrem;
 	    System.Ntot=&Ntot;
+	    System.are_spin_pots = spindep_pots;	//possibly not needed
+	    System.spindep = spindep;
 	    
+	    double const_spin_pots[] = {spinxpot, spinypot, spinzpot};
+	    System.const_spin_pots = const_spin_pots;
 	    
 	    RectRedux *LeadCells[num_leads];
 
@@ -2202,8 +2258,8 @@ main(int argc, char *argv[])
 		  time = clock();
 		  
 	    double **pos = System.pos;
-	    int **siteinfo = System.siteinfo;
-	    double *site_pots = System.site_pots;
+	    //int **siteinfo = System.siteinfo;
+	    //double *site_pots = System.site_pots;
 	    
 	
 	  
@@ -2387,31 +2443,7 @@ main(int argc, char *argv[])
 		}
 		else
 			exit(1);
-// 	  
-// 	  hoppara.hops[0]=t0;
-// 	  hoppara.NN_lowdis[0] = NNlowdis;
-// 	  hoppara.NN_highdis[0] = NNhighdis;
-// 
-// 	  
-// 	  if(nngm>1)
-// 	  {
-// 	    hoppara.hops[1]=t1;
-// 	    hoppara.NN_lowdis[1]=NNlowdis1;
-// 	    hoppara.NN_highdis[1]=NNhighdis1;
-// 	    hoppara.NN_shifts[1]= onsitec1;
-// 	  }
-// 	    
-// 	  if(nngm>2)
-// 	  {
-// 	    hoppara.hops[2]=t2;
-// 	    hoppara.NN_lowdis[2]=NNlowdis2;
-// 	    hoppara.NN_highdis[2]=NNhighdis2;
-// 	    hoppara.NN_shifts[2]= onsitec2;
-// 	    
-// 	  }
-// 	  hoppara.t0=t0;
-		
-// 		hoppara.num_neigh = hop_to_load->num_neigh;
+
 		
 	  hoppara.isperiodic=isperiodic;
 	  hoppara.kpar=kmin;
@@ -2612,9 +2644,11 @@ main(int argc, char *argv[])
 		  {
 		      bandmode =2;
 		  }
-			  
+		
+		if(spindep == 0)
+		{
 		  genKXbandproj(&System, hopfn, &hoppara, bandmode, kxl, bands, projections, weights);
-
+		}
 		  
 		  bandfile = fopen(bandname1, "a"); 
 		  fprintf(bandfile, "%lf\t", kxl);

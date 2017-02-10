@@ -211,12 +211,19 @@ void ACinf (double _Complex **g11inv, double _Complex **V01, double _Complex **V
 		double _Complex **T_new = createSquareMatrix(N);
 		double _Complex **B_old = createSquareMatrix(N);
 		double _Complex **B_new = createSquareMatrix(N);
+		
+		double _Complex **g0V01 = createSquareMatrix(N);
 
+		
+		gsl_matrix_complex *orig;
+		gsl_permutation *p;
 
 		MatrixMult(g00, V10, t_old, N);
-		MatrixMult(g00, V01, td_old, N);
-		MatrixCopy(t_old, T_old, N);
-		MatrixCopy(td_old, B_old, N);
+		MatrixMult(g00, V01, g0V01, N);
+		//MatrixCopy(t_old, T_old, N);
+		//MatrixCopy(td_old, B_old, N);
+		//MatrixCopy(td_old, g0V01, N);
+
 
 		*count = 0;
 		while(calc_error > error)
@@ -224,29 +231,105 @@ void ACinf (double _Complex **g11inv, double _Complex **V01, double _Complex **V
 			*count = *count + 1;
 			calc_error = 0.0;
 			//t_new
-			MatrixMult(t_old, td_old, temp1, N);
+			if(*count !=1)
+				MatrixMult(t_old, td_old, temp1, N);
+			if(*count ==1)
+				MatrixMult(t_old, g0V01, temp1, N);
+			
 			MatrixSubtract(unit, temp1, temp2, N);
-			MatrixMult(td_old, t_old, temp1, N);
+			
+			if(*count !=1)
+				MatrixMult(td_old, t_old, temp1, N);
+			if(*count ==1)
+				MatrixMult(g0V01, t_old, temp1, N);
+			
 			MatrixSubtract(temp2, temp1, temp3, N);
-			InvertMatrixGSL(temp3, temp1, N);
-
-			MatrixMult(temp1, t_old, temp2, N);
+			
+			
+			//Matrix Inversion method
+			if(N<600)
+			{
+				InvertMatrixGSL(temp3, temp1, N);
+				MatrixMult(temp1, t_old, temp2, N);
+			}
+			
+			//SIMPLE SOLVE 
+				// //SolveMatrixGSL(temp3, t_old, temp2, N);
+			
+			//OR TO REUSE LU DECOMP
+			if(N>=600)
+			{
+				orig= gsl_matrix_complex_calloc (N, N);
+				p = gsl_permutation_calloc (N);
+				SolveMatrixGSL_save(temp3, t_old, temp2, N, orig, p);
+			}		
+					
+			//printf("ok\n");
 			MatrixMult(temp2, t_old, t_new, N);
 
 
 			//td_new
-			MatrixMult(temp1, td_old, temp2, N);
-			MatrixMult(temp2, td_old, td_new, N);			
+			
+			//Using Matrix Inversion above
+			if(N<600)
+			{
+				if(*count !=1)
+					MatrixMult(temp1, td_old, temp2, N);
+				if(*count ==1)
+					MatrixMult(temp1, g0V01, temp2, N);
+			}
+			
+			
+			
+			//Or using simple solve again
+				//if(*count !=1)
+					//SolveMatrixGSL(temp3, td_old, temp2, N);
+				//if(*count ==1)
+					//SolveMatrixGSL(temp3, g0V01, temp2, N);
+			
+			//Or reusing LU decomp
+			if(N>=600)
+			{
+				if(*count !=1)
+					SolveMatrixGSL_reuse(td_old, temp2, N, orig, p);
+				if(*count ==1)
+					SolveMatrixGSL_reuse(g0V01, temp2, N, orig, p);
+				
+ 				gsl_matrix_complex_free (orig);
+ 				gsl_permutation_free (p);
+			}
+			
+			//printf("#det  %.5e	%.5e\n", GetDeterminantGSL(temp2, N));
+
+			if(*count !=1)
+				MatrixMult(temp2, td_old, td_new, N);	
+			if(*count ==1)
+				MatrixMult(temp2, g0V01, td_new, N);	
 			//printEMatrix(td_new, 4);
 			//printEMatrix(td_new, N);
 
 			
 			//T_new
-			MatrixMult(B_old, t_new, temp1, N);
-			MatrixAdd(T_old, temp1, T_new, N);
-
+			if(*count !=1)
+			{
+				MatrixMult(B_old, t_new, temp1, N);
+				MatrixAdd(T_old, temp1, T_new, N);
+			}
+			if(*count ==1)
+			{
+				MatrixMult(g0V01, t_new, temp1, N);
+				MatrixAdd(t_old, temp1, T_new, N);
+			}
+			
 			//B_new
-			MatrixMult(B_old, td_new, B_new, N);
+			if(*count !=1)
+			{
+				MatrixMult(B_old, td_new, B_new, N);
+			}
+			if(*count ==1)
+			{
+				MatrixMult(g0V01, td_new, B_new, N);
+			}
 
 			for(i=0; i < N; i++)	
 			{
@@ -265,13 +348,26 @@ void ACinf (double _Complex **g11inv, double _Complex **V01, double _Complex **V
 
 		}
 		
-		MatrixMult(g00, V01, temp1, N);
-		MatrixMult(temp1, T_new, temp2, N);
+		
+		//MatrixMult(g00, V01, temp1, N);
+		MatrixMult(g0V01, T_new, temp2, N);
 		MatrixSubtract(unit, temp2, temp1, N);
-		InvertMatrixGSL(temp1, temp2, N);
-		MatrixMult(temp2, g00, S, N);
+		
+		//Matrix inversion technique
+		if(N<600)
+		{
+			InvertMatrixGSL(temp1, temp2, N);
+			MatrixMult(temp2, g00, S, N);
+		}
 
+		//solve with LU instead
+		if(N>=600)
+		{
+			SolveMatrixGSL(temp1, g00, S, N);
+		}
+		
 		FreeMatrix(unit);
+		FreeMatrix(g0V01);
 		FreeMatrix(temp1);
 		FreeMatrix(temp2);
 		FreeMatrix(temp3);

@@ -32,6 +32,10 @@ typedef struct {
 	double Btes;
 	int *restrics;	//are there limits on x, y with field
 	double **limits; //what are the limits on x, y with field
+	
+	 //these are set before calling an instance of the hopping routine to determine whats happening in spin space.
+	int spinA;
+	int spinB;
 }gen_hop_params;
 
 
@@ -42,11 +46,9 @@ typedef struct {
 }trans_params;
 
 
-double genConduc4(double _Complex En, RectRedux *DeviceCell, double *ldoses, double **conds, int *indices, int **neigh, double hopping);
-double genConduc5(double _Complex En, RectRedux *DeviceCell, double hopping);
 
 void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp, 
-		      cellDivision *cellinfo, hoppingfunc *hoppingfn, void *hoppingparams, int mode, int mode2, 
+		      cellDivision *cellinfo, hoppingfunc *hoppingfn, gen_hop_params *hoppingparams, int mode, int mode2, int spinA, int spinB,
 		      double _Complex **Gon, double _Complex *Gdiags, double _Complex **Goff, double _Complex **Sigma);
 
 double _Complex simpleTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, int b, double *bshifts, void *hoppingparams);
@@ -64,7 +66,7 @@ void lead_prep(double _Complex En, RectRedux *LeadCell, int leadindex, lead_para
 void lead_prep2(double _Complex En, RectRedux *LeadCell, int leadindex, rib_lead_para *params, double _Complex **ginv, double _Complex **V12, double _Complex **V21);
 
 void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Leads, cnxProfile *cnxp, 
-		      cellDivision *cellinfo, hoppingfunc *hoppingfn, void *hoppingparams,
+		      cellDivision *cellinfo, hoppingfunc *hoppingfn, gen_hop_params *hoppingparams,
 		      lead_para *leadsparams, trans_params *tpara, int mode, double *ldoses, double ***currents);
 
 
