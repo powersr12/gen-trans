@@ -2854,6 +2854,35 @@ void genEdgeDisorderedDevice(RectRedux *SiteArray, void *p, int struc_out, char 
 	      sites[i] = tempint;
 	    }
 	  }
+	  
+	  //kill danglers
+	  for(i=2*length*(buffer_rows); i<tot_sites - 2*length*(buffer_rows); i++)
+	  {
+	    if(sites[i] < 2)
+	    {
+	      siteinfo[i][0] = 1;
+	    }
+	  }
+	  
+	  //determine new edge atoms
+	  for(i=0; i<tot_sites; i++)
+	  {
+	    if(siteinfo[i][0] == 0)
+	    {
+	      tempint =0;
+	      
+	      for(j=0; j<orig_sites[i]; j++)
+	      {
+		if(siteinfo[neighbours[i][j]][0] ==0)
+		{
+		  tempint++;
+		}
+	      }
+	      sites[i] = tempint;
+	    }
+	  }
+	  
+	  
 	    
 	    
 	}
