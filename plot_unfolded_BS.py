@@ -7,9 +7,12 @@ import numpy as np
 from matplotlib.colors import LogNorm
 import scipy.interpolate
 
-filename="/home/spow/GEN_TRANS_ICN/ANTIDOTS_RIBBON_1e-06/ZZ76_rect_lat_L_19_33_circ_dot_R_2.0_2x1_xyf_0.0_rf_0.0/Eloop_+0.00_to_+0.50_Bfixed_+0.000_run.conf00.wbands"
-cleanbands="/home/spow/projects/gen_trans/res/CLEAN_RIBBON_1e-06/ZZ56_clean_l2_1/Eloop_+0.00_to_+0.50_Bfixed_+200.000_run.conf00.bands"
+filename="/home/ICN2/spower/projects/vqhe/res/SUBLMOIRE_RIBBON_1e-06/ZZ118_L2_59_rescaled_off_0.0_0.0/Eloop_-0.30_to_+0.30_Bfixed_+0.000_cont.conf00.wbands"
+cleanbands="/home/ICN2/spower/projects/vqhe/res/SUBLMOIRE_RIBBON_1e-06/ZZ118_L2_59_rescaled_off_0.0_0.0/Eloop_-0.30_to_+0.30_Bfixed_+0.000_cont.conf00.bands"
 outputname=filename+"_plot.png"
+
+
+
 
 x, band, weight = np.loadtxt(filename, unpack=True)
 
@@ -22,7 +25,7 @@ x, band, weight = np.loadtxt(filename, unpack=True)
 #print cleanys.shape
 
 #for bandc in cleanys.T:
-  #plt.plot(cleanx, bandc, color="red", linewidth=1)
+#  plt.plot(cleanx, bandc, color="red", linewidth=1)
   
 
 
@@ -37,7 +40,7 @@ rgba_colors[:,2] = 0.0
 rgba_colors[:, 3] = weight.clip(0, 10)
 
 plt.scatter(x, band, color=rgba_colors, facecolors=rgba_colors, marker='o', s=30, lw=0)
-plt.ylim(-0.1, 1.0)
+plt.ylim(-0.2, 0.2)
 
 plt.show()
 

@@ -195,6 +195,8 @@ void genLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, int mode, 
       (Leads[i]->geo) = (SiteArray->geo);
       (Leads[i]->length) = (SiteArray->length);
       (Leads[i]->length2) = 1;
+      (Leads[i]->spindep) = 0;
+      (Leads[i]->are_spin_pots) = 0;
       (Leads[i]->Nrem) = (int *)malloc(sizeof(int));
       (Leads[i]->Ntot) = (int *)malloc(sizeof(int));
       simpleRibbonGeo (Leads[i], NULL, 0, NULL);
@@ -300,6 +302,7 @@ void genSingleRibbonLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, v
 	(Lead->geo) = (ribpara->geo);
 	(Lead->length) = (ribpara->width);
 	(Lead->length2) = 1;
+	(Lead->spindep) = 0;
 	
 	simpleRibbonGeo (Lead, NULL, 0, NULL);
 
@@ -392,8 +395,9 @@ void genSingleBLGLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, void
 	(Lead->geo) = (ribpara->geo);
 	(Lead->length) = (ribpara->width);
 	(Lead->length2) = 1;
-	
-	
+	(Lead->spindep) = 0;
+	(Lead->are_spin_pots) = 0;
+
 	simpleBilayerGeo (Lead, ribpara->bilayer_para, 0, NULL);
 
 	//periodicity vectors for RGF leads
@@ -486,6 +490,8 @@ void genSingleMetalLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, vo
 
 	//Lead->pos is used here to give the max x/y of the lead
 	(Lead->pos) = createNonSquareDoubleMatrix(2, 3);
+	(Lead->spindep) = 0;
+	(Lead->are_spin_pots) = 0;
     
 	//lead sizes etc are such that they correspond to that of a ribbon with the same width param
 	if(metpara->def_pos == 0)
@@ -3410,6 +3416,8 @@ void HallBarify (RectRedux *System, RectRedux **Leads, hallbpara *hall_para, lea
 		(Leads[i]->length2) = 1;
 		(Leads[i]->Nrem) = (int *)malloc(sizeof(int));
 		(Leads[i]->Ntot) = (int *)malloc(sizeof(int));
+		(Leads[i]->spindep) = 0;
+		(Leads[i]->are_spin_pots) = 0;
 		simpleRibbonGeo (Leads[i], NULL, 0, NULL);
 	      }
 	      
@@ -3420,6 +3428,8 @@ void HallBarify (RectRedux *System, RectRedux **Leads, hallbpara *hall_para, lea
 		(Leads[i]->geo) = tbgeo;
 		(Leads[i]->length) = toppw[i-2];
 		(Leads[i]->length2) = 1;
+		(Leads[i]->spindep) = 0;
+		(Leads[i]->are_spin_pots) = 0;
 		(Leads[i]->Nrem) = (int *)malloc(sizeof(int));
 		(Leads[i]->Ntot) = (int *)malloc(sizeof(int));
 		simpleRibbonGeo (Leads[i], NULL, 0, NULL);
@@ -3443,6 +3453,8 @@ void HallBarify (RectRedux *System, RectRedux **Leads, hallbpara *hall_para, lea
 		(Leads[i]->geo) = tbgeo;
 		(Leads[i]->length) = botpw[i-2-ntop];
 		(Leads[i]->length2) = 1;
+		(Leads[i]->spindep) = 0;
+		(Leads[i]->are_spin_pots) = 0;
 		(Leads[i]->Nrem) = (int *)malloc(sizeof(int));
 		(Leads[i]->Ntot) = (int *)malloc(sizeof(int));
 		simpleRibbonGeo (Leads[i], NULL, 0, NULL);

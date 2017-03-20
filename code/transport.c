@@ -337,10 +337,16 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 					index1 = (cellinfo->cells_site_order)[this0 +i];
 					(hoppingparams->spinA)=spinA;
 					(hoppingparams->spinB)=spinB;
-					g00inv[i][i] = En - (DeviceCell->site_pots)[index1] - hoppingfn(DeviceCell, DeviceCell, index1, index1, bshifts, hoppingparams);
+					g00inv[i][i] = En - hoppingfn(DeviceCell, DeviceCell, index1, index1, bshifts, hoppingparams);
+					
+					//onsites
+					if(spinA==spinB)
+					{
+						g00inv[i][i] -= (DeviceCell->site_pots)[index1];
+					}
 					
 					//...and spin dependent potentials
-					if(spindep==1)
+					if(spindep==1 && are_spin_pots==1)
 					{
 						if(spinA==0 && spinB==0)
 						{
@@ -356,7 +362,7 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 							g00inv[i][i] -= (const_spin_pots[0] + spin_pots[index1][0] + I*(const_spin_pots[1] + spin_pots[index1][1]));
 						}
 						
-						if(spinA==0 && spinB==0)
+						if(spinA==1 && spinB==1)
 						{
 							g00inv[i][i] -= (-const_spin_pots[2] - spin_pots[index1][2]);
 						}
@@ -416,8 +422,8 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 							(hoppingparams->spinB)=spinB;
 							V21[i][k] = hoppingfn(DeviceCell, DeviceCell, index1, index2, bshifts, hoppingparams);
 								
-							(hoppingparams->spinA)=spinB;
-							(hoppingparams->spinB)=spinA;
+							//(hoppingparams->spinA)=spinB;
+							//(hoppingparams->spinB)=spinA;
 							V12[k][i] = hoppingfn(DeviceCell, DeviceCell, index2, index1, bshifts, hoppingparams);
 							
 						}
@@ -614,8 +620,8 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 									(hoppingparams->spinB)=spinB;
 									V21[i][k] = hoppingfn(DeviceCell, DeviceCell, index1, index2, bshifts, hoppingparams);
 										
-									(hoppingparams->spinA)=spinB;
-									(hoppingparams->spinB)=spinA;
+									//(hoppingparams->spinA)=spinB;
+									//(hoppingparams->spinB)=spinA;
 									V12[k][i] = hoppingfn(DeviceCell, DeviceCell, index2, index1, bshifts, hoppingparams);
 								}
 							}
@@ -1007,6 +1013,8 @@ double _Complex simpleTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, 
   double  *NN_shifts = para->NN_shifts;
   double  *NN_zmin= para->NN_zmin;
   double  *NN_zmax = para->NN_zmax;
+  int spinA = para->spinA;
+  int spinB = para->spinB;
   double t0;
   double kpar = para->kpar;
   double _Complex ans=0.0;
@@ -1018,99 +1026,107 @@ double _Complex simpleTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, 
   double zdiff = fabs((bDeviceCell->pos)[b][2] - (aDeviceCell->pos)[a][2]);
   double ycelldist;
   int i;
-//   printf("#%lf	%lf\n", dist, zdiff);
-  
-  //if((para->isperiodic)==0)
-  //{
-  
-    //which coupling to use
-    t0=0.0;
-    for(i=0; i< num_neigh; i++)
-    {
-      if(dist >= (para->NN_lowdis[i]) && dist < (para->NN_highdis[i]))
-      {
-		if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
-		{ 
-			t0 = hops[i];
-// 			printf("#hopping type %d of %d used\n", i, num_neigh);
-// 			
-// 			printf("#type 0: %lf - %lf, z: %lf - %lf\n", (para->NN_lowdis[0]) , (para->NN_highdis[0]), NN_zmin[0], NN_zmax[0]);
-// 			printf("#type 1: %lf - %lf, z: %lf - %lf\n", (para->NN_lowdis[1]) , (para->NN_highdis[1]), NN_zmin[1], NN_zmax[1]);
-			
-		}
-      }
-      
-      if(dist == 0.0)
-      {
-	t0 += NN_shifts[i];
-      }
-    }
-    ans=t0;
- 
-  
 
-      //note the += to allow more than one connection between the same atoms (or their images)
-  if((para->isperiodic)==1)
+  
+  //this hopping routine is zero for elements off-diagonal in spin-space
+  if(spinA!=spinB)
   {
-    //set separation to up and down cells
-    //this is only sensible for even-indexed ribbons, but will run with odd results for odd indices
-    //this
-    if((aDeviceCell->geo)==0)
-    {
-	ycelldist = (aDeviceCell->length)*sqrt(3)/2;
-    }
-    if((aDeviceCell->geo)==1)
-    {
-	ycelldist = (aDeviceCell->length)*0.5;
-    }
-    
-    //check if b is in cell above
-    y2p = y2 + ycelldist;
-    distp= sqrt(pow(x2-x1, 2.0) + pow(y2p-y1, 2.0));
-    
-//     if(distp > (para->NN_lowdis) && distp < (para->NN_highdis))
-//     {
-//      ans+=t0*cexp(-I*kpar);    
-//     }
-    
-    t0=0.0;
-    for(i=0; i< num_neigh; i++)
-    {
-      if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
-      {
-	      if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
-	      {
-		t0 = hops[i];
-	      }
-      }
-    }
-    ans+=t0*cexp(-I*kpar); 
-    
-    
-    //check if b is in cell below
-    y2p = y2 - ycelldist;
-    distp= sqrt(pow(x2-x1, 2.0) + pow(y2p-y1, 2.0));
-    
-//     if(distp > (para->NN_lowdis) && distp < (para->NN_highdis))
-//     {
-//      ans+=t0*cexp(I*kpar); 
-//     }
-    
-    t0=0.0;
-    for(i=0; i< num_neigh; i++)
-    {
-      if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
-      {
-	      if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
-	      {
-			t0 = hops[i];
-	      }
-      }
-    }
-    ans+=t0*cexp(I*kpar); 
-    
+	  ans=0.0;
   }
-  //printf("# hopping %d	%d: %lf	%lf\n", a, b, ans, dist);
+  else
+  {
+  
+	//which coupling to use
+	t0=0.0;
+	for(i=0; i< num_neigh; i++)
+	{
+	if(dist >= (para->NN_lowdis[i]) && dist < (para->NN_highdis[i]))
+	{
+			if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
+			{ 
+				t0 = hops[i];
+	// 			printf("#hopping type %d of %d used\n", i, num_neigh);
+	// 			
+	// 			printf("#type 0: %lf - %lf, z: %lf - %lf\n", (para->NN_lowdis[0]) , (para->NN_highdis[0]), NN_zmin[0], NN_zmax[0]);
+	// 			printf("#type 1: %lf - %lf, z: %lf - %lf\n", (para->NN_lowdis[1]) , (para->NN_highdis[1]), NN_zmin[1], NN_zmax[1]);
+				
+			}
+	}
+	
+	if(dist == 0.0)
+	{
+		t0 += NN_shifts[i];
+	}
+	}
+	ans=t0;
+	
+	
+
+	//note the += to allow more than one connection between the same atoms (or their images)
+	if((para->isperiodic)==1)
+	{
+	//set separation to up and down cells
+	//this is only sensible for even-indexed ribbons, but will run with odd results for odd indices
+	//this
+	if((aDeviceCell->geo)==0)
+	{
+		ycelldist = (aDeviceCell->length)*sqrt(3)/2;
+	}
+	if((aDeviceCell->geo)==1)
+	{
+		ycelldist = (aDeviceCell->length)*0.5;
+	}
+	
+	//check if b is in cell above
+	y2p = y2 + ycelldist;
+	distp= sqrt(pow(x2-x1, 2.0) + pow(y2p-y1, 2.0));
+	
+	//     if(distp > (para->NN_lowdis) && distp < (para->NN_highdis))
+	//     {
+	//      ans+=t0*cexp(-I*kpar);    
+	//     }
+	
+	t0=0.0;
+	for(i=0; i< num_neigh; i++)
+	{
+	if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
+	{
+		if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
+		{
+			t0 = hops[i];
+		}
+	}
+	}
+	ans+=t0*cexp(-I*kpar); 
+	
+	
+	//check if b is in cell below
+	y2p = y2 - ycelldist;
+	distp= sqrt(pow(x2-x1, 2.0) + pow(y2p-y1, 2.0));
+	
+	//     if(distp > (para->NN_lowdis) && distp < (para->NN_highdis))
+	//     {
+	//      ans+=t0*cexp(I*kpar); 
+	//     }
+	
+	t0=0.0;
+	for(i=0; i< num_neigh; i++)
+	{
+	if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
+	{
+		if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
+		{
+				t0 = hops[i];
+		}
+	}
+	}
+	ans+=t0*cexp(I*kpar); 
+	
+	}
+	//printf("# hopping %d	%d: %lf	%lf\n", a, b, ans, dist);
+	
+  }
+  
   return ans;
   
 }
@@ -1127,6 +1143,8 @@ double _Complex peierlsTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a,
   double  *NN_shifts = para->NN_shifts;
   double  *NN_zmin= para->NN_zmin;
   double  *NN_zmax = para->NN_zmax;
+  int spinA = para->spinA;
+  int spinB = para->spinB;
   double t0;
   double kpar = para->kpar;
   double _Complex ans=0.0;
@@ -1141,84 +1159,96 @@ double _Complex peierlsTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a,
   int i;
   
   
-    //which coupling to use
-    t0=0.0;
-    for(i=0; i< num_neigh; i++)
-    {
-      if(dist > (para->NN_lowdis[i]) && dist < (para->NN_highdis[i]))
-      {
-	      if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
-	      {
-		t0 = hops[i];
-	      }
-      }
-      
-      //a==b condition has been added to distinguish between different layer cases
-      if(dist == 0.0 && a==b)
-      {
-	t0 += NN_shifts[i];
-      }
-      
-      
-    }
-    ans=t0*graphenePeierlsPhase(x1, y1, x2, y2, para->gauge, para->Btes, para->restrics, para->limits);     
+	//this hopping routine is zero for elements off-diagonal in spin-space
+	if(spinA!=spinB)
+	{
+		ans=0.0;
+	}
+	
+	else
+	{
+		
+		
+  
+		//which coupling to use
+		t0=0.0;
+		for(i=0; i< num_neigh; i++)
+		{
+		if(dist > (para->NN_lowdis[i]) && dist < (para->NN_highdis[i]))
+		{
+			if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
+			{
+				t0 = hops[i];
+			}
+		}
+		
+		//a==b condition has been added to distinguish between different layer cases
+		if(dist == 0.0 && a==b)
+		{
+			t0 += NN_shifts[i];
+		}
+		
+		
+		}
+		ans=t0*graphenePeierlsPhase(x1, y1, x2, y2, para->gauge, para->Btes, para->restrics, para->limits);     
 
-    
-      //note the += to allow more than one connection between the same atoms (or their images)
-  if((para->isperiodic)==1)
-  {
-    //set separation to up and down cells
-    //this is only sensible for even-indexed ribbons, but will run with odd results for odd indices
-    if((aDeviceCell->geo)==0)
-    {
-	ycelldist = (aDeviceCell->length)*sqrt(3)/2;
-    }
-    if((aDeviceCell->geo)==1)
-    {
-	ycelldist = (aDeviceCell->length)*0.5;
-    }
-    
-    //check if b is in cell above
-    y2p = y2 + ycelldist;
-    distp= sqrt(pow(x2-x1, 2.0) + pow(y2p-y1, 2.0));
-    
+		
+		//note the += to allow more than one connection between the same atoms (or their images)
+		if((para->isperiodic)==1)
+		{
+		//set separation to up and down cells
+		//this is only sensible for even-indexed ribbons, but will run with odd results for odd indices
+		if((aDeviceCell->geo)==0)
+		{
+			ycelldist = (aDeviceCell->length)*sqrt(3)/2;
+		}
+		if((aDeviceCell->geo)==1)
+		{
+			ycelldist = (aDeviceCell->length)*0.5;
+		}
+		
+		//check if b is in cell above
+		y2p = y2 + ycelldist;
+		distp= sqrt(pow(x2-x1, 2.0) + pow(y2p-y1, 2.0));
+		
 
-    
-    t0=0.0;
-    for(i=0; i< num_neigh; i++)
-    {
-      if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
-      {
-	      if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
-	      {
-			t0 = hops[i];
-	      }
-      }
-    }
-    ans+=t0*graphenePeierlsPhase(x1, y1, x2, y2p, para->gauge, para->Btes, para->restrics, para->limits)*cexp(-I*kpar);    
-    
-    
-    
-    //check if b is in cell below
-    y2p = y2 - ycelldist;
-    distp= sqrt(pow(x2-x1, 2.0) + pow(y2p-y1, 2.0));
-    
+		
+		t0=0.0;
+		for(i=0; i< num_neigh; i++)
+		{
+		if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
+		{
+			if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
+			{
+					t0 = hops[i];
+			}
+		}
+		}
+		ans+=t0*graphenePeierlsPhase(x1, y1, x2, y2p, para->gauge, para->Btes, para->restrics, para->limits)*cexp(-I*kpar);    
+		
+		
+		
+		//check if b is in cell below
+		y2p = y2 - ycelldist;
+		distp= sqrt(pow(x2-x1, 2.0) + pow(y2p-y1, 2.0));
+		
 
-    t0=0.0;
-    for(i=0; i< num_neigh; i++)
-    {
-      if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
-      {
-	      if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
-	      {
-			t0 = hops[i];
-	      }
-      }
-    }
-    ans+=t0*graphenePeierlsPhase(x1, y1, x2, y2p, para->gauge, para->Btes, para->restrics, para->limits)*cexp(I*kpar);    
-    
-    
-  }
+		t0=0.0;
+		for(i=0; i< num_neigh; i++)
+		{
+		if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
+		{
+			if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
+			{
+					t0 = hops[i];
+			}
+		}
+		}
+		ans+=t0*graphenePeierlsPhase(x1, y1, x2, y2p, para->gauge, para->Btes, para->restrics, para->limits)*cexp(I*kpar);    
+		
+		
+		}
+	}
   return ans;
 }
 
@@ -2005,67 +2035,206 @@ void lead_prep2(double _Complex En, RectRedux *LeadCell, int leadindex, rib_lead
     
     hoppingfunc *hopfn = (hoppingfunc *)(params->hopfn);
     double *bshifts = createDoubleArray(3);
-    
   
     //g00
     for(i=0; i <dim; i++)
     {
       ginv[i][i] = En - (LeadCell->site_pots[i]) - (hopfn)(LeadCell, LeadCell, i, i, bshifts, (params->hoppara) ) ;
-      
       for(j=0; j<dim; j++)
       {
 	if(j!=i)
 	{
 	  ginv[i][j] = - (hopfn)(LeadCell, LeadCell, i, j, bshifts, (params->hoppara) );
 	}
-	
       }
-      
-            
     }
-   
-//   if(leadindex ==0)
-//   {
-//      printf("GINV %d\n", dim);
-// 	listNonZero(ginv, dim, dim);
-//   }
 
       //Vs
     for(i=0; i<3; i++)
       bshifts[i] = (params->shift_vec)[i];
-    
-    
       for(i=0; i <dim; i++)
       {
 	for(j=0; j<dim; j++)
 	{
-	  
 	    V12[i][j] =  (hopfn)(LeadCell, LeadCell, i, j, bshifts, (params->hoppara) );
 	  
 	  
 	}
 	      
       }
-
       
     for(i=0; i<3; i++)
       bshifts[i] = -(params->shift_vec)[i];
-    
-    
       for(i=0; i <dim; i++)
       {
 	for(j=0; j<dim; j++)
 	{
-	  
 	    V21[i][j] =  (hopfn)(LeadCell, LeadCell, i, j, bshifts, (params->hoppara) );
-// 	    V21[i][j] =  conj(V12[j][i]);
-
 	}
-	      
       }
     free(bshifts);
-
 }
+  
+ //general routine to prepare lead cells for Rubio-esque routine
+//takes positions, cell sep. vector and hopping rule
+//returns unit cell ginv, V12 and V21
+//magnetic version
+//returns spin channel of choice  (spin_channel = 0 or 1)
+//or both in one bigger matrix (spin_channel = 2)
+void lead_prep2_mag(double _Complex En, RectRedux *LeadCell, int leadindex, rib_lead_para *params, double _Complex **ginv, double _Complex **V12, double _Complex **V21, int spin_channel)
+{
+    int i, j, k, s1, s2;
+    
+    int dim = *(LeadCell->Nrem);
+    
+    hoppingfunc *hopfn = (hoppingfunc *)(params->hopfn);
+    gen_hop_params *hoppingparams = (params->hoppara);
+    double *bshifts = createDoubleArray(3);
+    
+	double **spin_pots = (LeadCell->spin_pots);
+	double *const_spin_pots= (LeadCell->const_spin_pots);
+	int are_spin_pots=(LeadCell->are_spin_pots);
+    
+	if(spin_channel == 0 || spin_channel ==1)
+	{
+		(hoppingparams->spinA)=spin_channel;
+		(hoppingparams->spinB)=spin_channel;
+		
+		//g00
+		for(i=0; i <dim; i++)
+		{
+			
+			ginv[i][i] = En - (LeadCell->site_pots[i]) - (hopfn)(LeadCell, LeadCell, i, i, bshifts, (params->hoppara) ) ;
+			
+			if(are_spin_pots == 1)
+			{
+				if(spin_channel ==0)
+				{
+					ginv[i][i] -= (const_spin_pots[2] + spin_pots[i][2]);
+				}
+				if(spin_channel ==1)
+				{
+					ginv[i][i] -= (-const_spin_pots[2] - spin_pots[i][2]);
+				}
+			}
+				for(j=0; j<dim; j++)
+				{
+					if(j!=i)
+					{
+						ginv[i][j] = - (hopfn)(LeadCell, LeadCell, i, j, bshifts, (params->hoppara) );
+					}
+				}
+		}
+
+		//Vs
+		for(i=0; i<3; i++)
+			bshifts[i] = (params->shift_vec)[i];
+		for(i=0; i <dim; i++)
+		{
+			for(j=0; j<dim; j++)
+			{
+				V12[i][j] =  (hopfn)(LeadCell, LeadCell, i, j, bshifts, (params->hoppara) );
+			}
+			
+		}
+		
+		for(i=0; i<3; i++)
+			bshifts[i] = -(params->shift_vec)[i];
+		for(i=0; i <dim; i++)
+		{
+			for(j=0; j<dim; j++)
+			{
+				V21[i][j] =  (hopfn)(LeadCell, LeadCell, i, j, bshifts, (params->hoppara) );
+			}
+		}
+	}
+	
+	if(spin_channel == 2)
+	{
+	   for(s1=0; s1<2; s1++)
+	   {
+		(hoppingparams->spinA)=s1;
+		for(s2=0; s2<2; s2++)
+		{
+			(hoppingparams->spinB)=s2;
+			
+		
+			//g00
+			for(i=0; i <dim; i++)
+			{
+				
+				ginv[s1*dim+i][s1*dim+i] = En -   (hopfn)(LeadCell, LeadCell, i, i, bshifts, (params->hoppara) ) ;
+				
+				//onsites
+				if(s1==s2)
+				{
+					ginv[s1*dim+i][s1*dim+i] -= (LeadCell->site_pots[i]);
+				}
+				
+				//spin potentials
+				if(are_spin_pots == 1)
+				{
+					if(s1 ==0 && s2==0)
+					{
+						ginv[s1*dim+i][s1*dim+i] -= (const_spin_pots[2] + spin_pots[i][2]);
+					}
+					
+					if(s1==0 && s2==1)
+					{
+						ginv[s1*dim+i][s1*dim+i] -= (const_spin_pots[0] + spin_pots[i][0] - I*(const_spin_pots[1] + spin_pots[i][1]));
+					}
+					
+					if(s1==1 && s2==0)
+					{
+						ginv[s1*dim+i][s1*dim+i] -= (const_spin_pots[0] + spin_pots[i][0] + I*(const_spin_pots[1] + spin_pots[i][1]));
+					}
+					
+					
+					if(s1 ==1 && s2==1)
+					{
+						ginv[s1*dim+i][s1*dim+i] -= (-const_spin_pots[2] - spin_pots[i][2]);
+					}
+				}
+				
+				for(j=0; j<dim; j++)
+				{
+					if(j!=i)
+					{
+						ginv[s1*dim+i][s2*dim+j] = - (hopfn)(LeadCell, LeadCell, i, j, bshifts, (params->hoppara) );
+					}
+				}
+			}
+
+			//Vs
+			for(i=0; i<3; i++)
+				bshifts[i] = (params->shift_vec)[i];
+			for(i=0; i <dim; i++)
+			{
+				for(j=0; j<dim; j++)
+				{
+					V12[s1*dim+i][s2*dim+j] =  (hopfn)(LeadCell, LeadCell, i, j, bshifts, (params->hoppara) );
+				}
+				
+			}
+			
+			for(i=0; i<3; i++)
+				bshifts[i] = -(params->shift_vec)[i];
+			for(i=0; i <dim; i++)
+			{
+				for(j=0; j<dim; j++)
+				{
+					V21[s1*dim+i][s2*dim+j] =  (hopfn)(LeadCell, LeadCell, i, j, bshifts, (params->hoppara) );
+				}
+			}
+		}
+	   }
+	}
+	
+	
+	
+    free(bshifts);
+} 
+  
   
   
 //gate induced potential - variations on the efetov model.
@@ -2137,7 +2306,7 @@ void gate_induced_pot ( int vgtype, RectRedux *DeviceCell, double *engdeppots, d
 void multipleCustomLeads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadCells, cellDivision *cellinfo, lead_para *params, double _Complex **Sigma)
 {
   
-    int leadloop, dim1, dim1a,  dimcounta=0, lcount;
+    int leadloop, dim1, dim1a,  dimcounta=0, dimcountb=0, lcount;
     double _Complex **smallSigma, **temp1;
 
     int num_leads = (cellinfo->num_leads);
@@ -2146,6 +2315,10 @@ void multipleCustomLeads (double _Complex En, RectRedux *DeviceCell, RectRedux *
     double _Complex *hops = (hopp->hops);
     int i, j, k;
     int iprime, jprime;
+    int dim2, dim2a;
+    int spindep = DeviceCell->spindep;
+    int leadspindep;
+    int cell1dim = (cellinfo->cell1dim);
     
     multiple_para *multiple;
 	singleleadfunction *singlefn;
@@ -2153,7 +2326,7 @@ void multipleCustomLeads (double _Complex En, RectRedux *DeviceCell, RectRedux *
     
     for(leadloop=0; leadloop < num_leads; leadloop++)
     {
-  
+		leadspindep = (LeadCells[leadloop]->spindep);
 		multiple = (multiple_para *)(params-> multiple)[leadloop];
 		singlefn = (singleleadfunction *)(multiple -> indiv_lead_fn);
 		singleparams = (multiple -> indiv_lead_para);
@@ -2161,18 +2334,51 @@ void multipleCustomLeads (double _Complex En, RectRedux *DeviceCell, RectRedux *
             dim1a = (cellinfo->lead_dims)[leadloop];
 
             
-            smallSigma = createSquareMatrix(dim1a);
+	    if(spindep == 0)
+	    {
+		    dim2 =  dim1a;
+		    dim2a = dim1a;
+	    }
+	    if(spindep == 1)
+	    {
+		dim2 = 2*dim1a;
+		dim2a = 2*dim1a;
+	    }
+	    if(spindep == 2)
+	    {
+		dim2 = 2*dim1a;
+		dim2a = dim1a;
+	    }
+	    
+            smallSigma = createNonSquareMatrix(dim2, dim2a);
             
            //external function call of multiple.indiv_lead_fn to calculate sigma
 	    (singlefn)(leadloop, En, DeviceCell, LeadCells, cellinfo, singleparams, smallSigma);
             
             
             MatrixCopyPart(smallSigma, Sigma, 0, 0, dimcounta, dimcounta, dim1a, dim1a);
+	    
+	    if(spindep==1)
+	    {
+		MatrixCopyPart(smallSigma, Sigma, 0, dim1a, dimcounta, cell1dim + dimcounta, dim1a, dim1a);
+		MatrixCopyPart(smallSigma, Sigma, dim1a, dim1a, cell1dim + dimcounta, cell1dim + dimcounta, dim1a, dim1a);
+		MatrixCopyPart(smallSigma, Sigma, dim1a, 0, cell1dim + dimcounta, dimcounta, dim1a, dim1a);
+	    }
+	    
+	     
+	    if(spindep==2)
+	    {
+		MatrixCopyPart(smallSigma, Sigma, dim1a, 0, cell1dim + dimcounta, dimcounta, dim1a, dim1a);
+	    }
+	    
             FreeMatrix(smallSigma); 
             
             dimcounta += dim1a;
 	  
     }
+    
+    
+ 
 
 }
 
@@ -2180,40 +2386,63 @@ void multipleCustomLeads (double _Complex En, RectRedux *DeviceCell, RectRedux *
 //generate Sigma for a single Ribbon type lead
 void singleRibbonLead (int leadnum, double _Complex En, RectRedux *DeviceCell, RectRedux **LeadCells, cellDivision *cellinfo, void *params, double _Complex **Sigma)
 {
-    int leadloop, dim1, dim1a,  lcount, dimcounta=0;
-    double _Complex **ginv, **V12, **V21, **g00, **SL, **SR, **VLD, **VDL, **smallSigma, **temp1;
+    int leadloop, dim1, dim1a,  lcount, dimcounta=0, dim2, dim2a;
+    double _Complex **ginv, **V12, **V21, **g00, **SL, **SR, **VLD, **VDL, **smallSigma, **temp1, **temp2, **temp3;
     double elemerr=1.0e-15;
 	
     rib_lead_para *ribpara = (rib_lead_para *)params;
     
-    int i, j, k;
+    int i, j, k, s1, s2;
   
+    int spindep = (DeviceCell->spindep);
+    int leadspindep = (LeadCells[leadnum] -> spindep);
+    
     double *bshifts0 = createDoubleArray(3);
     hoppingfunc *hopfn = (hoppingfunc *)(ribpara->hopfn);
+    gen_hop_params *hoppingparams = (gen_hop_params *)(ribpara->hoppara);
     
 	for(leadloop=0; leadloop < leadnum; leadloop++)
 	{
 		dim1a = (cellinfo->lead_dims)[leadloop];
 		dimcounta += dim1a;
 	}
+	
+	dim1 = *(LeadCells[leadnum]->Nrem);
+	dim1a = (cellinfo->lead_dims)[leadnum];
+	
+	if(spindep==0)
+	{
+		dim2 = dim1;
+		dim2a = dim1a;
+	}
+	if(spindep==1 || spindep==2)
+	{
+		dim2 = 2*dim1;
+		dim2a = 2*dim1a;
+	}
+		
+	
       //generate leads SGFs
-  
-	  dim1 = *(LeadCells[leadnum]->Nrem);
-	  ginv = createSquareMatrix(dim1);
-	  V12 = createSquareMatrix(dim1);
-	  V21 = createSquareMatrix(dim1);
-	  g00 = createSquareMatrix(dim1);
-
-	  SL = createSquareMatrix(dim1);
+      if(spindep == 0 || spindep == 1)
+      {
+	  
+	  ginv = createSquareMatrix(dim2);
+	  V12 = createSquareMatrix(dim2);
+	  V21 = createSquareMatrix(dim2);
+	  g00 = createSquareMatrix(dim2);
+	  SL = createSquareMatrix(dim2);
 
 	  //generate the info required for Rubio method
-	  lead_prep2(En, LeadCells[leadnum], leadnum, ribpara, ginv, V12, V21);
-
-	  InvertMatrixGSL(ginv, g00, dim1);
-	  RubioSGF(SL, g00, V12, V21, dim1, &lcount, elemerr*dim1*dim1);
+	  
+		if(spindep==0)
+			lead_prep2(En, LeadCells[leadnum], leadnum, ribpara, ginv, V12, V21);
+		if(spindep==1)
+			lead_prep2_mag(En, LeadCells[leadnum], leadnum, ribpara, ginv, V12, V21, 2);
 	  
 	  
 
+	  InvertMatrixGSL(ginv, g00, dim2);
+	  RubioSGF(SL, g00, V12, V21, dim2, &lcount, elemerr*dim2*dim2);
 	  FreeMatrix(ginv); FreeMatrix(V12); FreeMatrix(V21); FreeMatrix (g00);
 	
 
@@ -2221,27 +2450,94 @@ void singleRibbonLead (int leadnum, double _Complex En, RectRedux *DeviceCell, R
 	  //leads are connected to the device using the hopping rules of the lead region, 
 	  //not the device region (if different)
 	  
-	  dim1a = (cellinfo->lead_dims)[leadnum];
-
-	  VLD = createNonSquareMatrix(dim1, dim1a);
-	  VDL = createNonSquareMatrix(dim1a, dim1);
 	  
-	  for(i=0; i <dim1; i++)
-	  {
-	    for(j=0; j<dim1a; j++)
-	    {
-		k=(cellinfo->lead_sites)[dimcounta + j];
-		VLD[i][j] =  (hopfn)(LeadCells[leadnum], DeviceCell, i, k, bshifts0, (ribpara->hoppara) );
-	      	VDL[j][i] =  (hopfn)(DeviceCell, LeadCells[leadnum], k, i, bshifts0, (ribpara->hoppara) );
-	    }
-		  
+	  VLD = createNonSquareMatrix(dim2, dim2a);
+	  VDL = createNonSquareMatrix(dim2a, dim2);
+	  
+	  
+	  for(s1=0; s1<spindep+1; s1++)
+ 	  {
+		  (hoppingparams->spinA) = s1;
+ 		  for(s2=0; s2<spindep+1; s2++)
+		  {
+			(hoppingparams->spinB) = s2;
+			for(i=0; i <dim1; i++)
+			{
+				for(j=0; j<dim1a; j++)
+				{
+					k=(cellinfo->lead_sites)[dimcounta + j];
+					VLD[s1*dim1 + i][s2*dim1a + j] =  (hopfn)(LeadCells[leadnum], DeviceCell, i, k, bshifts0, hoppingparams );
+					VDL[s1*dim1a +j][s2*dim1 +i] =  (hopfn)(DeviceCell, LeadCells[leadnum], k, i, bshifts0, hoppingparams );
+				}
+				
+			}
+		  }
 	  }
-
-
-	  temp1 = createNonSquareMatrix(dim1a, dim1);
-	  MatrixMultNS(VDL, SL, temp1, dim1a, dim1, dim1);
-	  MatrixMultNS(temp1, VLD, Sigma, dim1a, dim1, dim1a);
+	  temp1 = createNonSquareMatrix(dim2a, dim2);
+	  MatrixMultNS(VDL, SL, temp1, dim2a, dim2, dim2);
+	  MatrixMultNS(temp1, VLD, Sigma, dim2a, dim2, dim2a);
 	  FreeMatrix(temp1); FreeMatrix(VLD); FreeMatrix(VDL);
+      }
+      
+      if(spindep == 2)
+      {
+		for(s1=0; s1<2; s1++)
+		{
+			(hoppingparams->spinA) = s1;
+			(hoppingparams->spinB) = s1;
+	      
+			ginv = createSquareMatrix(dim2);
+			V12 = createSquareMatrix(dim2);
+			V21 = createSquareMatrix(dim2);
+			g00 = createSquareMatrix(dim2);
+			SL = createSquareMatrix(dim2);
+
+		//generate the info required for Rubio method
+		
+			lead_prep2_mag(En, LeadCells[leadnum], leadnum, ribpara, ginv, V12, V21, s1);
+		
+		
+
+			InvertMatrixGSL(ginv, g00, dim2);
+			RubioSGF(SL, g00, V12, V21, dim2, &lcount, elemerr*dim2*dim2);
+			FreeMatrix(ginv); FreeMatrix(V12); FreeMatrix(V21); FreeMatrix (g00);
+		
+
+			//connections of leads to device
+			//leads are connected to the device using the hopping rules of the lead region, 
+			//not the device region (if different)
+			
+			
+			VLD = createNonSquareMatrix(dim2, dim2a);
+			VDL = createNonSquareMatrix(dim2a, dim2);
+			
+			
+			
+			for(i=0; i <dim1; i++)
+			{
+				for(j=0; j<dim1a; j++)
+				{
+					k=(cellinfo->lead_sites)[dimcounta + j];
+					VLD[i][j] =  (hopfn)(LeadCells[leadnum], DeviceCell, i, k, bshifts0, hoppingparams );
+					VDL[j][i] =  (hopfn)(DeviceCell, LeadCells[leadnum], k, i, bshifts0, hoppingparams );
+				}
+				
+			}
+			
+			
+			temp1 = createNonSquareMatrix(dim2a, dim2);
+			temp2=createSquareMatrix(dim2a);
+			MatrixMultNS(VDL, SL, temp1, dim2a, dim2, dim2);
+			MatrixMultNS(temp1, VLD, temp2, dim2a, dim2, dim2a);
+			
+			
+			MatrixCopyPart(temp2, Sigma, 0, 0, s1*dim1a, 0, dim1a, dim1a);
+			
+			FreeMatrix(temp1); FreeMatrix(VLD); FreeMatrix(VDL); FreeMatrix(temp2);
+		
+		}
+	      
+      }
 	
     free(bshifts0);
 }
