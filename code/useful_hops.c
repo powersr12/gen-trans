@@ -4,7 +4,7 @@
 
 int graphene_NNTB_max_neigh[] = 	{3, 9, 12};
 double graphene_NNTB_lowdis[] = 	{0.56, 0.98, 1.13};
-double graphene_NNTB_highdis[] = 	{0.59, 1.02, 1.17};
+double graphene_NNTB_highdis[] = 	{0.63, 1.02, 1.17};
 double graphene_NNTB_shifts[] = 	{0.0, 3*(-0.0740741), 0.0};
 double graphene_NNTB_zmin[] = 		{0.0, 0.0, 0.0};
 double graphene_NNTB_zmax[] = 		{0.01, 0.01, 0.01};

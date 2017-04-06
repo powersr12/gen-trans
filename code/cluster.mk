@@ -7,8 +7,8 @@ CFLAGSDEBUG=-lm -lgsl -lgslcblas -Wall -g
 
 MYLIBDIR=../libs
 
-test: test.o connect.o transport.o devices.o disorder.o useful.o mapping.o matrices.o hubbard.o graphene_gf.o suscept.o static.o greenfns.o cubature.o
-	$(CC)  test.o connect.o transport.o devices.o disorder.o useful.o mapping.o matrices.o hubbard.o graphene_gf.o suscept.o static.o greenfns.o cubature.o $(CFLAGS) -o test
+test: test.o connect.o useful_hops.o transport.o devices.o disorder.o useful.o mapping.o matrices.o hubbard.o graphene_gf.o suscept.o static.o greenfns.o cubature.o 
+	$(CC)  test.o connect.o useful_hops.o transport.o devices.o disorder.o useful.o mapping.o matrices.o hubbard.o graphene_gf.o suscept.o static.o greenfns.o cubature.o  $(CFLAGS) -o test
 
 test.o: test.c test.h
 	$(CC) -c -g -O3 test.c
@@ -27,6 +27,9 @@ transport.o: transport.c transport.h
 
 mapping.o: mapping.c mapping.h
 	$(CC) -c -g -O3 mapping.c
+	
+useful_hops.o: useful_hops.c useful_hops.h
+	$(CC) -c -g -O3 useful_hops.c
 	
 disorder.o: disorder.c disorder.h
 	$(CC) -c -g -O3 disorder.c
