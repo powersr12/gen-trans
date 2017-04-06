@@ -177,6 +177,144 @@ void simpleRibbonGeo (RectRedux *SiteArray, void *p, int struc_out, char *filena
 
 
 
+//simple 558GB in agnr device
+void simple558GB (RectRedux *SiteArray, void *p, int struc_out, char *filename)
+{
+	  int length = SiteArray->length;
+	  int length2 = SiteArray->length2;
+	  int geo = SiteArray->geo;
+	    
+	  
+	simple558_para *params = (simple558_para *)p;
+
+	  double smalldist;
+	  FILE *out;
+	  
+	  if(struc_out != 0)
+	  {
+	    out = fopen(filename, "w");
+	    
+	  }
+	    
+	 // srand(time(NULL) + seed);
+	  
+	  int cellswide = params->cellswide;	//how many blocks of GB wide the AGNR is 
+	  int GBpos = params->GBpos; 
+
+	  
+	  //atomic coordinates and the atoms that are in and out, similar to previous cases
+	  int tot_sites = 2*length*length2 + 2*cellswide;
+	  double **site_coords = createNonSquareDoubleMatrix(tot_sites, 3);
+	  double *site_pots = createDoubleArray(tot_sites);
+	  int **siteinfo = createNonSquareIntMatrix(tot_sites, 2);
+	  double xstart, ystart;
+	  int isclean, l, m;
+	  int *Nrem = (SiteArray->Nrem);
+	  int *Ntot = (SiteArray->Ntot);
+	  
+	  *Ntot = tot_sites;
+
+	  if(geo==0)
+	  {
+		exit(1);
+	  }
+	  
+	  if(geo==1)
+	  {
+	      for(l=0; l<length2; l++)
+	      {
+		xstart = l*sqrt(3);
+		
+		if(l>(GBpos -1))
+		{
+			xstart+= 1/sqrt(3);
+		}
+		
+		for(m=0; m<length; m++)
+		{
+		  if((m%2) == 0)
+		  {
+		    site_coords[l*2*length + m][0] = xstart;
+		    site_coords[l*2*length + length + m][0] = xstart +2 / sqrt(3);
+		    siteinfo[l*2*length + m][1] = 0;
+		    siteinfo[l*2*length + length + m][1] = 1;
+		  }
+		  if((m%2) == 1)
+		  {
+		    site_coords[l*2*length + m][0] = xstart +  1/(2*sqrt(3));
+		    site_coords[l*2*length + length + m][0] = xstart + (sqrt(3))/2;
+		    siteinfo[l*2*length + m][1] = 1;
+		    siteinfo[l*2*length + length + m][1] = 0;
+		  }
+		  
+		  site_coords[l*2*length + m][1] = m*0.5;
+		  site_coords[l*2*length + length + m][1] = m*0.5;
+		  
+		}
+		
+		
+	      }
+	      
+	      for(m=0; m<cellswide; m++)
+	      {
+		site_coords[2*length*length2 + 2*m][0] = GBpos*sqrt(3) ;  
+		site_coords[2*length*length2 + 2*m + 1 ][0] = GBpos*sqrt(3) ;
+		
+		site_coords[2*length*length2 + 2*m][1] = m*2.0 + 0.2;
+		site_coords[2*length*length2 + 2*m + 1][1] = m*2.0 + 0.8;
+		
+		siteinfo[2*length*length2 + 2*m][1] = 2;
+		siteinfo[2*length*length2 + 2*m + 1][1] = 2;
+		
+	      }
+		
+	  }
+	      
+	          
+	      	      
+	      //chaininfo needed for conductance calcs (if atoms are missing)
+		      int tempint=0, tempint2=0;
+	 
+			for(l=0; l<tot_sites; l++)
+			{
+			  if(siteinfo[l][0] ==0)
+				  tempint2++;
+			}
+			*Nrem = tempint2;
+			
+
+	  
+		      
+			if(struc_out == 1)
+			{
+			  for(l=0; l<tot_sites; l++)
+			  {
+			    if(siteinfo[l][0] == 0 )
+			    {  
+			      fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			    }
+			  }
+			  fprintf(out, "\n");
+			  
+
+			  
+			}
+			
+			  if(struc_out != 0)
+			  {
+			    fclose(out);
+			  }
+			    
+			
+			  
+			  //Fill the array of data structures describing the system
+			  (SiteArray->pos) = site_coords;
+			  (SiteArray->site_pots) = site_pots;
+			  (SiteArray->siteinfo) = siteinfo;
+  
+  
+}
+
 
 
 //generate lead geometries and rect_reduxes to match a device
@@ -218,7 +356,10 @@ void genLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, int mode, 
     
     for(i=0; i<*(Leads[1]->Ntot); i++)
     {
-      (Leads[1]->pos)[i][0] += (SiteArray->length2)*(params->shift_vecs)[1][0];      
+      //(Leads[1]->pos)[i][0] += (SiteArray->length2)*(params->shift_vecs)[1][0];      
+      
+       (Leads[1]->pos)[i][0] += ((SiteArray->pos)[2*(SiteArray->length)*((SiteArray->length2) -1)][0] - (SiteArray->pos)[0][0]   + (params->shift_vecs)[1][0]); 
+      //printf("## %lf\n", (Leads[1]->pos)[i][0]);
     }
     
   }
@@ -257,7 +398,7 @@ void genLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, int mode, 
 	
 	for(i=0; i<*(Leads[1]->Ntot); i++)
 	{
-		(Leads[1]->pos)[i][0] += (SiteArray->length2)*(params->shift_vecs)[1][0];      
+		(Leads[1]->pos)[i][0] += (SiteArray->length2)*(params->shift_vecs)[1][0];  
 	}
 	
 	  
@@ -323,8 +464,11 @@ void genSingleRibbonLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, v
 		(ribpara->shift_vec)[1] = 0.0;
 		for(i=0; i<*(Lead->Ntot); i++)
 		{
-			(Lead->pos)[i][0] += (SiteArray->length2)*(ribpara->shift_vec)[0];
+			//(Lead->pos)[i][0] += (SiteArray->length2)*(ribpara->shift_vec)[0];
+			(Lead->pos)[i][0] += ((SiteArray->pos)[2*(SiteArray->length)*((SiteArray->length2) -1)][0] - (SiteArray->pos)[0][0]   + (ribpara->shift_vec)[0]);
+			
 			(Lead->pos)[i][1] += (ribpara->start_coord)*y_cell_diff/2;
+			//printf("## %lf, %lf\n", (Lead->pos)[i][0], (Lead->pos)[i][1]);
 		}
 	}
 	if(ribpara->def_pos == 2)

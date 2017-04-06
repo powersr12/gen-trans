@@ -80,6 +80,11 @@ typedef struct {
 }subl_para;
 
 typedef struct {
+	int cellswide;	//how many blocks of GB wide the AGNR is 
+	int GBpos; 	//after what standard unit cell is the GB dimer included
+}simple558_para;
+
+typedef struct {
 	double AA_mass;
 	double AA_pot;
 	double AB_mass;
@@ -192,6 +197,7 @@ void genCustomLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, lead
 void genSingleRibbonLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, void *params);
 void genSingleMetalLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, void *params);
 
+void simple558GB (RectRedux *SiteArray, void *p, int struc_out, char *filename);
 
 
 void simpleRibbonGeo (RectRedux *SiteArray, void *p, int struc_out, char *filename);

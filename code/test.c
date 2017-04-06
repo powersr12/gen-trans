@@ -163,33 +163,7 @@ main(int argc, char *argv[])
 			num_neigh=nngm;
 			 
 	 
-		  if(geo==0)
-		  {
-		    sprintf(geotype, "ZZ");
-		    if(nngm==2)
-		    {
-		      sprintf(geotype, "ZZ2N_");
-		    }
-		    if(nngm==3)
-		    {
-		      sprintf(geotype, "ZZ3N_");
-		    }
-		    
-		  }
-		  if(geo==1)
-		  {
-		    sprintf(geotype, "AC");
-		    
-		      if(nngm==2)
-		      {
-			sprintf(geotype, "AC2N_");
-		      }
-		      if(nngm==3)
-		      {
-			sprintf(geotype, "AC3N_");
-		      }
-		    
-		  }
+		
 		  
 	  
   
@@ -1049,6 +1023,42 @@ main(int argc, char *argv[])
 		    
 		    //set filename info - what to put in filename from these params
 		    sprintf(sysinfo, "L2_%d_DIS%dx%.2lf_per_%.0lf_vac%dx%.2lf", length2, (edgedisp.sruns), (edgedisp.smax),(edgedisp.minper), (edgedisp.vacruns), (edgedisp.vacprob)); 
+		}
+		
+		simple558_para p558 = {};
+		p558.cellswide=4;
+		p558.GBpos=2;
+		if(strcmp("GB558", systemtype) == 0)
+		{	
+		    	
+			
+		for(i=1; i<argc-1; i++)
+		{
+			if(strcmp("-GBcells", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%d", &(p558.cellswide));
+			}
+			if(strcmp("-GBpos", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%d", &(p558.GBpos));
+			}
+		}
+			
+			
+			
+		    //set functions and params for use below
+		    SysFunction = &simple558GB;
+		    SysPara = &p558;
+		    
+		    
+		    
+		    length1=4*(p558.cellswide); 
+		    geo=1;
+		    nngm=1;
+		    
+		    //set filename info?
+			sprintf(sysinfo, "GB558_l2_%d", length2);
+
 		}
 		
 		
@@ -2022,6 +2032,36 @@ main(int argc, char *argv[])
 	
 
 	//File I/O variables
+	
+	
+		if(geo==0)
+		  {
+		    sprintf(geotype, "ZZ");
+		    if(nngm==2)
+		    {
+		      sprintf(geotype, "ZZ2N_");
+		    }
+		    if(nngm==3)
+		    {
+		      sprintf(geotype, "ZZ3N_");
+		    }
+		    
+		  }
+		  if(geo==1)
+		  {
+		    sprintf(geotype, "AC");
+		    
+		      if(nngm==2)
+		      {
+			sprintf(geotype, "AC2N_");
+		      }
+		      if(nngm==3)
+		      {
+			sprintf(geotype, "AC3N_");
+		      }
+		    
+		  }
+	
 	    FILE *output, *fulloutput, *tsoutput;
 	    char filename[300], filename3[300], filename_temp[300], fullfilename[300], tsfilename[300];
 	    char checkname[300], direcname[300], conffile[350], strucfile[300], lstrucfile[350], disorderfile[300];
@@ -3146,7 +3186,7 @@ main(int argc, char *argv[])
 					
 					
 				}
-
+				
 				LinEqnDouble (mtrans, vecb, vecx, num_leads-1);
 				
 				
