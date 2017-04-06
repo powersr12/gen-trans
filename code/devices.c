@@ -3013,15 +3013,17 @@ void exportRectConf(RectRedux *System, char *filename)
 {
   //printf("%s\n", filename);
   FILE *fileout;
-  char fullname[200];
+  char fullname[300];
   int length = System->length;
   int length2 = System->length2;
   int geo = System->geo;
   int i, j, k;
   int tot_sites = *(System->Ntot);
   
-  
+
   sprintf(fullname, "%s.siteinfo", filename);
+
+  
   fileout = fopen(fullname, "w");
     for(j=0; j<tot_sites; j++)
     {
@@ -3062,7 +3064,7 @@ void importRectConf(RectRedux *System, int length, int length2, char *filename)
 {
   //printf("%s	%d\n", filename, numcells);
   FILE *fileout;
-  char fullname[200];
+  char fullname[300];
  // int length = System->length;
  // int length2 = System->length2;
  // int geo = System->geo;

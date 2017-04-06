@@ -1974,7 +1974,7 @@ main(int argc, char *argv[])
 	
 		
 		sprintf(loopinfo, "VG_%s_loop_%+.2lf_to_%+.2lf_Bfixed_%+.3lf_Efixed_%+.3lf", vgtname, VGmin, VGmax, Bfield, realE);
-		sprintf(loopmininfo, "VG_%s_%+.2lf_E_%+.3lf_B_%+.3lf", VGmin, realE, Bfield);
+		sprintf(loopmininfo, "VG_%s_%+.2lf_E_%+.3lf_B_%+.3lf", vgtname, VGmin, realE, Bfield);
 
 		
 	      }
@@ -2121,7 +2121,7 @@ main(int argc, char *argv[])
 		srand(this_proc); // ? why is this here??
 
 
-    
+
       
 //------------------------------ START OF THE ACTUAL INTERESTING COMPUTATIONAL NON-I/O BIT -----------------------------------//
       
@@ -2147,11 +2147,11 @@ main(int argc, char *argv[])
 
 	    //generate, or read in, disorder configuration
 		sprintf(conffile, "%s/.%s", direcname, filename_temp);
-		
+
 		if(this_proc==0)
 		{
 		  (SysFunction) ( &System, SysPara, output_type, strucfile);
-		  
+
 		  //additional, general disorder routine(s) here.
 		  if(potdis == 1)
 		  {
@@ -2159,11 +2159,12 @@ main(int argc, char *argv[])
 		  }
 		  
 		  //export the disorder configuration for the other processes calculating the same configuration
+		  
 		  if(procs>0)
 		  {
-		    exportRectConf(&System, conffile);
+			exportRectConf(&System, conffile);
 		  }
-		  
+
 		  check = fopen(checkname, "w");
 		  fprintf(check, "%d", 0);
 		  fclose(check);
@@ -2205,7 +2206,7 @@ main(int argc, char *argv[])
 	    int **siteinfo = System.siteinfo;
 	    double *site_pots = System.site_pots;
 	    
-	
+
 	  
 
 	  	  int halloutput;
@@ -2688,7 +2689,7 @@ main(int argc, char *argv[])
 	  
 	  
 	  
-	    
+	    int do_linear_decomp=1;
 	  
 	  
 	  for(en=0; en<loop_pts_temp; en++)
@@ -2713,9 +2714,12 @@ main(int argc, char *argv[])
 		    gate_induced_pot (vgtype, &System, engdeppots, VG, edge_cut, subs_thick, subs_epsr);
 
 		  //in the leads
-		    for(j=0; j<num_leads; j++)
+		    if(ishallbar==0)
 		    {
-		      	gate_induced_pot (vgtype, LeadCells[j], lead_engdeppots[j], VG, edge_cut, subs_thick, subs_epsr);
+			for(j=0; j<num_leads; j++)
+			{
+				gate_induced_pot (vgtype, LeadCells[j], lead_engdeppots[j], VG, edge_cut, subs_thick, subs_epsr);
+			}
 		    }
 
 		
@@ -2777,13 +2781,13 @@ main(int argc, char *argv[])
 	      for(k=0; k<kpts; k++)
 	      {
 		hoppara.kpar = kmin + k*kstep;
-		
+
 		genTransmissions(realE+eta*I, &System, LeadCells, &cnxp, &cellinfo, hopfn, &hoppara, &leadp, &tpara, mapmode, ldoses, currents);
 		kavg += (transmissions[0][1]/kpts);
 	      }
 
 // 	      printDMatrix(transmissions, 4);
-	      
+
 	      output =fopen(filename, "a");
 	      
 	      
@@ -2864,7 +2868,7 @@ main(int argc, char *argv[])
 		    
 	      }
 	      
-	      
+
 	      
 	      int iprime, jprime; 
 	      
@@ -3098,7 +3102,7 @@ main(int argc, char *argv[])
                         
                     }
                         
-                        
+
                      
                     //non local resistances in general multi probe measurements
                     //currIn and currOut define the probes current is driven between
@@ -3146,9 +3150,18 @@ main(int argc, char *argv[])
 					
 					
 				}
-
-				LinEqnDouble (mtrans, vecb, vecx, num_leads-1);
 				
+// 				for(i=0; i<num_leads-1; i++)
+// 				{
+// 					for(j=0; j<num_leads-1; j++)
+// 					{
+// 						if(mtrans[i][j] < 1.0E-10)
+// 							mtrans[i][j] = 0.0;
+// 					}
+// 				}
+				
+			
+				LinEqnDouble (mtrans, vecb, vecx, num_leads-1);
 				
 				probe_pots[leadOrder[0]] = 1.0;
 				probe_pots[leadOrder[num_leads-1]] = 0.0;
@@ -3193,6 +3206,32 @@ main(int argc, char *argv[])
 					fprintf(output, "%lf	%.12e\n", Bfield, (vecx[2]-vecx[1])/vecx[0]);	
 					fprintf(fulloutput, "%lf\t", Bfield);
 					fprintf(tsoutput, "%lf\t", Bfield);
+					for(i=0; i<num_leads; i++)
+					{
+						fprintf(fulloutput, "%.12e\t", probe_pots[i]);
+					}
+					for(i=0; i<num_leads; i++)
+					{
+						fprintf(fulloutput, "%.12e\t", probe_currs[i]);
+					}
+					fprintf(fulloutput, "\n");
+					
+					for(i=0; i<num_leads; i++)
+					{
+						for(j=0; j<num_leads; j++)
+						{	
+							fprintf(tsoutput, "%.12e\t", transmissions[i][j]);
+						}
+					}
+					fprintf(tsoutput, "\n");
+					
+				}
+				
+				if(strcmp("VG", loop_type) == 0)
+				{
+					fprintf(output, "%lf	%.12e\n", VG, (vecx[2]-vecx[1])/vecx[0]);	
+					fprintf(fulloutput, "%lf\t", VG);
+					fprintf(tsoutput, "%lf\t", VG);
 					for(i=0; i<num_leads; i++)
 					{
 						fprintf(fulloutput, "%.12e\t", probe_pots[i]);
