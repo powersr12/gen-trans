@@ -2081,7 +2081,7 @@ void gate_induced_pot ( int vgtype, RectRedux *DeviceCell, double *engdeppots, d
 	
 	//density induced by this setup in an infinite width graphene sheet (SI units, m^-2)
 	//note the 2 in the denominator - this assumes a spinless calculation.
-	n0= (subs_epsr)*(8.85E-12)*gate_voltage/(2*subs_thick * 1.6E-19);
+	n0= (subs_epsr)*(8.85E-12)*fabs(gate_voltage)/(2*subs_thick * 1.6E-19);
 	nmax = n0 * ((top_edge-bottom_edge)/2) / sqrt( pow( (top_edge-bottom_edge)/2, 2)  - pow((top_edge-rib_center) - edge_cut_off, 2) );
   
 	for(i=0; i<Nrem; i++)
