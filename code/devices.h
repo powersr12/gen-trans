@@ -82,6 +82,10 @@ typedef struct {
 typedef struct {
 	int cellswide;	//how many blocks of GB wide the AGNR is 
 	int GBpos; 	//after what standard unit cell is the GB dimer included
+	int anddis;	//include anderson disorder near GB?
+	double andD;	//size of region containing anderson disorder
+	double andW;	//strength of anderson disorder
+	int seed;
 }simple558_para;
 
 typedef struct {

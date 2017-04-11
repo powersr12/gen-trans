@@ -195,11 +195,15 @@ void simple558GB (RectRedux *SiteArray, void *p, int struc_out, char *filename)
 	    out = fopen(filename, "w");
 	    
 	  }
-	    
-	 // srand(time(NULL) + seed);
+	  int seed = (params->seed);
+
+	  srand(time(NULL) + seed);
 	  
 	  int cellswide = params->cellswide;	//how many blocks of GB wide the AGNR is 
 	  int GBpos = params->GBpos; 
+	  int anddis= params->anddis;
+	  double andD= params->andD;
+	  double andW= params->andW;
 
 	  
 	  //atomic coordinates and the atoms that are in and out, similar to previous cases
@@ -268,6 +272,19 @@ void simple558GB (RectRedux *SiteArray, void *p, int struc_out, char *filename)
 		
 	      }
 		
+		
+		
+		//Anderson disorder near the GB
+		if(anddis == 1)
+		{
+			for(l=0; l<tot_sites; l++)
+			{
+				if(fabs(site_coords[l][0] - GBpos*sqrt(3)) < andD)
+				{
+					site_pots[l] = myRandNum(- andW, andW);
+				}
+			}
+		}
 	  }
 	      
 	          

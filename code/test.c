@@ -1028,6 +1028,10 @@ main(int argc, char *argv[])
 		simple558_para p558 = {};
 		p558.cellswide=4;
 		p558.GBpos=2;
+		p558.anddis=0;
+		p558.andD=0.0;
+		p558.andW=0.0;
+		p558.seed = conf_num;
 		if(strcmp("GB558", systemtype) == 0)
 		{	
 		    	
@@ -1041,6 +1045,18 @@ main(int argc, char *argv[])
 			if(strcmp("-GBpos", argv[i]) == 0)
 			{
 				sscanf(argv[i+1], "%d", &(p558.GBpos));
+			}
+			if(strcmp("-GBand", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%d", &(p558.anddis));
+			}
+			if(strcmp("-GBandD", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%lf", &(p558.andD));
+			}
+			if(strcmp("-GBandW", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%lf", &(p558.andW));
 			}
 		}
 			
@@ -1058,6 +1074,11 @@ main(int argc, char *argv[])
 		    
 		    //set filename info?
 			sprintf(sysinfo, "GB558_l2_%d", length2);
+			
+			if(p558.anddis==1)
+			{
+				sprintf(sysinfo, "GB558_l2_%d_ANDL_%.1lf_ANDW_%.2lf", length2, p558.andD, p558.andW);
+			}
 
 		}
 		
@@ -2067,6 +2088,8 @@ main(int argc, char *argv[])
 	    char checkname[300], direcname[300], conffile[350], strucfile[300], lstrucfile[350], disorderfile[300];
 	    char bandname1[300], bandname2[300], bandname3[300], mapname[400], maindirec[100];
             char command[600], inputlist[300];
+	    char altconffile[100];
+	    int usealtconf=0;
 	    FILE *bandfile;
 	    FILE *mapfile;
 	    
@@ -2080,6 +2103,17 @@ main(int argc, char *argv[])
 		      {
 			  sscanf(argv[i+1], "%s", maindirec);
 		      }
+		      
+		      //specifies that we should use an existing configuration
+		      //useful for multiple runs on a single disorder configuration.
+		      //must be in the same folder etc beforehand
+		      //(best to use the "input" file from the initial run, together with this flag, and changes to runtime loop)
+		      if(strcmp("-altconf", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%s", altconffile);
+			  usealtconf=1;
+		      }
+		      
 		    }
 	    
 	    
@@ -2185,38 +2219,60 @@ main(int argc, char *argv[])
 	    int can_start_yet=-1;
 	    
 
-	    //generate, or read in, disorder configuration
-		sprintf(conffile, "%s/.%s", direcname, filename_temp);
+	    
 
+		if (usealtconf==0)
+		{
+			//generate, or read in, disorder configuration
+			sprintf(conffile, "%s/.%s", direcname, filename_temp);
+			//printf("%s\n", conffile);
+		}
+		if (usealtconf==1)
+		{
+			//generate, or read in, disorder configuration
+			sprintf(conffile, "%s/.%s", direcname, altconffile);
+			//printf("%s\n", conffile);
+
+		}
+			
+			
 		if(this_proc==0)
 		{
-		  (SysFunction) ( &System, SysPara, output_type, strucfile);
+			
+			if(usealtconf==0)
+			{
+				(SysFunction) ( &System, SysPara, output_type, strucfile);
 
-		  //additional, general disorder routine(s) here.
-		  if(potdis == 1)
-		  {
-		    potentialDisorder (&System, &dispara, pdmap, disorderfile );
-		  }
-		  
-		  //export the disorder configuration for the other processes calculating the same configuration
-		  
-		  if(procs>0)
-		  {
-			exportRectConf(&System, conffile);
-		  }
+				//additional, general disorder routine(s) here.
+				if(potdis == 1)
+				{
+					potentialDisorder (&System, &dispara, pdmap, disorderfile );
+				}
+				
+				//export the disorder configuration for the other processes calculating the same configuration
+				
+				if(procs>0)
+				{
+					exportRectConf(&System, conffile);
+				}
+			}
+			if(usealtconf==1)
+			{
+				importRectConf(&System, length1, length2, conffile);
+			}
 
-		  check = fopen(checkname, "w");
-		  fprintf(check, "%d", 0);
-		  fclose(check);
-		  
-		  
-		  listinputs=fopen(inputlist, "w");
-		  for(i=1; i<argc; i++)
-		  {
-			fprintf(listinputs, "%s ", argv[i]);
-		  }
-		  fprintf(listinputs, "\n");
-		  fclose(listinputs);
+				check = fopen(checkname, "w");
+				fprintf(check, "%d", 0);
+				fclose(check);
+				
+				
+				listinputs=fopen(inputlist, "w");
+				for(i=1; i<argc; i++)
+				{
+					fprintf(listinputs, "%s ", argv[i]);
+				}
+				fprintf(listinputs, "\n");
+				fclose(listinputs);
 		}
 		
 
