@@ -1511,17 +1511,9 @@ main(int argc, char *argv[])
 		gen_hop_params metal_hop_p = {};
 		multix_start_params mxsp = {};
 		double metal_alpha=0.0, metal_sig=-1.0, metal_beta=1.0, metal_hop=t, metal_default_width=4;;
-		metal_hop_p.hops = createCompArray(4);
-		metal_hop_p.hops[0] = metal_sig;
-                metal_hop_p.hops[1] = metal_alpha;
-                metal_hop_p.hops[2] = metal_beta;
-                metal_hop_p.hops[3] = metal_hop;
-	    
-            if(metal_leads == 1)
-            {
-                starting_cell_mode=4;
-            
-                
+		
+		
+		 
                 for(i=1; i<argc-1; i++)
                 {
                     if(strcmp("-metalalpha", argv[i]) == 0)
@@ -1542,6 +1534,19 @@ main(int argc, char *argv[])
                     }
                     
                 }
+		
+		
+		metal_hop_p.hops = createCompArray(4);
+		metal_hop_p.hops[0] = metal_sig;
+                metal_hop_p.hops[1] = metal_alpha;
+                metal_hop_p.hops[2] = metal_beta;
+                metal_hop_p.hops[3] = metal_hop;
+	    
+            if(metal_leads == 1)
+            {
+                starting_cell_mode=4;
+            
+               
                 
                 metal_hop_p.hops[0] = metal_sig;
                 metal_hop_p.hops[1] = metal_alpha;
