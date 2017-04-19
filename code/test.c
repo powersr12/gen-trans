@@ -16,13 +16,14 @@
 
 main(int argc, char *argv[])
 {
-    
+	
+	
 	  //counters
 	  int i, j,k,l;
 	  
 	  //general system inputs and default values
 	      char systemtype[32];
-	      char geotype[32], peritype[40], leadtype[32], sysinfo[120], loopinfo[80], disinfo[40];
+	      char geotype[32], peritype[40], leadtype[32], sysinfo[120], loopinfo[80], loopmininfo[80], disinfo[40];
 	      sprintf(systemtype, "SUBLATTICEPOT");
 	      int length1=2, length2=3*length1, geo=0, isperiodic=1, ismagnetic=0;
 	      int makebands = 0, unfold=0, project=0, kxpoints=51, bandsonly=0, bandsminset=0, bandsmaxset=100000;
@@ -66,6 +67,8 @@ main(int argc, char *argv[])
 	      int splitgen =0;	//if =1, splits the system generation and calculation
 	      int metal_leads = 0;      //if this is set to 1, metallic leads are used instead of ribbons -
                                         //these need to be accounted for properly with positions etc...
+                                        
+	      
                                         
                                         
                                         
@@ -160,33 +163,7 @@ main(int argc, char *argv[])
 			num_neigh=nngm;
 			 
 	 
-		  if(geo==0)
-		  {
-		    sprintf(geotype, "ZZ");
-		    if(nngm==2)
-		    {
-		      sprintf(geotype, "ZZ2N_");
-		    }
-		    if(nngm==3)
-		    {
-		      sprintf(geotype, "ZZ3N_");
-		    }
-		    
-		  }
-		  if(geo==1)
-		  {
-		    sprintf(geotype, "AC");
-		    
-		      if(nngm==2)
-		      {
-			sprintf(geotype, "AC2N_");
-		      }
-		      if(nngm==3)
-		      {
-			sprintf(geotype, "AC3N_");
-		      }
-		    
-		  }
+		
 		  
 	  
   
@@ -768,6 +745,79 @@ main(int argc, char *argv[])
 		    sprintf(sysinfo, "L2_%d_%dINT_W%.1lf_SUBA_%.2lfx%.3lf_SUBB_%.2lfx%.3lf", length2, sub2intp.xory, sub2intp.int_width1, (sub2intp.a_conc2), (sub2intp.a_pot2),(sub2intp.b_conc2), (sub2intp.b_pot2)); 
 		}
 		
+		
+		
+		submoire_para sublmp = {};
+		double mev = 0.001/2.7;
+		//mev=1.0;
+		char moirename[40];
+		if(strcmp("SUBLMOIRE", systemtype) == 0)
+		{	
+		    //default values
+		    
+			//mass and potential vales at high symmetry points
+				sublmp.AA_mass = -40*mev;
+				sublmp.AA_pot = 0*mev;
+				sublmp.AB_mass = 30*mev;
+				sublmp.AB_pot = 40*mev;
+				sublmp.BA_mass = 15*mev;
+				sublmp.BA_pot = -40*mev;
+		    
+			//Moire lattice vector zigzag direction length	
+				sublmp.lM = 59;
+				
+			//Moire pattern origin offset
+				sublmp.x_offset=0.0;
+				sublmp.y_offset=0.0;
+		    
+				sprintf(moirename, "default");
+
+		    
+		    //check for command line arguments which vary these
+		    for(i=1; i<argc-1; i++)
+		    {
+		      if(strcmp("-moireaamass", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sublmp.AA_mass));
+		      }
+		      if(strcmp("-moireabmass", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sublmp.AB_mass));
+		      }
+		      if(strcmp("-moirebamass", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sublmp.BA_mass));
+		      }
+		       if(strcmp("-moireaapot", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sublmp.AA_pot));
+		      }
+		      if(strcmp("-moireabpot", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sublmp.AB_pot));
+		      }
+		      if(strcmp("-moirebapot", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(sublmp.BA_pot));
+		      }
+		      if(strcmp("-moirename", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%s", moirename);
+		      }
+		      
+		    }
+		    
+			
+			
+		    //set functions and params for use below
+		    SysFunction = &genSublatticeMoire;
+		    SysPara = &sublmp;
+		    
+		    //set filename info - what to put in filename from these params
+		    sprintf(sysinfo, "L2_%d_%s_off_%.1lf_%.1lf", length2, moirename, sublmp.x_offset, sublmp.y_offset); 
+		}
+		
+		
 		adot_para adotp = {};
 		char lattice_info[35], dot_info[45];
 		if(strcmp("ANTIDOTS", systemtype) == 0)
@@ -975,6 +1025,63 @@ main(int argc, char *argv[])
 		    sprintf(sysinfo, "L2_%d_DIS%dx%.2lf_per_%.0lf_vac%dx%.2lf", length2, (edgedisp.sruns), (edgedisp.smax),(edgedisp.minper), (edgedisp.vacruns), (edgedisp.vacprob)); 
 		}
 		
+		simple558_para p558 = {};
+		p558.cellswide=4;
+		p558.GBpos=2;
+		p558.anddis=0;
+		p558.andD=0.0;
+		p558.andW=0.0;
+		p558.seed = conf_num;
+		if(strcmp("GB558", systemtype) == 0)
+		{	
+		    	
+			
+		for(i=1; i<argc-1; i++)
+		{
+			if(strcmp("-GBcells", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%d", &(p558.cellswide));
+			}
+			if(strcmp("-GBpos", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%d", &(p558.GBpos));
+			}
+			if(strcmp("-GBand", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%d", &(p558.anddis));
+			}
+			if(strcmp("-GBandD", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%lf", &(p558.andD));
+			}
+			if(strcmp("-GBandW", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%lf", &(p558.andW));
+			}
+		}
+			
+			
+			
+		    //set functions and params for use below
+		    SysFunction = &simple558GB;
+		    SysPara = &p558;
+		    
+		    
+		    
+		    length1=4*(p558.cellswide); 
+		    geo=1;
+		    nngm=1;
+		    
+		    //set filename info?
+			sprintf(sysinfo, "GB558_l2_%d", length2);
+			
+			if(p558.anddis==1)
+			{
+				sprintf(sysinfo, "GB558_l2_%d_ANDL_%.1lf_ANDW_%.2lf", length2, p558.andD, p558.andW);
+			}
+
+		}
+		
 		
 		
 		if(strcmp("CLEAN", systemtype) == 0)
@@ -1131,6 +1238,23 @@ main(int argc, char *argv[])
 			
 		}
 
+	  
+	  
+	  
+	  
+	  double kxmin=0.0, kxmax =(2*M_PI/length2);
+		for(i=1; i<argc-1; i++)
+		{
+			if(strcmp("-kxmin", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%lf", &kxmin);
+			}
+			if(strcmp("-kxmax", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%lf", &kxmax);
+			}
+
+		}
 	  
 	  
 	//misc  
@@ -1387,17 +1511,9 @@ main(int argc, char *argv[])
 		gen_hop_params metal_hop_p = {};
 		multix_start_params mxsp = {};
 		double metal_alpha=0.0, metal_sig=-1.0, metal_beta=1.0, metal_hop=t, metal_default_width=4;;
-		metal_hop_p.hops = createCompArray(4);
-		metal_hop_p.hops[0] = metal_sig;
-                metal_hop_p.hops[1] = metal_alpha;
-                metal_hop_p.hops[2] = metal_beta;
-                metal_hop_p.hops[3] = metal_hop;
-	    
-            if(metal_leads == 1)
-            {
-                starting_cell_mode=4;
-            
-                
+		
+		
+		 
                 for(i=1; i<argc-1; i++)
                 {
                     if(strcmp("-metalalpha", argv[i]) == 0)
@@ -1418,6 +1534,19 @@ main(int argc, char *argv[])
                     }
                     
                 }
+		
+		
+		metal_hop_p.hops = createCompArray(4);
+		metal_hop_p.hops[0] = metal_sig;
+                metal_hop_p.hops[1] = metal_alpha;
+                metal_hop_p.hops[2] = metal_beta;
+                metal_hop_p.hops[3] = metal_hop;
+	    
+            if(metal_leads == 1)
+            {
+                starting_cell_mode=4;
+            
+               
                 
                 metal_hop_p.hops[0] = metal_sig;
                 metal_hop_p.hops[1] = metal_alpha;
@@ -1819,6 +1948,7 @@ main(int argc, char *argv[])
 		loopmin = Emin;
 		loopmax = Emax;
 		sprintf(loopinfo, "Eloop_%+.2lf_to_%+.2lf_Bfixed_%+.3lf", Emin, Emax, Bfield);
+		sprintf(loopmininfo, "E_%+.3lf_B_%+.3lf", Emin, Bfield);
 	      }
 
 	      if(strcmp("B", loop_type) == 0)
@@ -1827,8 +1957,11 @@ main(int argc, char *argv[])
 		loopmin = Bmin;
 		loopmax = Bmax;
 		sprintf(loopinfo, "Bloop_%+.2lf_to_%+.2lf_Efixed_%+.3lf", Bmin, Bmax, realE);
+		sprintf(loopmininfo, "E_%+.3lf_B_%+.3lf", realE, Bmin);
+
 
 	      }
+	      
 	      
 	      
 	      double edge_cut=5.0, subs_thick=0.1E-6, subs_epsr=3.9;
@@ -1877,6 +2010,9 @@ main(int argc, char *argv[])
 	
 		
 		sprintf(loopinfo, "VG_%s_loop_%+.2lf_to_%+.2lf_Bfixed_%+.3lf_Efixed_%+.3lf", vgtname, VGmin, VGmax, Bfield, realE);
+		sprintf(loopmininfo, "VG_%s_%+.2lf_E_%+.3lf_B_%+.3lf", vgtname, VGmin, realE, Bfield);
+
+		
 	      }
 
 	      
@@ -1922,16 +2058,72 @@ main(int argc, char *argv[])
 	
 
 	//File I/O variables
-	    FILE *output, *fulloutput;
-	    char filename[300], filename3[300], filename_temp[300], fullfilename[300];
+	
+	
+		if(geo==0)
+		  {
+		    sprintf(geotype, "ZZ");
+		    if(nngm==2)
+		    {
+		      sprintf(geotype, "ZZ2N_");
+		    }
+		    if(nngm==3)
+		    {
+		      sprintf(geotype, "ZZ3N_");
+		    }
+		    
+		  }
+		  if(geo==1)
+		  {
+		    sprintf(geotype, "AC");
+		    
+		      if(nngm==2)
+		      {
+			sprintf(geotype, "AC2N_");
+		      }
+		      if(nngm==3)
+		      {
+			sprintf(geotype, "AC3N_");
+		      }
+		    
+		  }
+	
+	    FILE *output, *fulloutput, *tsoutput;
+	    char filename[300], filename3[300], filename_temp[300], fullfilename[300], tsfilename[300];
 	    char checkname[300], direcname[300], conffile[350], strucfile[300], lstrucfile[350], disorderfile[300];
-	    char bandname1[300], bandname2[300], bandname3[300], mapname[400];
-            char command[600];
+	    char bandname1[300], bandname2[300], bandname3[300], mapname[400], maindirec[100];
+            char command[600], inputlist[300];
+	    char altconffile[100];
+	    int usealtconf=0;
 	    FILE *bandfile;
 	    FILE *mapfile;
 	    
 	//Create directory and filenaming convention
-	    sprintf(direcname, "../res/%s_%s_%.0e/%s%d_%s", systemtype, peritype, eta, geotype, length1, sysinfo);
+	    sprintf(maindirec, "..");
+	    
+	     //check for command line arguments which vary these
+		    for(i=1; i<argc-1; i++)
+		    {
+		      if(strcmp("-maindirec", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%s", maindirec);
+		      }
+		      
+		      //specifies that we should use an existing configuration
+		      //useful for multiple runs on a single disorder configuration.
+		      //must be in the same folder etc beforehand
+		      //(best to use the "input" file from the initial run, together with this flag, and changes to runtime loop)
+		      if(strcmp("-altconf", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%s", altconffile);
+			  usealtconf=1;
+		      }
+		      
+		    }
+	    
+	    
+	    
+	    sprintf(direcname, "%s/res/%s_%s_%.0e/%s%d_%s", maindirec, systemtype, peritype, eta, geotype, length1, sysinfo);
 	    
 	    if(potdis==1)
 	    {
@@ -1946,11 +2138,13 @@ main(int argc, char *argv[])
 	    sprintf(filename_temp, "%s_%s.conf%02d", loopinfo, job_name, conf_num); 
 
 	    sprintf(strucfile, "%s/%s.struct", direcname, filename_temp);
+	    sprintf(inputlist, "%s/%s.inputs", direcname, filename_temp);
+
 	    sprintf(disorderfile, "%s/%s.disprof", direcname, filename_temp);
 
 	    sprintf(filename, "%s/.%s.part%02d", direcname, filename_temp, this_proc);
 		sprintf(fullfilename, "%s/.%s.full.part%02d", direcname, filename_temp, this_proc);
-
+		sprintf(tsfilename, "%s/.%s.ts.part%02d", direcname, filename_temp, this_proc);
 	    
 	    sprintf(bandname1, "%s/%s.bands", direcname, filename_temp);
 	    sprintf(bandname3, "%s/%s.wbands", direcname, filename_temp);
@@ -1963,7 +2157,8 @@ main(int argc, char *argv[])
 	      }
 	    }
 	    
-
+	FILE *listinputs;
+	
 	
 	//Create main output file
 	    output =fopen(filename, "w");
@@ -1973,6 +2168,9 @@ main(int argc, char *argv[])
 	    {
 		    fulloutput = fopen(fullfilename, "w");
 		    fclose(fulloutput);
+		    tsoutput = fopen(tsfilename, "w");
+		    fclose(tsoutput);
+		    
 	    }
 
 	    
@@ -1980,6 +2178,7 @@ main(int argc, char *argv[])
 	  	  	  printf("#loop type %s \n", loop_type);
 
 	    
+			  
 	    
       
 	//Status files for multiprocessor runs
@@ -2001,7 +2200,7 @@ main(int argc, char *argv[])
 		srand(this_proc); // ? why is this here??
 
 
-    
+
       
 //------------------------------ START OF THE ACTUAL INTERESTING COMPUTATIONAL NON-I/O BIT -----------------------------------//
       
@@ -2025,29 +2224,60 @@ main(int argc, char *argv[])
 	    int can_start_yet=-1;
 	    
 
-	    //generate, or read in, disorder configuration
-		sprintf(conffile, "%s/.%s", direcname, filename_temp);
-		
+	    
+
+		if (usealtconf==0)
+		{
+			//generate, or read in, disorder configuration
+			sprintf(conffile, "%s/.%s", direcname, filename_temp);
+			//printf("%s\n", conffile);
+		}
+		if (usealtconf==1)
+		{
+			//generate, or read in, disorder configuration
+			sprintf(conffile, "%s/.%s", direcname, altconffile);
+			//printf("%s\n", conffile);
+
+		}
+			
+			
 		if(this_proc==0)
 		{
-		  (SysFunction) ( &System, SysPara, output_type, strucfile);
-		  
-		  //additional, general disorder routine(s) here.
-		  if(potdis == 1)
-		  {
-		    potentialDisorder (&System, &dispara, pdmap, disorderfile );
-		  }
-		  
-		  //export the disorder configuration for the other processes calculating the same configuration
-		  if(procs>0)
-		  {
-		    exportRectConf(&System, conffile);
-		  }
-		  
-		  check = fopen(checkname, "w");
-		  fprintf(check, "%d", 0);
-		  fclose(check);
-		  
+			
+			if(usealtconf==0)
+			{
+				(SysFunction) ( &System, SysPara, output_type, strucfile);
+
+				//additional, general disorder routine(s) here.
+				if(potdis == 1)
+				{
+					potentialDisorder (&System, &dispara, pdmap, disorderfile );
+				}
+				
+				//export the disorder configuration for the other processes calculating the same configuration
+				
+				if(procs>0)
+				{
+					exportRectConf(&System, conffile);
+				}
+			}
+			if(usealtconf==1)
+			{
+				importRectConf(&System, length1, length2, conffile);
+			}
+
+				check = fopen(checkname, "w");
+				fprintf(check, "%d", 0);
+				fclose(check);
+				
+				
+				listinputs=fopen(inputlist, "w");
+				for(i=1; i<argc; i++)
+				{
+					fprintf(listinputs, "%s ", argv[i]);
+				}
+				fprintf(listinputs, "\n");
+				fclose(listinputs);
 		}
 		
 
@@ -2077,7 +2307,7 @@ main(int argc, char *argv[])
 	    int **siteinfo = System.siteinfo;
 	    double *site_pots = System.site_pots;
 	    
-	
+
 	  
 
 	  	  int halloutput;
@@ -2438,7 +2668,9 @@ main(int argc, char *argv[])
 	   weights = createNonSquareDoubleMatrix(Nrem, length2);
 	   projections = createNonSquareDoubleMatrix(Nrem, Nrem);
 	   bandmode=0;
-	   kxstep = (2*M_PI/length2)/(kxpoints -1);
+	   kxstep = (kxmax-kxmin)/(kxpoints -1);
+	   if(kxpoints ==1)
+		   kxstep=100.0;
 	   
 	   
 	    if(ismagnetic == 1)
@@ -2466,7 +2698,7 @@ main(int argc, char *argv[])
 	    }
 	    
 	    
-	      for(kxl=0; kxl< 2*M_PI/length2; kxl += kxstep)
+	      for(kxl=kxmin; kxl< kxmax; kxl += kxstep)
 	      {
       //  	   kxl=0.2;
 		 
@@ -2558,7 +2790,7 @@ main(int argc, char *argv[])
 	  
 	  
 	  
-	    
+	    int do_linear_decomp=1;
 	  
 	  
 	  for(en=0; en<loop_pts_temp; en++)
@@ -2583,9 +2815,12 @@ main(int argc, char *argv[])
 		    gate_induced_pot (vgtype, &System, engdeppots, VG, edge_cut, subs_thick, subs_epsr);
 
 		  //in the leads
-		    for(j=0; j<num_leads; j++)
+		    if(ishallbar==0)
 		    {
-		      	gate_induced_pot (vgtype, LeadCells[j], lead_engdeppots[j], VG, edge_cut, subs_thick, subs_epsr);
+			for(j=0; j<num_leads; j++)
+			{
+				gate_induced_pot (vgtype, LeadCells[j], lead_engdeppots[j], VG, edge_cut, subs_thick, subs_epsr);
+			}
 		    }
 
 		
@@ -2647,13 +2882,13 @@ main(int argc, char *argv[])
 	      for(k=0; k<kpts; k++)
 	      {
 		hoppara.kpar = kmin + k*kstep;
-		
+
 		genTransmissions(realE+eta*I, &System, LeadCells, &cnxp, &cellinfo, hopfn, &hoppara, &leadp, &tpara, mapmode, ldoses, currents);
 		kavg += (transmissions[0][1]/kpts);
 	      }
 
 // 	      printDMatrix(transmissions, 4);
-	      
+
 	      output =fopen(filename, "a");
 	      
 	      
@@ -2690,8 +2925,12 @@ main(int argc, char *argv[])
               
 	      if(mapmode==1)
 	      {
-		     sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.ldos", direcname, realE, Bfield, job_name, conf_num);
+		     sprintf(mapname, "%s/E_%+.4lf_B_%+.3lf_%s.conf%02d.ldos", direcname, realE, Bfield, job_name, conf_num);
 		     
+			if(strcmp("VG", loop_type) == 0)
+			{
+				sprintf(mapname, "%s/VG_%s_%.2lf_E_%+.2lf_B_%+.3lf_%s.conf%02d.ldos", direcname, vgtname, VG, realE, Bfield, job_name, conf_num);
+			}
 
 		      mapfile = fopen(mapname, "w");
 		      
@@ -2706,8 +2945,12 @@ main(int argc, char *argv[])
 		      for(j=0; j<num_leads; j++)
 		      {
 			
-			sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.cmaps_l%d", direcname, realE, Bfield, job_name, conf_num, j);
+			sprintf(mapname, "%s/E_%+.4lf_B_%+.3lf_%s.conf%02d.cmaps_l%d", direcname, realE, Bfield, job_name, conf_num, j);
 
+			if(strcmp("VG", loop_type) == 0)
+			{
+				sprintf(mapname, "%s/VG_%s_%.2lf_E_%+.2lf_B_%+.3lf_%s.conf%02d.cmaps_l%d", direcname, vgtname, VG, realE, Bfield, job_name, conf_num, j);
+			}
 
 			  mapfile = fopen(mapname, "w");
 			  for(i=0; i<Ntot; i++)
@@ -2726,7 +2969,7 @@ main(int argc, char *argv[])
 		    
 	      }
 	      
-	      
+
 	      
 	      int iprime, jprime; 
 	      
@@ -2801,7 +3044,7 @@ main(int argc, char *argv[])
                                 
         // 			printf("#curr: %.10e\n", vecx[0]);
 
-                                sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.cmaps_multi", direcname, realE, Bfield, job_name, conf_num);
+                                sprintf(mapname, "%s/E_%+.4lf_B_%+.3lf_%s.conf%02d.cmaps_multi", direcname, realE, Bfield, job_name, conf_num);
                                 mapfile = fopen(mapname, "w");
                                 for(i=0; i<Ntot; i++)
                                 { 
@@ -2919,7 +3162,7 @@ main(int argc, char *argv[])
                                 probe_pots[5] = vecx[4];
                                 
 
-                                sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.cmaps_multi", direcname, realE, Bfield, job_name, conf_num);
+                                sprintf(mapname, "%s/E_%+.4lf_B_%+.3lf_%s.conf%02d.cmaps_multi", direcname, realE, Bfield, job_name, conf_num);
                                 mapfile = fopen(mapname, "w");
                                 for(i=0; i<Ntot; i++)
                                 { 
@@ -2960,7 +3203,7 @@ main(int argc, char *argv[])
                         
                     }
                         
-                        
+
                      
                     //non local resistances in general multi probe measurements
                     //currIn and currOut define the probes current is driven between
@@ -2969,6 +3212,10 @@ main(int argc, char *argv[])
                     {	
 			//fulloutput prints potentials and currents of each lead
 			fulloutput =fopen(fullfilename, "a");
+			
+			//tsoutput prints all elements of the transmission matrix
+			tsoutput =fopen(tsfilename, "a");
+			
 //                         if(num_leads==4)
 // 			{
 				EmptyDoubleMatrix(ttildas, num_leads, num_leads);
@@ -3005,8 +3252,18 @@ main(int argc, char *argv[])
 					
 				}
 
-				LinEqnDouble (mtrans, vecb, vecx, num_leads-1);
 				
+// 				for(i=0; i<num_leads-1; i++)
+// 				{
+// 					for(j=0; j<num_leads-1; j++)
+// 					{
+// 						if(mtrans[i][j] < 1.0E-10)
+// 							mtrans[i][j] = 0.0;
+// 					}
+// 				}
+				
+			
+				LinEqnDouble (mtrans, vecb, vecx, num_leads-1);
 				
 				probe_pots[leadOrder[0]] = 1.0;
 				probe_pots[leadOrder[num_leads-1]] = 0.0;
@@ -3024,6 +3281,8 @@ main(int argc, char *argv[])
 				{
 					fprintf(output, "%lf	%.12e\n", realE, (vecx[2]-vecx[1])/vecx[0]);	
 					fprintf(fulloutput, "%lf\t", realE);
+					fprintf(tsoutput, "%lf\t", realE);
+
 					for(i=0; i<num_leads; i++)
 					{
 						fprintf(fulloutput, "%.12e\t", probe_pots[i]);
@@ -3034,11 +3293,21 @@ main(int argc, char *argv[])
 					}
 					fprintf(fulloutput, "\n");
 					
+					for(i=0; i<num_leads; i++)
+					{
+						for(j=0; j<num_leads; j++)
+						{	
+							fprintf(tsoutput, "%.12e\t", transmissions[i][j]);
+						}
+					}
+					fprintf(tsoutput, "\n");
+					
 				}
 				if(strcmp("B", loop_type) == 0)
 				{
 					fprintf(output, "%lf	%.12e\n", Bfield, (vecx[2]-vecx[1])/vecx[0]);	
 					fprintf(fulloutput, "%lf\t", Bfield);
+					fprintf(tsoutput, "%lf\t", Bfield);
 					for(i=0; i<num_leads; i++)
 					{
 						fprintf(fulloutput, "%.12e\t", probe_pots[i]);
@@ -3048,6 +3317,41 @@ main(int argc, char *argv[])
 						fprintf(fulloutput, "%.12e\t", probe_currs[i]);
 					}
 					fprintf(fulloutput, "\n");
+					
+					for(i=0; i<num_leads; i++)
+					{
+						for(j=0; j<num_leads; j++)
+						{	
+							fprintf(tsoutput, "%.12e\t", transmissions[i][j]);
+						}
+					}
+					fprintf(tsoutput, "\n");
+					
+				}
+				
+				if(strcmp("VG", loop_type) == 0)
+				{
+					fprintf(output, "%lf	%.12e\n", VG, (vecx[2]-vecx[1])/vecx[0]);	
+					fprintf(fulloutput, "%lf\t", VG);
+					fprintf(tsoutput, "%lf\t", VG);
+					for(i=0; i<num_leads; i++)
+					{
+						fprintf(fulloutput, "%.12e\t", probe_pots[i]);
+					}
+					for(i=0; i<num_leads; i++)
+					{
+						fprintf(fulloutput, "%.12e\t", probe_currs[i]);
+					}
+					fprintf(fulloutput, "\n");
+					
+					for(i=0; i<num_leads; i++)
+					{
+						for(j=0; j<num_leads; j++)
+						{	
+							fprintf(tsoutput, "%.12e\t", transmissions[i][j]);
+						}
+					}
+					fprintf(tsoutput, "\n");
 					
 				}
 				
@@ -3057,7 +3361,7 @@ main(int argc, char *argv[])
 				//make a composite map for multiprobe systems
 				if(mapmode == 1)
 				{
-					sprintf(mapname, "%s/E_%+.2lf_B_%+.3lf_%s.conf%02d.cmaps_multi", direcname, realE, Bfield, job_name, conf_num);
+					sprintf(mapname, "%s/E_%+.4lf_B_%+.3lf_%s.conf%02d.cmaps_multi", direcname, realE, Bfield, job_name, conf_num);
 					mapfile = fopen(mapname, "w");
 					for(i=0; i<Ntot; i++)
 					{ 
@@ -3100,6 +3404,7 @@ main(int argc, char *argv[])
 	      if (ishallbar==3 || ishallbar==4)
 		{
 			fclose(fulloutput);
+			fclose(tsoutput);
 		}
 	      
 	  }
@@ -3144,6 +3449,9 @@ main(int argc, char *argv[])
 		    if(ishallbar==4 || ishallbar==3)
 		    {
 			sprintf(command, "cat %s.full.part* | sort -n > %s/%s.full.dat", filename, direcname, filename_temp);
+			system(command);
+			
+			sprintf(command, "cat %s.ts.part* | sort -n > %s/%s.ts.dat", filename, direcname, filename_temp);
 			system(command);
 		    }
 		    

@@ -79,6 +79,28 @@ typedef struct {
 	int seed;
 }subl_para;
 
+typedef struct {
+	int cellswide;	//how many blocks of GB wide the AGNR is 
+	int GBpos; 	//after what standard unit cell is the GB dimer included
+	int anddis;	//include anderson disorder near GB?
+	double andD;	//size of region containing anderson disorder
+	double andW;	//strength of anderson disorder
+	int seed;
+}simple558_para;
+
+typedef struct {
+	double AA_mass;
+	double AA_pot;
+	double AB_mass;
+	double AB_pot;
+	double BA_mass;
+	double BA_pot;
+	int lM;
+	double x_offset;
+	double y_offset;
+	int seed;
+}submoire_para;
+
 
 typedef struct {
 	int type_shift; //=0 AA. =1 AB(Bernal), =2(Custom, uses *shiftvec and  shift_angle (ANGLE NOT IMPLEMENTED YET!)
@@ -179,6 +201,7 @@ void genCustomLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, lead
 void genSingleRibbonLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, void *params);
 void genSingleMetalLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, void *params);
 
+void simple558GB (RectRedux *SiteArray, void *p, int struc_out, char *filename);
 
 
 void simpleRibbonGeo (RectRedux *SiteArray, void *p, int struc_out, char *filename);
@@ -187,6 +210,8 @@ void genSublatticeDevice(RectRedux *SiteArray, void *p, int struc_out, char *fil
 void genSublatticeInterface(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 void genSublatticeTwoInts(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 void genSublatticeLeadPots(RectRedux **Leads, void *p);
+void genSublatticeMoire(RectRedux *SiteArray, void *p, int struc_out, char *filename);
+
 
 void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 

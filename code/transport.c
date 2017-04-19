@@ -65,9 +65,7 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 	 
 
       //calculate retarded GF of system 
-
          genDeviceGF(En, DeviceCell, cnxp, cellinfo, hoppingfn, hoppingparams, devicemode, devicemode2, g_sys_r, gii, gi1, SigmaR);
-
 // 	 printEMatrix(g_sys_r, cell1dim);
 // 	 listNonZero(g_sys_r, cell1dim, cell1dim);
 	 
@@ -168,7 +166,7 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 	FILE *bigdump;
 	char bigfile[200];
 	
-	
+
 
       if(mode==1)
       {
@@ -256,7 +254,7 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
       FreeMatrix(g_sys_r); FreeMatrix(g_sys_a);
         
   
-  
+
 }
 
 //mode indicates either single sweep (mode=0) or double sweep (mode=1)
@@ -2083,7 +2081,7 @@ void gate_induced_pot ( int vgtype, RectRedux *DeviceCell, double *engdeppots, d
 	
 	//density induced by this setup in an infinite width graphene sheet (SI units, m^-2)
 	//note the 2 in the denominator - this assumes a spinless calculation.
-	n0= (subs_epsr)*(8.85E-12)*gate_voltage/(2*subs_thick * 1.6E-19);
+	n0= (subs_epsr)*(8.85E-12)*fabs(gate_voltage)/(2*subs_thick * 1.6E-19);
 	nmax = n0 * ((top_edge-bottom_edge)/2) / sqrt( pow( (top_edge-bottom_edge)/2, 2)  - pow((top_edge-rib_center) - edge_cut_off, 2) );
   
 	for(i=0; i<Nrem; i++)

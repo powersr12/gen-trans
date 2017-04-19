@@ -10,9 +10,18 @@ MAXPTS=100000
 # PROJFOLDER=ANTIDOTS_RIBBON_1e-06/ZZ288_rect_lat_L_36_64_circ_dot_R_8.0_4x8_xyf_0.0_rf_0.0/
 # PROJNAME=E_+0.40_B_+163.500_longbuf.conf00
 
+
 # BASEFOLDER=/home/ICN2/spower/projects/gen-trans/res/
 # PROJFOLDER=CLEAN_rnltest_4_LEADS_1_to_0__1e-06/ZZ200_clean_l2_1000/POTDIS_c_0.01_d_0.200_xi_3.0/
 # PROJNAME=E_+0.00_B_+12.333_NEW.conf00
+
+BASEFOLDER=/home/ICN2/spower/projects/gen-trans/res/
+PROJFOLDER=SUBLMOIRE_RIBBON_1e-06/AC110_L2_108_default_off_0.0_0.0/
+PROJNAME=E_+0.0005_B_+0.000_hidef.conf00
+
+# PROJFOLDER=CLEAN_RIBBON_1e-06/ZZ3N_500_clean_l2_20/
+# PROJNAME=VG_efetov_2.50_E_+0.00_B_+10.000_NEW.conf00
+
 
 # BASEFOLDER=/home/ICN2/spower/DTU_GEN_RES/
 # PROJFOLDER=ANTIDOTS_RIBBON_1e-05/ZZ720_rect_lat_L_60_104_circ_dot_R_20.0_6x8_xyf_0.0_rf_0.0/
@@ -32,8 +41,12 @@ DOSNAME=$BASENAME.ldos
 # CURRENTS="l0 l2 l3 l1 l4 l5 multi"
 # CURRENTS="l0 l2 l3 l1 l4 "
 
+
 # CURRENTS="l0"
-CURRENTS="multi"
+# CURRENTS="multi"
+
+ CURRENTS="l0"
+# CURRENTS="multi"
 # CURRENTS="l0 l2 l3 l1 multi"
 
 NUMPTS=`cat $DOSNAME | awk 'END{print NR}'`
