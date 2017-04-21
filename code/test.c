@@ -1314,7 +1314,7 @@ main(int argc, char *argv[])
 		 dispara.xi = pdxi;
 		 dispara.seed = conf_num;
 		
-		 sprintf(disinfo, "POTDIS_c_%.2lf_d_%.3lf_xi_%.1lf", pdconc, pddelta, pdxi);
+		 sprintf(disinfo, "POTDIS_c_%.4lf_d_%.3lf_xi_%.1lf", pdconc, pddelta, pdxi);
 	      }
 	  
 	  
