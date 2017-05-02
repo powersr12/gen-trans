@@ -7,7 +7,7 @@ import numpy as np
 from matplotlib.colors import LogNorm
 import scipy.interpolate
 
-filename="/home/ICN2/spower/projects/denmarkjose/res/EDGEDIS_RIBBON_1e-06/ZZ500_L2_500_DIS20x2.00_per_40_vac0x0.00/POTDIS_c_0.00_d_0.005_xi_30.0/xymap.dat"
+filename="/home/ICN2/spower/projects/vqhe/res/SUBLATTICEPOT_vhe_4_LEADS_1_to_0__1e-04/AC400_L2_500_BUF_0_SUBA_1.00x0.230_SUBB_1.00x0.180/POTDIS_c_0.00_d_0.020_xi_10.0/xymap.dat"
 outputname=filename+"_plot.png"
 
 
@@ -20,7 +20,7 @@ x, y, pm = np.loadtxt(filename, unpack=True)
 absmax = max ( pm.max(), abs(pm.min() ))
 
 ##regular grid
-xi, yi = np.linspace(x.min(), x.max(), 500), np.linspace(y.min(), y.max(), 100)
+xi, yi = np.linspace(x.min(), x.max(), 100), np.linspace(y.min(), y.max(), 800)
 xi, yi = np.meshgrid(xi, yi)
 
 ## Interpolate DOS and map, output

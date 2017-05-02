@@ -2056,9 +2056,10 @@ void gate_induced_pot ( int vgtype, RectRedux *DeviceCell, double *engdeppots, d
   int length2 = (DeviceCell->length2);
   int geo = (DeviceCell->geo);
   int Nrem = *(DeviceCell->Nrem);
+  double Aconst = 1.579, Bconst = 0.0001887, Cconst=0.173;
   double **pos = (DeviceCell->pos);
   
-  double top_edge, bottom_edge, rib_center, ypos, ny, nmax, n0;
+  double top_edge, bottom_edge, rib_center, ypos, ny, nmax, n0, zval, zmax;
   int i;
   
   //top and bottom edges of ribbon for potential calculations
@@ -2100,6 +2101,22 @@ void gate_induced_pot ( int vgtype, RectRedux *DeviceCell, double *engdeppots, d
 	    if(ny>nmax)
 	      ny=nmax;
 	  }
+	  
+	  if (vgtype==3)
+	  {
+		zval = 2*ypos / (top_edge-bottom_edge);
+		zmax = 2*((top_edge-rib_center) - edge_cut_off) / (top_edge-bottom_edge);
+		ny = n0 * (Aconst * zval*zval + Bconst*zval + Cconst) / sqrt(1 - zval*zval) ;
+		nmax = n0 * (Aconst * zmax*zmax + Bconst*zmax + Cconst) / sqrt(1 - zmax*zmax) ;
+		
+		
+		
+	   // ny = n0 * ((top_edge-bottom_edge)/2)  / sqrt( pow((top_edge-bottom_edge)/2, 2)  - pow(ypos, 2) );
+	
+	    if(ny>nmax)
+	      ny=nmax;
+	  }
+	  
 	  
 	  engdeppots[i] = (- gate_voltage/ fabs(gate_voltage)) * (1.05E-28) * (ny/fabs(ny))* sqrt(M_PI * fabs(ny) ) / (2.7 * 1.6E-19) ;
 	  

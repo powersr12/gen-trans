@@ -2006,7 +2006,10 @@ main(int argc, char *argv[])
 		{
 		  sprintf(vgtname, "efetov2");
 		}
-		
+		else if (vgtype ==3)
+		{
+		  sprintf(vgtname, "j2efetov");
+		}
 	
 		
 		sprintf(loopinfo, "VG_%s_loop_%+.2lf_to_%+.2lf_Bfixed_%+.3lf_Efixed_%+.3lf", vgtname, VGmin, VGmax, Bfield, realE);
