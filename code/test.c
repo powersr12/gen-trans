@@ -435,18 +435,22 @@ main(int argc, char *argv[])
 		      if(strcmp("-subaconc", argv[i]) == 0)
 		      {
 			  sscanf(argv[i+1], "%lf", &(sublp.a_conc));
+			  suba_conc = sublp.a_conc;
 		      }
 		      if(strcmp("-subapot", argv[i]) == 0)
 		      {
 			  sscanf(argv[i+1], "%lf", &(sublp.a_pot));
+			  suba_pot = sublp.a_pot;
 		      }
 		      if(strcmp("-subbconc", argv[i]) == 0)
 		      {
 			  sscanf(argv[i+1], "%lf", &(sublp.b_conc));
+			  subb_conc = sublp.b_conc;
 		      }
 		      if(strcmp("-subbpot", argv[i]) == 0)
 		      {
 			  sscanf(argv[i+1], "%lf", &(sublp.b_pot));
+			  subb_pot = sublp.b_pot;
 		      }
 		      if(strcmp("-bufferrows", argv[i]) == 0)
 		      {
@@ -1031,6 +1035,10 @@ main(int argc, char *argv[])
 		p558.anddis=0;
 		p558.andD=0.0;
 		p558.andW=0.0;
+		p558.vacdis=0;
+		p558.vacW=0.0;
+		p558.vacP=0.0;
+		p558.ycut=0.0;
 		p558.seed = conf_num;
 		if(strcmp("GB558", systemtype) == 0)
 		{	
@@ -1058,6 +1066,22 @@ main(int argc, char *argv[])
 			{
 				sscanf(argv[i+1], "%lf", &(p558.andW));
 			}
+			if(strcmp("-GBvacs", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%d", &(p558.vacdis));
+			}
+			if(strcmp("-GBvacW", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%lf", &(p558.vacW));
+			}
+			if(strcmp("-GBvacP", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%lf", &(p558.vacP));
+			}
+			if(strcmp("-GBycut", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%lf", &(p558.ycut));
+			}
 		}
 			
 			
@@ -1077,8 +1101,17 @@ main(int argc, char *argv[])
 			
 			if(p558.anddis==1)
 			{
-				sprintf(sysinfo, "GB558_l2_%d_ANDL_%.1lf_ANDW_%.2lf", length2, p558.andD, p558.andW);
+				sprintf(sysinfo, "GB558_l2_%d_ANDL_%.1lf_ANDW_%.2lf_yc_%.0lf", length2, p558.andD, p558.andW, p558.ycut);
 			}
+			if(p558.vacdis==1)
+			{
+				sprintf(sysinfo, "GB558_l2_%d_VACW_%.1lf_VACP_%.4lf_yc_%.0lf", length2, p558.vacW, p558.vacP, p558.ycut);
+			}
+			if(p558.anddis==1 && p558.vacdis==1)
+			{
+				sprintf(sysinfo, "GB558_l2_%d_ANDL_%.1lf_ANDW_%.2lf_VACW_%.1lf_VACP_%.4lf_yc_%.0lf", length2, p558.andD, p558.andW, p558.vacW, p558.vacP, p558.ycut);
+			}
+			
 
 		}
 		
@@ -1718,6 +1751,14 @@ main(int argc, char *argv[])
 					(mleadps[j]->indiv_gen_fn) = &genSingleRibbonLead;
 					((rib_lead_para *)(mleadps[j]->indiv_lead_para))->hopfn = hopfn;
 					((rib_lead_para *)(mleadps[j]->indiv_lead_para))->hoppara = &hoppara;
+					((rib_lead_para *)(mleadps[j]->indiv_lead_para))->homo_A_pot = 0.0;
+					((rib_lead_para *)(mleadps[j]->indiv_lead_para))->homo_B_pot = 0.0;
+					
+					if (xleadsavgpot == 1)
+					{
+						((rib_lead_para *)(mleadps[j]->indiv_lead_para))->homo_A_pot = suba_conc * suba_pot;
+						((rib_lead_para *)(mleadps[j]->indiv_lead_para))->homo_B_pot = subb_conc * subb_pot;
+					}
 
 					
 					//default sizes and geos
@@ -2379,7 +2420,7 @@ main(int argc, char *argv[])
 	    }
 	  
 		//adds (averaged) sublattice dependent potentials to left and right leads (leads 0 and 1)
-		if(xleadsavgpot==1 && strcmp("SUBLATTICEPOT", systemtype) == 0)
+		if(xleadsavgpot==1 && strcmp("SUBLATTICEPOT", systemtype) == 0 && ishallbar != 4)
 		{
 			genSublatticeLeadPots(LeadCells, &sublp);
 		}

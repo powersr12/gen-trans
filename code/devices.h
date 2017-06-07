@@ -44,6 +44,8 @@ typedef struct {
 	int width;
 	int start_coord;
 	int def_pos; //0->left, 1->right, 2->top, 3->bottom
+	double homo_A_pot;
+	double homo_B_pot;
 }rib_lead_para;
 
 typedef struct {
@@ -85,6 +87,10 @@ typedef struct {
 	int anddis;	//include anderson disorder near GB?
 	double andD;	//size of region containing anderson disorder
 	double andW;	//strength of anderson disorder
+	int vacdis;
+	double vacW;
+	double vacP;
+	double ycut;
 	int seed;
 }simple558_para;
 

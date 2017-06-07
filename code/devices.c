@@ -204,6 +204,12 @@ void simple558GB (RectRedux *SiteArray, void *p, int struc_out, char *filename)
 	  int anddis= params->anddis;
 	  double andD= params->andD;
 	  double andW= params->andW;
+	  int vacdis= params->vacdis;
+	  double vacW= params->vacW;
+	  double vacP= params->vacP;
+	  double ycut = params->ycut;
+	  
+	  double ymax=(length-1)*0.5, ymin=0.0; 
 
 	  
 	  //atomic coordinates and the atoms that are in and out, similar to previous cases
@@ -215,6 +221,7 @@ void simple558GB (RectRedux *SiteArray, void *p, int struc_out, char *filename)
 	  int isclean, l, m;
 	  int *Nrem = (SiteArray->Nrem);
 	  int *Ntot = (SiteArray->Ntot);
+	  double temprandnum;
 	  
 	  *Ntot = tot_sites;
 
@@ -272,6 +279,29 @@ void simple558GB (RectRedux *SiteArray, void *p, int struc_out, char *filename)
 		
 	      }
 		
+		//Vacancy disorder near the GB
+		if(vacdis == 1)
+		{
+			for(l=0; l<tot_sites; l++)
+			{
+				if(fabs(site_coords[l][0] - GBpos*sqrt(3)) < vacW )
+				{
+					if(fabs(site_coords[l][1] - ymin) > ycut && fabs(site_coords[l][1] - ymax) > ycut)
+					{
+						temprandnum = myRandNum(0.0, 1.0);
+						if(temprandnum < vacP)
+						{
+							siteinfo[l][0] = 1;
+						}
+					}
+				}
+			}
+		}
+		
+		
+		
+		
+	      
 		
 		
 		//Anderson disorder near the GB
@@ -279,9 +309,12 @@ void simple558GB (RectRedux *SiteArray, void *p, int struc_out, char *filename)
 		{
 			for(l=0; l<tot_sites; l++)
 			{
-				if(fabs(site_coords[l][0] - GBpos*sqrt(3)) < andD)
+				if(fabs(site_coords[l][0] - GBpos*sqrt(3)) < andD && siteinfo[l][0] == 0)
 				{
-					site_pots[l] = myRandNum(- andW, andW);
+					if(fabs(site_coords[l][1] - ymin) > ycut && fabs(site_coords[l][1] - ymax) > ycut)
+					{
+						site_pots[l] = myRandNum(- andW, andW);
+					}
 				}
 			}
 		}
@@ -463,7 +496,21 @@ void genSingleRibbonLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, v
 
 	//periodicity vectors for RGF leads
 	(ribpara->shift_vec) = createDoubleArray(3);
-    
+	
+	
+	//sublattice pots
+	for(i=0; i<*(Lead->Ntot); i++)
+	{
+		if( (Lead->siteinfo)[i][1] == 0)
+		{	
+			(Lead->site_pots)[i]=ribpara->homo_A_pot;
+		}
+		if( (Lead->siteinfo)[i][1] == 1)
+		{	
+			(Lead->site_pots)[i]=ribpara->homo_B_pot;
+		}
+	}
+	
 	if(ribpara->def_pos == 0)
 	{
 		(ribpara->shift_vec)[0] = -((SiteArray->pos)[2*(SiteArray->length)][0] - (SiteArray->pos)[0][0]);

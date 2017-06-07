@@ -7,7 +7,7 @@ import numpy as np
 from matplotlib.colors import LogNorm
 import scipy.interpolate
 
-filename="/home/ICN2/spower/projects/vqhe/res/SUBLATTICEPOT_vhe_4_LEADS_1_to_0__1e-04/AC400_L2_500_BUF_0_SUBA_1.00x0.230_SUBB_1.00x0.180/POTDIS_c_0.00_d_0.020_xi_10.0/xymap.dat"
+filename="/home/ICN2/spower/projects/gen-trans/res/GB558_NLINFRIB_6_LEADS_1_to_0__1e-06/AC320_GB558_l2_200/POTDIS_c_0.0001_d_0.010_xi_20.0/xymap.dat"
 outputname=filename+"_plot.png"
 
 
