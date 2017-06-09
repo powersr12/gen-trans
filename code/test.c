@@ -1601,6 +1601,8 @@ main(int argc, char *argv[])
 		custom_start_params cstart_p ={};
 		cstart_p.leadtype = createIntArray(num_leads);
 		sprintf(leadconf, "CUSTOM");
+		sprintf(additional_lead_info, "");
+
 		int nleft, nright, nfull;
 		int counttop, countbot, countleft, countright, countfull;
 		double metaldim2=2.0;
