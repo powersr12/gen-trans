@@ -53,6 +53,9 @@ main(int argc, char *argv[])
 	      int num_neigh; 	//this is connected to nngm, but is the index used in hopping arrays.
 				//used to allow the nngm=1 mode to have more than one hopping paramaters
 				//e.g. in bilayers
+				
+	      int soc = 0;	//by default, spin orbit coupling is off.
+				//=1 -- is on (default settings come into play)
 	      
 	      int magsetup = 0;	//this indicates whether the magnetic field is present in the leads or not
 				//(if the system is magnetic)
@@ -156,6 +159,10 @@ main(int argc, char *argv[])
 		    if(strcmp("-potdis", argv[i]) == 0)
 		    {
 			sscanf(argv[i+1], "%d", &potdis);
+		    }
+		     if(strcmp("-soc", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &soc);
 		    }
 		  }
 			//default value of num_neigh for single layer graphene.
@@ -1254,7 +1261,53 @@ main(int argc, char *argv[])
 		}
 
 	  
-	  
+	  	//SOC SYSTEMS -- this does NOT create a device type
+	  	//it turns on settings for SOC hoppings
+	  	//changes pointers to functions that are required.
+		
+		if(soc!=0)
+		{	
+			
+			//defaults
+			
+			hop_to_load = &graphene_SOCTB_hop_params;
+			hopfn = &grapheneSOCTB;
+							
+			nngm=3; 	//default is NNTB + intrinsic_A + intrinsic_B
+				
+			
+			
+			
+			
+			
+			//check for command line arguments which vary these
+			for(i=1; i<argc-1; i++)
+			{
+				
+			
+			}
+			
+			
+			//reset connection parameters -- different hop_to_load now!
+				num_neigh=nngm;
+				max_neigh=(hop_to_load->max_neigh)[num_neigh-1];
+				cnxpara.conn_sep_thresh_min = (hop_to_load->NN_lowdis)[0];
+				cnxpara.conn_sep_thresh_max = (hop_to_load->NN_highdis)[num_neigh-1];
+			
+			//this is probably unnecessary, but emphasises that we use the default connection rules
+				default_connect_rule =  &graph_conn_sep;
+				defdouble_connect_rule =  &graph_conn_sep2;
+				default_connection_params = &cnxpara;
+			
+						
+			
+			
+			//set filename info - what to put in filename from these params
+			
+			sprintf(systemtype, "SOC_%s", systemtype);
+			
+			
+		}
 	  
 	  
 	  double kxmin=0.0, kxmax =(2*M_PI/length2);
@@ -2032,6 +2085,8 @@ main(int argc, char *argv[])
 	      }
 
 	      
+	   
+	      
 	      
 	    //loop details
 	    int calc_procs = procs;
@@ -2251,7 +2306,7 @@ main(int argc, char *argv[])
 		    }
 		    importRectConf(&System, length1, length2, conffile);
 		  }
-		  
+		  System.islead = -1;
 
 		  time = clock() - time;
 		  printf("#generated geometry in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
@@ -2348,11 +2403,48 @@ main(int argc, char *argv[])
 	 
  	    cnxp.max_neigh=max_neigh;
 	    device_connectivity (&System, connectrules, default_connection_params, &cnxp);
+	    System.cnxp = &cnxp;
 	    
 		  time = clock() - time;
 		  printf("#made connection profile in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		  time = clock();
 //   	   printConnectivity (&System, &cnxp);
+		  
+		  
+		  
+		  
+		  //lead connection profiles (same rules as device, this may be used for messier SOC hops)
+		  cnxProfile *leadcnxp[num_leads];
+		  for(i=0; i<num_leads; i++)
+		  {
+			leadcnxp[i] = (cnxProfile *)malloc(sizeof(cnxProfile));
+			(leadcnxp[i]->max_neigh) = max_neigh;
+			
+			//cases when all the leads are ribbon type
+			if (ishallbar == 0 || ishallbar == 1 || ishallbar == 2 )
+			{
+				device_connectivity (LeadCells[i], connectrules, default_connection_params, leadcnxp[i]);
+				//printConnectivity (LeadCells[i], leadcnxp[i]);
+			}
+			
+			//case with mixed leads, and THIS lead is a ribbon
+			if (ishallbar ==4 && strcmp("RIBBON", mleadps[i]->name) == 0)
+			{
+				device_connectivity (LeadCells[i], connectrules, default_connection_params, leadcnxp[i]);
+				//printConnectivity (LeadCells[i], leadcnxp[i]);
+			}
+			
+			
+			time = clock() - time;
+			printf("#made lead %d connection profile in %f seconds\n", i, ((float)time)/CLOCKS_PER_SEC);
+			time = clock();
+			(LeadCells[i]->cnxp) = leadcnxp[i];
+			(LeadCells[i]->islead) = i;
+		  }
+		  
+	  
+	  
+	  
 	  
 		
 	  gen_start_params start_p ={};
@@ -2448,6 +2540,9 @@ main(int argc, char *argv[])
 	  hoppara.isperiodic=isperiodic;
 	  hoppara.kpar=kmin;
 	  hoppara.gauge=gauge;
+	  //default spin values - these are changed before individual calls
+	  hoppara.spinA=0;
+	  hoppara.spinB=0;
 	  
 	  int *res = createIntArray(2);
 	  double **reslimits = createNonSquareDoubleMatrix(2, 6);
@@ -2591,6 +2686,17 @@ main(int argc, char *argv[])
 	   }
 	 }
 
+	 
+// 	    for(i=0; i<num_leads; i++)
+// 	      {
+// 		      if(LeadCells[i] == NULL)
+// 			      printf("# Lead %d has no associated structure\n", i);
+// 		      
+// 		      if(metal_leads ==1)
+// 			      printf("# We are in metallic leads mode %d\n", i);
+// 	      }
+// 	 
+	 
 	  
 	 if(makebands == 1)
 	 {

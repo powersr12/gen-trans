@@ -369,6 +369,7 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 						
 					}
 				}
+				//printEMatrix(g00inv, dim);
 
 			
 			
@@ -431,15 +432,15 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 				}
 
 						//check non-zero elements at the cell stage
-						//printf("#g00inv\n");
-						//listNonZero(g00inv, dim, dim);
-						//if(it_count>0)
-						// {
-						// 	  printf("#V21\n");
-						// 	  listNonZero(V21, dim, dim_old);
-						// 	  printf("#V12\n");
-						// 	  listNonZero(V12, dim_old, dim);
-						// }
+// 						printf("#g00inv\n");
+// 						listNonZero(g00inv, dim, dim);
+// 						if(it_count>0)
+// 						{
+// 							  printf("#V21\n");
+// 							  listNonZero(V21, dim, dim_old);
+// 							  printf("#V12\n");
+// 							  listNonZero(V12, dim_old, dim);
+// 						}
 		
 		
 			
@@ -1130,6 +1131,313 @@ double _Complex simpleTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, 
   return ans;
   
 }
+
+
+//returns hopping parameters for graphene with UNIFORM induced SOC terms.
+//(initially just intrinsic SOC, rashba to come...) 
+//(include possibility of Peierl's magnetic field phases also... (later!))
+//hoppings are in the sequence:
+//0=NNTB, 1=lambda_IA, 2=lambda_IB 
+
+double _Complex grapheneSOCTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, int b, double *bshifts, void *hoppingparams)
+{
+  gen_hop_params *para = (gen_hop_params *)hoppingparams; 
+  int num_neigh = para->num_neigh;
+  double _Complex *hops = para->hops;
+  double  *NN_lowdis = para->NN_lowdis;
+  double  *NN_highdis = para->NN_highdis;
+  double  *NN_shifts = para->NN_shifts;
+  double  *NN_zmin= para->NN_zmin;
+  double  *NN_zmax = para->NN_zmax;
+  int spinA = para->spinA;
+  int spinB = para->spinB;
+  double _Complex t0;
+  double kpar = para->kpar;
+  double _Complex ans=0.0;
+  double x1 = (aDeviceCell->pos)[a][0], y1 = (aDeviceCell->pos)[a][1];
+  double x2 = (bDeviceCell->pos)[b][0] + bshifts[0], y2 = (bDeviceCell->pos)[b][1] + bshifts[1];
+  double y2p, distp;
+  
+  double dist = sqrt(pow(x2-x1, 2.0) + pow(y2-y1, 2.0));
+  double zdiff = fabs((bDeviceCell->pos)[b][2] - (aDeviceCell->pos)[a][2]);
+  double ycelldist;
+  int i, j, k=0, l;
+  int SOCsign, possign;
+  int *possible = createIntArray(10);
+  double midx=0.0, midy=0.0;
+  double dista=0.0, distb=0.0;
+  
+  cnxProfile *acnxp = (cnxProfile *)(aDeviceCell->cnxp);
+  cnxProfile *bcnxp = (cnxProfile *)(bDeviceCell->cnxp);
+
+  
+  //this hopping routine is zero for elements off-diagonal in spin-space
+  if(spinA!=spinB)
+  {
+	  ans=0.0;
+  }
+  else
+  {
+	//sign of SOC term coming from spin orientation
+	SOCsign = 1;
+	if(spinA == 1)
+		SOCsign = -1;
+	
+	//sign of SOC term coming from clockwise/anticlockwise
+	//this is difficult -- need to find atom between these two!
+		//only run if need SOC terms and intrinsic params are non-zero
+		if(num_neigh>0 && (hops[1] !=0.0 || hops[2] != 0.0) && (dist >= (para->NN_lowdis[1]) && dist < (para->NN_highdis[1])))
+		{
+			
+			//case for both atoms in the same region (lead/device) AND bshifts=0.0
+			//(indices will be the same here...)
+			if ( ((aDeviceCell->islead) == (bDeviceCell->islead)) && bshifts[0]==0.0 &&  bshifts[1]==0.0)
+			{
+				k=0;
+				for(i=0; i< (acnxp->site_cnxnum)[a]; i++)
+				{
+					for(j=0; j<(bcnxp->site_cnxnum)[b]; j++)
+					{
+						if((acnxp->site_cnx)[a][i] == (bcnxp->site_cnx)[b][j])
+						{
+							possible[k] = (acnxp->site_cnx)[a][i];
+							k++;
+						}
+					}
+				}
+				
+				i=0; j=0;
+				while(j!=1 && i<k)
+				{
+					midx = (aDeviceCell->pos)[possible[i]][0];
+					midy=  (aDeviceCell->pos)[possible[i]][1];
+					dista = sqrt(pow(midx-x1, 2.0) + pow(midy-y1, 2.0));
+					distb = sqrt(pow(midx-x2, 2.0) + pow(midy-y2, 2.0));
+				
+					if(dista >= (para->NN_lowdis[0]) && dista < (para->NN_highdis[0]) && distb >= (para->NN_lowdis[0]) && distb < (para->NN_highdis[0]))
+					{
+						j=1;
+					}
+					i++;
+				}	
+				
+				if(midx !=0.0 && midy != 0.0)
+				printf("%lf	%lf\n%lf	%lf\n%lf	%lf\n\n", x1, y1, midx, midy, x2, y2);
+				
+			}
+			
+		}
+	
+	
+	//which coupling to use
+	t0=0.0;
+	
+	
+	//Nearest neighbour electronic hoppings terms	
+		if(num_neigh>0)
+		{
+			i=0;
+			if(dist >= (para->NN_lowdis[i]) && dist < (para->NN_highdis[i]))
+			{
+				if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
+				{ 
+					t0 = hops[i];
+				}
+			}
+		
+			if(dist == 0.0)
+			{
+				t0 += NN_shifts[i];
+			}
+			ans=t0;
+		}
+		
+	//Intrinsic SOC - A sublattice
+		if(num_neigh>=1)
+		{
+			i=1;
+			
+			if(dist >= (para->NN_lowdis[i]) && dist < (para->NN_highdis[i]))
+			{
+				if( (aDeviceCell->siteinfo)[a][1]==0 && (bDeviceCell->siteinfo)[b][1]==0)
+				{
+					if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
+					{ 
+						//printf("SOC! %d, %d %lf\n");
+						t0 = SOCsign*hops[i];
+					}
+				}
+			}
+		
+			if(dist == 0.0)
+			{
+				t0 += NN_shifts[i];
+			}
+			ans=t0;
+		}
+		
+	//Intrinsic SOC - B sublattice	
+		if(num_neigh>=2)
+		{
+			i=2;
+			
+			if(dist >= (para->NN_lowdis[i]) && dist < (para->NN_highdis[i]))
+			{
+				if( (aDeviceCell->siteinfo)[a][1]==1 && (bDeviceCell->siteinfo)[b][1]==1)
+				{
+					if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
+					{ 
+						t0 = SOCsign*hops[i];
+					}
+				}
+			}
+		
+			if(dist == 0.0)
+			{
+				t0 += NN_shifts[i];
+			}
+			ans=t0;
+		}
+		
+		
+		
+	
+	
+
+	//note the += to allow more than one connection between the same atoms (or their images)
+	if((para->isperiodic)==1)
+	{
+		//set separation to up and down cells
+		//this is only sensible for even-indexed ribbons, but will run with odd results for odd indices
+		if((aDeviceCell->geo)==0)
+		{
+			ycelldist = (aDeviceCell->length)*sqrt(3)/2;
+		}
+		if((aDeviceCell->geo)==1)
+		{
+			ycelldist = (aDeviceCell->length)*0.5;
+		}
+	
+		//check if b is in cell above
+		y2p = y2 + ycelldist;
+		distp= sqrt(pow(x2-x1, 2.0) + pow(y2p-y1, 2.0));
+	
+
+		t0=0.0;
+		
+			//Nearest neighbour electronic hoppings terms	
+			if(num_neigh>0)
+			{
+				i=0;
+			
+				if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
+				{
+					if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
+					{
+						t0 = hops[i];
+					}
+				}
+			}
+			//Intrinsic SOC - A sublattice
+			if(num_neigh>=1)
+			{
+				i=1;
+				if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
+				{
+					if( (aDeviceCell->siteinfo)[a][1]==0 && (bDeviceCell->siteinfo)[b][1]==0)
+					{
+						if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
+						{
+							t0 = SOCsign*hops[i];
+						}
+					}
+				}
+			}
+			//Intrinsic SOC - B sublattice
+			if(num_neigh>=2)
+			{
+				i=2;
+				if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
+				{
+					if( (aDeviceCell->siteinfo)[a][1]==1 && (bDeviceCell->siteinfo)[b][1]==1)
+					{
+						if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
+						{
+							t0 = SOCsign*hops[i];
+						}
+					}
+				}
+			}
+			
+		ans+=t0*cexp(-I*kpar);	
+			
+	
+		
+		
+		//check if b is in cell below
+		y2p = y2 - ycelldist;
+		distp= sqrt(pow(x2-x1, 2.0) + pow(y2p-y1, 2.0));
+		
+
+		
+		t0=0.0;
+		
+			//Nearest neighbour electronic hoppings terms	
+			if(num_neigh>0)
+			{
+				i=0;
+			
+				if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
+				{
+					if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
+					{
+						t0 = hops[i];
+					}
+				}
+			}
+			//Intrinsic SOC - A sublattice
+			if(num_neigh>=1)
+			{
+				i=1;
+				if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
+				{
+					if( (aDeviceCell->siteinfo)[a][1]==0 && (bDeviceCell->siteinfo)[b][1]==0)
+					{
+						if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
+						{
+							t0 = SOCsign*hops[i];
+						}
+					}
+				}
+			}
+			//Intrinsic SOC - B sublattice
+			if(num_neigh>=2)
+			{
+				i=2;
+				if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
+				{
+					if( (aDeviceCell->siteinfo)[a][1]==1 && (bDeviceCell->siteinfo)[b][1]==1)
+					{
+						if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
+						{
+							t0 = SOCsign*hops[i];
+						}
+					}
+				}
+			}
+		
+		ans+=t0*cexp(I*kpar); 
+	
+	}
+	
+  }
+  
+  return ans;
+  
+}
+
+
+
 
 
 

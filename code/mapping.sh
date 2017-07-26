@@ -10,9 +10,9 @@ MAXPTS=100000
 # PROJFOLDER=ANTIDOTS_RIBBON_1e-06/ZZ288_rect_lat_L_36_64_circ_dot_R_8.0_4x8_xyf_0.0_rf_0.0/
 # PROJNAME=E_+0.40_B_+163.500_longbuf.conf00
 
-BASEFOLDER=/home/ICN2/spower/projects/gen-trans/res/
-PROJFOLDER=SUBLMOIRE_RIBBON_1e-06/AC110_L2_108_default_off_0.0_0.0/
-PROJNAME=E_+0.0005_B_+0.000_hidef.conf00
+BASEFOLDER=/home/ICN2/spower/projects/denmarkjose/res/res/
+PROJFOLDER=CLEAN_RIBBON_1e-06/ZZ3N_500_clean_l2_8/
+PROJNAME=VG_constpot_2.70_E_+0.00_B_+10.000_edge35.conf00
 
 # PROJFOLDER=CLEAN_RIBBON_1e-06/ZZ3N_500_clean_l2_20/
 # PROJNAME=VG_efetov_2.50_E_+0.00_B_+10.000_NEW.conf00
@@ -31,7 +31,7 @@ DOSNAME=$BASENAME.ldos
 # CURRENTS="l0 l2 l3 l1 l4 l5 multi"
 # CURRENTS="l0 l2 l3 l1 l4 "
 
- CURRENTS="l0"
+ CURRENTS="l0 l1"
 # CURRENTS="multi"
 # CURRENTS="l0 l2 l3 l1 multi"
 

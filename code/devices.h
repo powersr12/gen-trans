@@ -21,6 +21,8 @@ typedef struct {
 	int are_spin_pots;
 	double **spin_pots;
 	double *const_spin_pots;
+	void *cnxp;	//the connection profile generated for this system
+	int islead;	//=-1 if this is the device, and lead index if it is a lead	
 }RectRedux;
 
 typedef struct {
