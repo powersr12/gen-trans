@@ -559,7 +559,7 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
 					{
 						if( (Leads[i]->siteinfo)[k][0] == 0)
 						{
-							if((sps->rule)(DeviceCell, Leads[i], sps->rule_params, l, k) == 0)
+							if((sps->rule)(DeviceCell, Leads[i], sps->rule_params, l, k) == 0 && temparray[l]==0)
 							{
 								(cellinfo->cells_site_order)[j] = l;
 								j++; m++;
