@@ -22,9 +22,10 @@ main(int argc, char *argv[])
 	  int i, j,k,l;
 	  
 	  //general system inputs and default values
-	      char systemtype[32];
+	      char systemtype[32], systemtype2[32];
 	      char geotype[32], peritype[40], leadtype[32], sysinfo[120], loopinfo[80], loopmininfo[80], disinfo[40];
 	      sprintf(systemtype, "SUBLATTICEPOT");
+	      sprintf(systemtype2, "");
 	      int length1=2, length2=3*length1, geo=0, isperiodic=1, ismagnetic=0;
 	      int makebands = 0, unfold=0, project=0, kxpoints=51, bandsonly=0, bandsminset=0, bandsmaxset=100000;
 	      
@@ -1304,7 +1305,7 @@ main(int argc, char *argv[])
 			
 			//set filename info - what to put in filename from these params
 			
-			sprintf(systemtype, "SOC_%s", systemtype);
+			sprintf(systemtype2, "_SOC");
 			
 			
 		}
@@ -1637,6 +1638,7 @@ main(int argc, char *argv[])
 		custom_start_params cstart_p ={};
 		cstart_p.leadtype = createIntArray(num_leads);
 		sprintf(leadconf, "CUSTOM");
+		sprintf(additional_lead_info, "");
 		int nleft, nright, nfull;
 		int counttop, countbot, countleft, countright, countfull;
 		double metaldim2=2.0;
@@ -2151,7 +2153,7 @@ main(int argc, char *argv[])
 	    
 	    
 	    
-	    sprintf(direcname, "%s/res/%s_%s_%.0e/%s%d_%s", maindirec, systemtype, peritype, eta, geotype, length1, sysinfo);
+	    sprintf(direcname, "%s/res/%s%s_%s_%.0e/%s%d_%s", maindirec, systemtype, systemtype2, peritype, eta, geotype, length1, sysinfo);
 	    
 	    if(potdis==1)
 	    {
@@ -2415,31 +2417,34 @@ main(int argc, char *argv[])
 		  
 		  //lead connection profiles (same rules as device, this may be used for messier SOC hops)
 		  cnxProfile *leadcnxp[num_leads];
-		  for(i=0; i<num_leads; i++)
+		  if(bandsonly==0)
 		  {
-			leadcnxp[i] = (cnxProfile *)malloc(sizeof(cnxProfile));
-			(leadcnxp[i]->max_neigh) = max_neigh;
-			
-			//cases when all the leads are ribbon type
-			if (ishallbar == 0 || ishallbar == 1 || ishallbar == 2 )
+			for(i=0; i<num_leads; i++)
 			{
-				device_connectivity (LeadCells[i], connectrules, default_connection_params, leadcnxp[i]);
-				//printConnectivity (LeadCells[i], leadcnxp[i]);
+				leadcnxp[i] = (cnxProfile *)malloc(sizeof(cnxProfile));
+				(leadcnxp[i]->max_neigh) = max_neigh;
+				
+				//cases when all the leads are ribbon type
+				if (ishallbar == 0 || ishallbar == 1 || ishallbar == 2 )
+				{
+					device_connectivity (LeadCells[i], connectrules, default_connection_params, leadcnxp[i]);
+					//printConnectivity (LeadCells[i], leadcnxp[i]);
+				}
+				
+				//case with mixed leads, and THIS lead is a ribbon
+				if (ishallbar ==4 && strcmp("RIBBON", mleadps[i]->name) == 0)
+				{
+					device_connectivity (LeadCells[i], connectrules, default_connection_params, leadcnxp[i]);
+					//printConnectivity (LeadCells[i], leadcnxp[i]);
+				}
+				
+				
+				time = clock() - time;
+				printf("#made lead %d connection profile in %f seconds\n", i, ((float)time)/CLOCKS_PER_SEC);
+				time = clock();
+				(LeadCells[i]->cnxp) = leadcnxp[i];
+				(LeadCells[i]->islead) = i;
 			}
-			
-			//case with mixed leads, and THIS lead is a ribbon
-			if (ishallbar ==4 && strcmp("RIBBON", mleadps[i]->name) == 0)
-			{
-				device_connectivity (LeadCells[i], connectrules, default_connection_params, leadcnxp[i]);
-				//printConnectivity (LeadCells[i], leadcnxp[i]);
-			}
-			
-			
-			time = clock() - time;
-			printf("#made lead %d connection profile in %f seconds\n", i, ((float)time)/CLOCKS_PER_SEC);
-			time = clock();
-			(LeadCells[i]->cnxp) = leadcnxp[i];
-			(LeadCells[i]->islead) = i;
 		  }
 		  
 	  
@@ -2625,6 +2630,13 @@ main(int argc, char *argv[])
 	  tpara.num_leads=num_leads;
 	  tpara.TRsym=ismagnetic;
 	  double **transmissions = createNonSquareDoubleMatrix(num_leads, num_leads);
+	  double **spin_trans;
+	  
+	  if(spindep == 1 || spindep == 2)
+	  {
+		  spin_trans = createNonSquareDoubleMatrix(2*num_leads, 2*num_leads);
+	  }
+	  
 	  double **ttildas=createNonSquareDoubleMatrix(num_leads, num_leads);
 	  double **mtrans = createNonSquareDoubleMatrix(num_leads-1, num_leads-1);
 	  double *vecx = createDoubleArray(num_leads-1);
@@ -2632,6 +2644,7 @@ main(int argc, char *argv[])
 	  
 
 	  tpara.transmissions = transmissions;
+	  tpara.spin_trans = spin_trans;
 
 	  double kavg;
 	  
@@ -3352,9 +3365,22 @@ main(int argc, char *argv[])
 					}
 					fprintf(tsoutput, "\n");
 					
+					
 				}
 				
-				
+				if(spindep != 0)
+				{
+// 					for(i=0; i<2*num_leads; i++)
+// 					{
+// 						printf("%lf\t", realE);
+// 						for(j=0; j<2*num_leads; j++)
+// 						{	
+// 							printf("%.4e\t", spin_trans[i][j]);
+// 						}
+// 						printf("\n");
+// 					}
+					printf("%lf	%.8e	%.8e	%.8e\n", realE, spin_trans[0][1], spin_trans[2][3], transmissions[0][1]);
+				}
 				
 				
 				//make a composite map for multiprobe systems

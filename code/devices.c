@@ -575,6 +575,8 @@ void genCustomLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, lead
 	Leads[i] = (RectRedux *)malloc(sizeof(RectRedux));
 	(Leads[i]->Nrem) = (int *)malloc(sizeof(int));
 	(Leads[i]->Ntot) = (int *)malloc(sizeof(int));
+	(Leads[i]->spindep) = (SiteArray->spindep);
+	(Leads[i]->are_spin_pots) = (SiteArray->are_spin_pots);
 	*(Leads[i]->Nrem)=0;
 	*(Leads[i]->Ntot)=0;
 	

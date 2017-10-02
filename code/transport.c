@@ -4,8 +4,7 @@
 
 //mode=0 - just transmissions!
 //mode=1 - transmissions and ldos/current maps - can be generalised further later
-void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Leads, cnxProfile *cnxp, 
-		      cellDivision *cellinfo, hoppingfunc *hoppingfn, gen_hop_params *hoppingparams,
+void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Leads, cnxProfile *cnxp, cellDivision *cellinfo, hoppingfunc *hoppingfn, gen_hop_params *hoppingparams,
 		      lead_para *leadsparams, trans_params *tpara, int mode, double *ldoses, double ***currents)
 {
 
@@ -13,16 +12,33 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 	//device parameters, modes, matrix declarations etc.
 		int geo = (DeviceCell->geo);
 		
-		int cell1dim = (cellinfo->cell1dim);
+		int tcell1dim = (cellinfo->cell1dim);
 		int num_leads = tpara->num_leads;
 		
 		int this_cell, dim, dim_old=0, dim_new;
-		int Nrem = *(DeviceCell->Nrem);
-		int Ntot = *(DeviceCell->Ntot);
+		int tNrem = *(DeviceCell->Nrem);
+		int tNtot = *(DeviceCell->Ntot);
 		int spindep = (DeviceCell->spindep);
+		int cell1dim, Nrem, Ntot;
+		
+		if(spindep == 0 || spindep == 2)
+		{
+			cell1dim = tcell1dim;
+			Nrem = tNrem;
+			Ntot = tNtot;
+		}
+		if(spindep == 1)
+		{
+			cell1dim = 2*tcell1dim;
+			Nrem = 2*tNrem;
+			Ntot = 2*tNtot;
+		}
+			
+		
 
 		double _Complex **g_old, g_new, g00inv;
 		double _Complex **g_sys_r, **g_sys_a, **SigmaR, **SigmaA, **Gamma, **temp1, **temp2, *gii, **gi1, **g1i;
+		double _Complex **tSigmaR, **tg_sys_r, *tgii, **tgi1, **tg1i;
 		double _Complex **Gamma1, **Gamma2, **gsr, **gsa;
 		int d1, d2, s1, s2;
 		
@@ -46,31 +62,111 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
     
 	//GFs for LDOS/currents
 		gii=NULL; gi1=NULL; g1i=NULL;
-		if(mode ==1)
-		{
-			gii = createCompArray(Ntot);
-			gi1 = createNonSquareMatrix(Ntot, cell1dim);
-			g1i = createNonSquareMatrix(cell1dim, Ntot);
-		}
+		tgii=NULL; tgi1=NULL; tg1i=NULL;
+		
           
     
 	//retarded and advanced self energies and device GFs
-		SigmaR = createSquareMatrix(cell1dim);
-		SigmaA = createSquareMatrix(cell1dim);
-		g_sys_r = createSquareMatrix(cell1dim);
-		g_sys_a = createSquareMatrix(cell1dim);
-		Gamma = createSquareMatrix(cell1dim);
+		//matrix sizes are now dependent on the spin mode
+		if(spindep == 0 || spindep == 1)
+		{
+			SigmaR = createSquareMatrix(cell1dim);
+			SigmaA = createSquareMatrix(cell1dim);
+			g_sys_r = createSquareMatrix(cell1dim);
+			g_sys_a = createSquareMatrix(cell1dim);
+			Gamma = createSquareMatrix(cell1dim);
+			
+			if(mode ==1)
+			{
+				gii = createCompArray(Ntot);
+				gi1 = createNonSquareMatrix(Ntot, cell1dim);
+				g1i = createNonSquareMatrix(cell1dim, Ntot);
+			}
+			
+		}
+		if(spindep == 2)
+		{
+			SigmaR = createNonSquareMatrix(2*cell1dim, cell1dim );
+			SigmaA = createNonSquareMatrix(2*cell1dim, cell1dim);
+			g_sys_r = createNonSquareMatrix(2*cell1dim, cell1dim);
+			g_sys_a = createNonSquareMatrix(2*cell1dim, cell1dim);
+			Gamma = createNonSquareMatrix(2*cell1dim, cell1dim);
+			
+			
+			tSigmaR = createNonSquareMatrix(cell1dim, cell1dim );
+			tg_sys_r = createNonSquareMatrix(cell1dim, cell1dim);
+			
+			if(mode ==1)
+			{
+				gii = createCompArray(2*Ntot);
+				gi1 = createNonSquareMatrix(2*Ntot, cell1dim);
+				g1i = createNonSquareMatrix(2*cell1dim, Ntot);
+				
+				tgii = createCompArray(Ntot);
+				tgi1 = createNonSquareMatrix(Ntot, cell1dim);
+			}
+			
+			
+		}
+		
 
 		
+			
 	//specify lead generation function, and calculate self energies of the leads
+		//lead functions take care of spin inside themselves! (multipleCustomLeads does..., need to fix others)
 		leadfunction *leadfn = (leadfunction *)(leadsparams->leadsfn);
 		(leadfn)(En, DeviceCell, Leads, cellinfo, leadsparams, SigmaR);
 	 
+		
 	 
-
+		//printEMatrix(SigmaR, cell1dim);
      
 	//calculate retarded GF of system 
-		genDeviceGF(En, DeviceCell, cnxp, cellinfo, hoppingfn, hoppingparams, devicemode, devicemode2, spinA, spinB, g_sys_r, gii, gi1, SigmaR);
+	if(spindep == 0)
+		genDeviceGF(En, DeviceCell, cnxp, cellinfo, hoppingfn, hoppingparams, devicemode, devicemode2, 0, g_sys_r, gii, gi1, SigmaR);
+	
+	if(spindep == 1)
+		genDeviceGF(En, DeviceCell, cnxp, cellinfo, hoppingfn, hoppingparams, devicemode, devicemode2, 2, g_sys_r, gii, gi1, SigmaR);
+	
+	//printEMatrix(SigmaR, cell1dim);
+	
+	if(spindep == 2)
+	{
+		//first spin
+		MatrixCopyPart(SigmaR, tSigmaR, 0, 0, 0, 0, cell1dim, cell1dim);
+		genDeviceGF(En, DeviceCell, cnxp, cellinfo, hoppingfn, hoppingparams, devicemode, devicemode2, 0, tg_sys_r, tgii, tgi1, tSigmaR);
+		
+		MatrixCopyPart(tg_sys_r, g_sys_r, 0, 0, 0, 0, cell1dim, cell1dim);
+		
+		if(mode ==1)
+		{
+			for(i=0;i<Ntot; i++)
+				gii[i] = tgii[i];
+			
+			MatrixCopyPart(tgi1, gi1, 0, 0, 0, 0, Ntot, cell1dim);
+		}
+		
+		//second spin
+		MatrixCopyPart(SigmaR, tSigmaR, cell1dim, 0, 0, 0, cell1dim, cell1dim);
+		genDeviceGF(En, DeviceCell, cnxp, cellinfo, hoppingfn, hoppingparams, devicemode, devicemode2, 1, tg_sys_r, tgii, tgi1, tSigmaR);
+		
+		MatrixCopyPart(tg_sys_r, g_sys_r, 0, 0, cell1dim, 0, cell1dim, cell1dim);
+		
+		if(mode ==1)
+		{
+			for(i=0;i<Ntot; i++)
+				gii[Ntot+i] = tgii[i];
+			
+			MatrixCopyPart(tgi1, gi1, 0, 0, Ntot, 0, Ntot, cell1dim);
+		}
+		
+		FreeMatrix(tg_sys_r);
+		FreeMatrix(tgi1);
+		FreeMatrix(tSigmaR);
+		free(tgii);
+		
+	}
+		
 
 
 	//calculate advanced quantities from the retarded versions 
@@ -79,10 +175,17 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 			for(j=0; j<cell1dim; j++)
 			{
 				SigmaA[i][j] = conj(SigmaR[j][i]);
-				g_sys_a[i][j] = conj(g_sys_r[j][i]);		
+				g_sys_a[i][j] = conj(g_sys_r[j][i]);	
+				
+				if(spindep==2)
+				{
+					SigmaA[cell1dim+i][j] = conj(SigmaR[cell1dim+j][i]);
+					g_sys_a[cell1dim+i][j] = conj(g_sys_r[cell1dim+j][i]);	
+				}
 			}
 		}
 		
+				
 		if(mode==1)
 		{
 			for(i=0; i<cell1dim; i++)
@@ -90,9 +193,13 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 				for(j=0; j<Ntot; j++)
 				{
 					g1i[i][j] = conj(gi1[j][i]);
+					
+					if(spindep==2)
+					{
+						g1i[cell1dim+i][j] = conj(gi1[cell1dim+j][i]);
+					}
 				}
 			}
-			
 		}
 	   
 	 
@@ -102,51 +209,166 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 			for(j=0; j<cell1dim; j++)
 			{
 				Gamma[i][j] = I*(SigmaR[i][j] - SigmaA[i][j]);
+				
+				if(spindep==2)
+				{
+					Gamma[cell1dim+i][j] = I*(SigmaR[cell1dim+i][j] - SigmaA[cell1dim+i][j]);
+				}
 			}
-		}
+		} 
 		FreeMatrix(SigmaR); FreeMatrix(SigmaA); 
       
 		
+		
 	//Calculate the transmissions between all the leads	
 		//s1 and s2 keep track of cumulative dimensions (i.e starting indices)
-		s1=0; 
-		for(i=0; i<num_leads; i++)
+		
+		double tempt=0, tempt2=0, temptud=0, temptdu=0;
+		//each lead pair has only a total electronic transmission
+		if(spindep == 0)
 		{
-			d1=(cellinfo->lead_dims)[i];
-			s2=0;
-			Gamma1 = createSquareMatrix(d1);
-			MatrixCopyPart(Gamma, Gamma1, s1, s1, 0, 0, d1, d1);
-			
-			for(j=0; j< num_leads; j++)
+			s1=0; 
+			for(i=0; i<num_leads; i++)
 			{
-				d2=(cellinfo->lead_dims)[j];
-				gsr = createNonSquareMatrix(d1, d2);
-				MatrixCopyPart(g_sys_r, gsr, s1, s2, 0, 0, d1, d2);
-				Gamma2 = createSquareMatrix(d2);
-				MatrixCopyPart(Gamma, Gamma2, s2, s2, 0, 0, d2, d2);
-				gsa = createNonSquareMatrix(d2, d1);
-				MatrixCopyPart(g_sys_a, gsa, s2, s1, 0, 0, d2, d1);
+				d1=(cellinfo->lead_dims)[i];
+				s2=0;
+				Gamma1 = createSquareMatrix(d1);
+				MatrixCopyPart(Gamma, Gamma1, s1, s1, 0, 0, d1, d1);
 				
-				temp1=createNonSquareMatrix(d1, d2);
-				MatrixMultNS(Gamma1, gsr, temp1, d1, d1, d2);
-				temp2=createNonSquareMatrix(d1, d2);
-				MatrixMultNS(temp1, Gamma2, temp2, d1, d2, d2);
-				FreeMatrix(temp1);
-				temp1=createSquareMatrix(d1);
-				MatrixMultNS(temp2, gsa, temp1, d1, d2, d1);
-				FreeMatrix(temp2);
-				
-				(tpara->transmissions)[i][j] = creal(MatrixTrace(temp1, d1));
-				FreeMatrix(temp1);
-				s2+=d2;
-				FreeMatrix(gsr); FreeMatrix(Gamma2); FreeMatrix(gsa);
-				
-			
+				for(j=0; j< num_leads; j++)
+				{
+					d2=(cellinfo->lead_dims)[j];
+					gsr = createNonSquareMatrix(d1, d2);
+					MatrixCopyPart(g_sys_r, gsr, s1, s2, 0, 0, d1, d2);
+					Gamma2 = createSquareMatrix(d2);
+					MatrixCopyPart(Gamma, Gamma2, s2, s2, 0, 0, d2, d2);
+					gsa = createNonSquareMatrix(d2, d1);
+					MatrixCopyPart(g_sys_a, gsa, s2, s1, 0, 0, d2, d1);
+					
+					temp1=createNonSquareMatrix(d1, d2);
+					MatrixMultNS(Gamma1, gsr, temp1, d1, d1, d2);
+					temp2=createNonSquareMatrix(d1, d2);
+					MatrixMultNS(temp1, Gamma2, temp2, d1, d2, d2);
+					FreeMatrix(temp1);
+					
+					tempt=0; tempt2=0; temptud=0; temptdu=0;
+					for(k=0; k<d1; k++)
+					{
+						for(l=0; l<d2; l++)
+						{
+							tempt += creal( temp2[k][l] * gsa[l][k]);
+						}
+					}
+					(tpara->transmissions)[i][j] = tempt;
+					FreeMatrix(temp2);
+					
+					
+					
+// 					temp1=createSquareMatrix(d1);
+// 					MatrixMultNS(temp2, gsa, temp1, d1, d2, d1);
+// 					FreeMatrix(temp2);
+// 					
+// 					(tpara->transmissions)[i][j] = creal(MatrixTrace(temp1, d1));
+// 					FreeMatrix(temp1);
+					
+					
+					s2+=d2;
+					FreeMatrix(gsr); FreeMatrix(Gamma2); FreeMatrix(gsa);
+				}
+				s1+=d1;
+				FreeMatrix(Gamma1);
 			}
-			
-			s1+=d1;
-			FreeMatrix(Gamma1);
 		}
+		
+		
+	
+	
+		//each lead pair has a total electronic transmission, and FOUR spin channel transmissions
+		if(spindep == 1)
+		{
+			s1=0; 
+			for(i=0; i<num_leads; i++)
+			{
+				d1=(cellinfo->lead_dims)[i];
+				s2=0;
+				
+					
+				//Gamma is now spin dependent!
+				Gamma1 = createSquareMatrix(2*d1);
+				MatrixCopyPart(Gamma, Gamma1, s1, s1, 0, 0, d1, d1);
+				MatrixCopyPart(Gamma, Gamma1, tcell1dim+s1, tcell1dim+s1, d1, d1, d1, d1);	
+				MatrixCopyPart(Gamma, Gamma1, s1, tcell1dim+s1, 0, d1, d1, d1);	
+				MatrixCopyPart(Gamma, Gamma1, tcell1dim+s1, s1, d1, 0, d1, d1);
+				
+				//printEMatrix(Gamma1, 2*d1);
+				
+					
+					for(j=0; j< num_leads; j++)
+					{
+						d2=(cellinfo->lead_dims)[j];
+						gsr = createNonSquareMatrix(2*d1, 2*d2);
+						MatrixCopyPart(g_sys_r, gsr, s1, s2, 0, 0, d1, d2);
+						MatrixCopyPart(g_sys_r, gsr, tcell1dim+s1, tcell1dim+s2, d1, d2, d1, d2);
+						MatrixCopyPart(g_sys_r, gsr, s1, tcell1dim+s2, 0, d2, d1, d2);
+						MatrixCopyPart(g_sys_r, gsr, tcell1dim+s1, s2, d1, 0, d1, d2);
+						
+						//printEMatrix(gsr, 2*d1);
+						
+						Gamma2 = createSquareMatrix(2*d2);
+						MatrixCopyPart(Gamma, Gamma2, s2, s2, 0, 0, d2, d2);
+						MatrixCopyPart(Gamma, Gamma2, tcell1dim+s2, tcell1dim+s2, d2, d2, d2, d2);	
+						MatrixCopyPart(Gamma, Gamma2, s2, tcell1dim+s2, 0, d2, d2, d2);	
+						MatrixCopyPart(Gamma, Gamma2, tcell1dim+s2, s2, d2, 0, d2, d2);
+						
+						
+						gsa = createNonSquareMatrix(2*d2, 2*d1);
+						MatrixCopyPart(g_sys_a, gsa, s2, s1, 0, 0, d2, d1);
+						MatrixCopyPart(g_sys_a, gsa, tcell1dim+s2 , tcell1dim+s1, d1, d2, d2, d1);
+						MatrixCopyPart(g_sys_a, gsa, s2 , tcell1dim+s1, 0, d2, d2, d1);
+						MatrixCopyPart(g_sys_a, gsa, tcell1dim+s2 , s1, d1, 0, d2, d1);
+						
+						
+						temp1=createNonSquareMatrix(2*d1, 2*d2);
+						MatrixMultNS(Gamma1, gsr, temp1, 2*d1, 2*d1, 2*d2);
+						temp2=createNonSquareMatrix(2*d1, 2*d2);
+						MatrixMultNS(temp1, Gamma2, temp2, 2*d1, 2*d2, 2*d2);
+						FreeMatrix(temp1);
+						
+						
+						tempt=0; tempt2 =0; temptud=0; temptdu=0;
+						for(k=0; k<d1; k++)
+						{
+							for(l=0; l<2*d2; l++)
+							{
+								tempt += creal( temp2[k][l] * gsa[l][k]);
+								tempt2 += creal( temp2[d1+k][l] * gsa[l][d1+k]);
+								temptud += creal( temp2[k][l] * gsa[l][d1+k]);
+								temptdu += creal( temp2[d1+k][l] *gsa[l][k]);
+							}
+						}
+						(tpara->spin_trans)[i][j] = tempt;
+						(tpara->spin_trans)[num_leads+i][num_leads+j] = tempt2;
+						(tpara->spin_trans)[i][num_leads+j] = temptud;
+						(tpara->spin_trans)[num_leads+i][j] = temptdu;
+						(tpara->transmissions)[i][j] = tempt +tempt2 + temptud + temptdu;
+						//printf("# %lf	%lf	%lf	%lf\n", tempt ,tempt2 , temptud , temptdu);
+						FreeMatrix(temp2);
+						
+						
+						s2+=d2;
+						FreeMatrix(gsr); FreeMatrix(Gamma2); FreeMatrix(gsa);
+						
+					}
+					s1+=d1;
+					FreeMatrix(Gamma1);
+					
+				
+			}
+		}
+		
+		
+		
+		
 		
 		
 	//Quantities needed for LDOS/current mapping
@@ -158,6 +380,8 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 	
 	
 
+		
+		//THIS IS NOT YET SPIN GENERALISED!
 	//Calculate and output LDOS and current maps if required
 		if(mode==1)
 		{
@@ -242,9 +466,9 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 //0 - Gii only (e.g. for DOS maps only)
 //1 - Gii and Gi1 (e.g. for LDOS maps and current maps with time reversal symmetry)
 //2 - G1i only (for advanced GFs in second current map sweep where TRS is broken)
-void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp, 
-		      cellDivision *cellinfo, hoppingfunc *hoppingfn, gen_hop_params *hoppingparams, int mode, int mode2, int spinA, int spinB,
-		      double _Complex **Gon, double _Complex *Gdiags, double _Complex **Goff, double _Complex **Sigma)
+
+//spin channel: 0 (up), 1(down) or 2(both together)
+void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellinfo, hoppingfunc *hoppingfn, gen_hop_params *hoppingparams, int mode, int mode2, int spinchannel, double _Complex **Gon, double _Complex *Gdiags, double _Complex **Goff, double _Complex **Sigma)
 {
 
 	
@@ -262,6 +486,8 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 		int are_spin_pots = (DeviceCell->are_spin_pots);	//possibly not needed
 		double **spin_pots = (DeviceCell->spin_pots);
 		double *const_spin_pots= (DeviceCell->const_spin_pots);
+		int spinA, spinB, spin1, spin2;
+		int fac=1; //multiplication factor for matrix sizes due to spin
 
 		double *bshifts = createDoubleArray(3);
 		double _Complex ***allgs, **gtemp, **off_old, **off_new, **t1, **t2, **gprev;
@@ -290,18 +516,33 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 		}
 		
 	//TWO INDEPENDENT SPIN CHANNELS SETTINGS
-		//spin channel chosen is given by spinmode (0=spin_up, 1=spindown)
+		//spin channel chosen is given by spinchannel (0=spin_up, 1=spindown)
 		if(spindep==2)
 		{
 		
 			
 		}
   
+	//COMPLETELY SPIN DEPENDENT SETTINGS
+		//spin channel chosen is given by spinchannel (0=spin_up, 1=spindown)
+		if(spindep==1 || spinchannel == 2)
+		{
+			//ensure both params are correct for later loops!
+			spindep =1;
+			spinchannel = 2;
+			
+			fac=2;
+		
+			
+		}
+  
+  
 	
 	//a large storage space for a lot of Green's functions used in double sweep recursive GF method
 		if(mode>0)
 		{
 			//requests memory for an array of pointers to matrices
+			//the individual matrices here can be spin-dependent, but does not effect this declaration
 			allgs = (double _Complex ***)malloc(num_cells * sizeof(double _Complex **));
 		}
 
@@ -319,14 +560,14 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 			
 			//generate cell GF
 				dim = (cellinfo->cell_dims)[this_cell];
-				g00inv = createSquareMatrix(dim);
+				g00inv = createSquareMatrix(fac*dim);
 			
 				this0=(cellinfo->starting_index)[this_cell];
 				if(it_count>0)
 				{
 					last0=(cellinfo->starting_index)[this_cell-cell_iter];
-					V21 = createNonSquareMatrix(dim, dim_old);
-					V12 = createNonSquareMatrix(dim_old, dim);
+					V21 = createNonSquareMatrix(fac*dim, fac*dim_old);
+					V12 = createNonSquareMatrix(fac*dim_old, fac*dim);
 				}
 			
 			
@@ -335,41 +576,84 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 				for(i=0; i<dim; i++)
 				{
 					index1 = (cellinfo->cells_site_order)[this0 +i];
-					(hoppingparams->spinA)=spinA;
-					(hoppingparams->spinB)=spinB;
-					g00inv[i][i] = En - hoppingfn(DeviceCell, DeviceCell, index1, index1, bshifts, hoppingparams);
 					
-					//onsites
-					if(spinA==spinB)
+					//onsite terms for the single spin case
+					if(spinchannel != 2)
 					{
+						(hoppingparams->spinA)=spinchannel;
+						(hoppingparams->spinB)=spinchannel;
+						
+						//hopping onsites
+						g00inv[i][i] = En - hoppingfn(DeviceCell, DeviceCell, index1, index1, bshifts, hoppingparams);
+						
+						//regular onsites
 						g00inv[i][i] -= (DeviceCell->site_pots)[index1];
+						
+						//spin potential onsites
+						if(spindep==1 && are_spin_pots==1)
+						{
+							if(spinchannel==0)
+							{
+								g00inv[i][i] -= (const_spin_pots[2] + spin_pots[index1][2]);
+							}
+							if(spinchannel==1)
+							{
+								g00inv[i][i] -= (-const_spin_pots[2] - spin_pots[index1][2]);
+							}
+						}
 					}
 					
-					//...and spin dependent potentials
-					if(spindep==1 && are_spin_pots==1)
+					//onsite terms for both spins
+					if(spinchannel == 2)
 					{
-						if(spinA==0 && spinB==0)
+						for(spin1 =0; spin1< 2; spin1++)
 						{
-							g00inv[i][i] -= (const_spin_pots[2] + spin_pots[index1][2]);
+							(hoppingparams->spinA)=spin1;
+							
+							//energy term
+							g00inv[spin1*dim + i][spin1*dim + i] = En;	
+							
+							//spin-independent onsites
+							g00inv[spin1*dim + i][spin1*dim + i] -= (DeviceCell->site_pots)[index1];
+							
+							for(spin2=0; spin2<2; spin2++)
+							{
+								(hoppingparams->spinB)=spin2;
+								
+								//hopping onsite terms, possibly spin dep
+								g00inv[spin1*dim + i][spin2*dim + i] -= hoppingfn(DeviceCell, DeviceCell, index1, index1, bshifts, hoppingparams);
+								
+								
+								//spin-dependent potentials
+								
+								if(are_spin_pots==1)
+								{
+									if(spin1==0 && spin2==0)
+									{
+										g00inv[spin1*dim + i][spin2*dim + i] -= (const_spin_pots[2] + spin_pots[index1][2]);
+									}
+									if(spin1==0 && spin2==1)
+									{
+										g00inv[spin1*dim + i][spin2*dim + i] -= (const_spin_pots[0] + spin_pots[index1][0] - I*(const_spin_pots[1] + spin_pots[index1][1]));
+									}
+									
+									if(spin1==1 && spin2==0)
+									{
+										g00inv[spin1*dim + i][spin2*dim + i] -= (const_spin_pots[0] + spin_pots[index1][0] + I*(const_spin_pots[1] + spin_pots[index1][1]));
+									}
+									
+									if(spin1==1 && spin2==1)
+									{
+										g00inv[spin1*dim + i][spin2*dim + i] -= (-const_spin_pots[2] - spin_pots[index1][2]);
+									}
+								}
+							}
 						}
-						if(spinA==0 && spinB==1)
-						{
-							g00inv[i][i] -= (const_spin_pots[0] + spin_pots[index1][0] - I*(const_spin_pots[1] + spin_pots[index1][1]));
-						}
-						
-						if(spinA==1 && spinB==0)
-						{
-							g00inv[i][i] -= (const_spin_pots[0] + spin_pots[index1][0] + I*(const_spin_pots[1] + spin_pots[index1][1]));
-						}
-						
-						if(spinA==1 && spinB==1)
-						{
-							g00inv[i][i] -= (-const_spin_pots[2] - spin_pots[index1][2]);
-						}
-						
+								
 					}
+					
 				}
-				//printEMatrix(g00inv, dim);
+// 				printEMatrix(g00inv, dim);
 
 			
 			
@@ -397,9 +681,26 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 								}
 							}
 							
-							(hoppingparams->spinA)=spinA;
-							(hoppingparams->spinB)=spinB;
-							g00inv[i][k] -= hoppingfn(DeviceCell, DeviceCell, index1, index2, bshifts, hoppingparams);
+							if(spinchannel != 2)
+							{
+								(hoppingparams->spinA)=spinchannel;
+								(hoppingparams->spinB)=spinchannel;
+								g00inv[i][k] -= hoppingfn(DeviceCell, DeviceCell, index1, index2, bshifts, hoppingparams);
+							}
+							
+							if(spinchannel == 2)
+							{
+								for(spin1=0; spin1<2; spin1++)
+								{
+									(hoppingparams->spinA)=spin1;
+									for(spin2=0; spin2<2; spin2++)
+									{
+										(hoppingparams->spinB)=spin2;
+										g00inv[spin1*dim+i][spin2*dim+k] -= hoppingfn(DeviceCell, DeviceCell, index1, index2, bshifts, hoppingparams);
+									}									
+								}
+							}
+							
 							
 						}
 					
@@ -417,44 +718,58 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 								}
 							}
 							
+							if(spinchannel != 2)
+							{
+								(hoppingparams->spinA)=spinA;
+								(hoppingparams->spinB)=spinB;
+								V21[i][k] = hoppingfn(DeviceCell, DeviceCell, index1, index2, bshifts, hoppingparams);
+								V12[k][i] = hoppingfn(DeviceCell, DeviceCell, index2, index1, bshifts, hoppingparams);
+							}
 							
 							
-							(hoppingparams->spinA)=spinA;
-							(hoppingparams->spinB)=spinB;
-							V21[i][k] = hoppingfn(DeviceCell, DeviceCell, index1, index2, bshifts, hoppingparams);
-								
-							//(hoppingparams->spinA)=spinB;
-							//(hoppingparams->spinB)=spinA;
-							V12[k][i] = hoppingfn(DeviceCell, DeviceCell, index2, index1, bshifts, hoppingparams);
+							if(spinchannel == 2)
+							{
+								for(spin1=0; spin1<2; spin1++)
+								{
+									(hoppingparams->spinA)=spin1;
+									for(spin2=0; spin2<2; spin2++)
+									{
+										(hoppingparams->spinB)=spin2;
+										
+										V21[spin1*dim+i][spin2*dim_old+k] = hoppingfn(DeviceCell, DeviceCell, index1, index2, bshifts, hoppingparams);
+										V12[spin1*dim_old+k][spin2*dim+i] = hoppingfn(DeviceCell, DeviceCell, index2, index1, bshifts, hoppingparams);
+									}
+								}
+							}
 							
 						}
 					}
 				}
 
 						//check non-zero elements at the cell stage
-// 						printf("#g00inv\n");
-// 						listNonZero(g00inv, dim, dim);
-// 						if(it_count>0)
-// 						{
-// 							  printf("#V21\n");
-// 							  listNonZero(V21, dim, dim_old);
-// 							  printf("#V12\n");
-// 							  listNonZero(V12, dim_old, dim);
-// 						}
+//  						printf("%d cell \n#g00inv\n", it_count);
+//  						listNonZero(g00inv, dim, dim);
+//  						if(it_count>0)
+//  						{
+//  							  printf("\n#V21\n");
+//  							  listNonZero(V21, dim, dim_old);
+// 							  printf("\n#V12\n");
+//  							  listNonZero(V12, dim_old, dim);
+//  						}
 		
 		
 			
 
 			
 			//generate self energy term from previous cells
-				smallSigma=createSquareMatrix(dim);
+				smallSigma=createSquareMatrix(fac*dim);
 				
 				if(it_count>0)
 				{
 					//previous cells self energy: smallSigma = V21 g_old V12
-					temp1 = createNonSquareMatrix(dim, dim_old);
-					MatrixMultNS(V21, g_old, temp1, dim, dim_old, dim_old);
-					MatrixMultNS(temp1, V12, smallSigma, dim, dim_old, dim);
+					temp1 = createNonSquareMatrix(fac*dim, fac*dim_old);
+					MatrixMultNS(V21, g_old, temp1, fac*dim, fac*dim_old, fac*dim_old);
+					MatrixMultNS(temp1, V12, smallSigma, fac*dim, fac*dim_old, fac*dim);
 					FreeMatrix(temp1);
 				}
 		
@@ -464,9 +779,9 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 			//account for lead self energies if this is cell 0
 				if(this_cell==0)
 				{
-					temp1 = createSquareMatrix(dim);
-					MatrixAdd(smallSigma, Sigma, temp1, dim);
-					MatrixCopy(temp1, smallSigma, dim);
+					temp1 = createSquareMatrix(fac*dim);
+					MatrixAdd(smallSigma, Sigma, temp1, fac*dim);
+					MatrixCopy(temp1, smallSigma, fac*dim);
 					FreeMatrix(temp1);
 				}
 				
@@ -474,14 +789,14 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 				
 			//add self energies to the GF and update the edge GF in g_old
 			//free memory used in this cell iteration
-				temp1 = createSquareMatrix(dim);
-				MatrixSubtract(g00inv, smallSigma, temp1, dim);
+				temp1 = createSquareMatrix(fac*dim);
+				MatrixSubtract(g00inv, smallSigma, temp1, fac*dim);
 				if(it_count>0)
 				{
 					FreeMatrix(g_old);
 				}
-				g_old = createSquareMatrix(dim);
-				InvertMatrixGSL(temp1, g_old, dim);
+				g_old = createSquareMatrix(fac*dim);
+				InvertMatrixGSL(temp1, g_old, fac*dim);
 				FreeMatrix(temp1); FreeMatrix(g00inv); FreeMatrix(smallSigma);
 				if(it_count>0)
 				{
@@ -493,8 +808,8 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 			//save the temporary edges if a dual sweep will be performed below
 				if(mode>0)
 				{
-					allgs[this_cell] = createSquareMatrix(dim);
-					MatrixCopy(g_old, allgs[this_cell], dim);
+					allgs[this_cell] = createSquareMatrix(fac*dim);
+					MatrixCopy(g_old, allgs[this_cell], fac*dim);
 				}
 			
 			
@@ -506,7 +821,7 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 		
 	//
 
-	MatrixCopy(g_old, Gon, dim1);
+	MatrixCopy(g_old, Gon, fac*dim1);
 	FreeMatrix(g_old);
 
   
@@ -1036,7 +1351,6 @@ double _Complex simpleTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, 
   }
   else
   {
-  
 	//which coupling to use
 	t0=0.0;
 	for(i=0; i< num_neigh; i++)
@@ -1163,9 +1477,10 @@ double _Complex grapheneSOCTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, in
   double ycelldist;
   int i, j, k=0, l;
   int SOCsign, possign;
-  int *possible = createIntArray(10);
+  int *possible = createIntArray(20);
   double midx=0.0, midy=0.0;
   double dista=0.0, distb=0.0;
+  double v11, v12, v21, v22, crsp=0;
   
   cnxProfile *acnxp = (cnxProfile *)(aDeviceCell->cnxp);
   cnxProfile *bcnxp = (cnxProfile *)(bDeviceCell->cnxp);
@@ -1183,17 +1498,24 @@ double _Complex grapheneSOCTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, in
 	if(spinA == 1)
 		SOCsign = -1;
 	
-	//sign of SOC term coming from clockwise/anticlockwise
-	//this is difficult -- need to find atom between these two!
-		//only run if need SOC terms and intrinsic params are non-zero
+	//sign of SOC term coming from clockwise/anticlockwise ((anti)clockwise from b to a) 
+	
+		
+		//initially, multiplication factor zero
+		//will be changed to 1 if atoms are 2NNs.
+		//then sign changed according to clockwise or anticlockwise
+			possign=0;
+	
+			
+		//only run if we need SOC terms and if intrinsic params are non-zero
 		if(num_neigh>0 && (hops[1] !=0.0 || hops[2] != 0.0) && (dist >= (para->NN_lowdis[1]) && dist < (para->NN_highdis[1])))
 		{
-			
 			//case for both atoms in the same region (lead/device) AND bshifts=0.0
 			//(indices will be the same here...)
 			if ( ((aDeviceCell->islead) == (bDeviceCell->islead)) && bshifts[0]==0.0 &&  bshifts[1]==0.0)
 			{
 				k=0;
+				//finds and counts common neighbours of two atoms in same device
 				for(i=0; i< (acnxp->site_cnxnum)[a]; i++)
 				{
 					for(j=0; j<(bcnxp->site_cnxnum)[b]; j++)
@@ -1206,6 +1528,7 @@ double _Complex grapheneSOCTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, in
 					}
 				}
 				
+				//
 				i=0; j=0;
 				while(j!=1 && i<k)
 				{
@@ -1217,13 +1540,86 @@ double _Complex grapheneSOCTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, in
 					if(dista >= (para->NN_lowdis[0]) && dista < (para->NN_highdis[0]) && distb >= (para->NN_lowdis[0]) && distb < (para->NN_highdis[0]))
 					{
 						j=1;
+						possign == 1;
 					}
 					i++;
 				}	
 				
-				if(midx !=0.0 && midy != 0.0)
-				printf("%lf	%lf\n%lf	%lf\n%lf	%lf\n\n", x1, y1, midx, midy, x2, y2);
+				if(j==1)
+				{
+					//v1=vector from b to midpoint, v2 from midpoint to a
+					v11= midx-x2; v12=midy-y2;
+					v21= x1-midx; v22=y1-midy;
+					
+					crsp = v11*v22 - v12*v21;
+					
+					if(crsp > 0)
+						possign = 1;
+					if(crsp < 0)
+						possign = -1;
+				}
+			
+			}
+			
+			
+			//case for atoms in different regions (lead AND device) (with bshifts=0)
+			//(check positions rather than indices to determine 3rd atom)
+			if ( ((aDeviceCell->islead) != (bDeviceCell->islead)) || bshifts[0]!=0.0 || bshifts[1]!=0.0)
+			{
+				k=0; j=0; i=0;
+							
 				
+				//check if an NN of a is an NN of b
+				while(j!=1 && i< (acnxp->site_cnxnum)[a])
+				{
+					//is this neighbour an NN of a AND b?
+					midx=(aDeviceCell->pos)[(acnxp->site_cnx)[a][i]][0];
+					midy=(aDeviceCell->pos)[(acnxp->site_cnx)[a][i]][1];
+					dista = sqrt(pow(midx-x1, 2.0) + pow(midy-y1, 2.0));
+					distb = sqrt(pow(midx-x2, 2.0) + pow(midy-y2, 2.0));
+					
+					if(dista >= (para->NN_lowdis[0]) && dista < (para->NN_highdis[0]) && distb >= (para->NN_lowdis[0]) && distb < (para->NN_highdis[0]))
+					{
+						j=1;
+					}
+					else
+						i++;
+				}
+				
+				i=0;
+				//if not, check if an NN of b is an NN of a
+				while(j!=1 && i< (bcnxp->site_cnxnum)[b])
+				{
+					//is this neighbour an NN of a AND b?
+					midx=(bDeviceCell->pos)[(bcnxp->site_cnx)[b][i]][0] + bshifts[0];
+					midy=(bDeviceCell->pos)[(bcnxp->site_cnx)[b][i]][1] + bshifts[1];
+					dista = sqrt(pow(midx-x1, 2.0) + pow(midy-y1, 2.0));
+					distb = sqrt(pow(midx-x2, 2.0) + pow(midy-y2, 2.0));
+					
+					if(dista >= (para->NN_lowdis[0]) && dista < (para->NN_highdis[0]) && distb >= (para->NN_lowdis[0]) && distb < (para->NN_highdis[0]))
+					{
+						j=1;
+					}
+					else
+					{
+						i++;
+					}
+				}
+				
+				if(j==1)
+				{
+				//v1=vector from b to midpoint, v2 from midpoint to a
+					v11= midx-x2; v12=midy-y2;
+					v21= x1-midx; v22=y1-midy;
+					
+					crsp = v11*v22 - v12*v21;
+					
+					if(crsp > 0)
+						possign = 1;
+					if(crsp < 0)
+						possign = -1;
+				}
+
 			}
 			
 		}
@@ -1264,7 +1660,7 @@ double _Complex grapheneSOCTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, in
 					if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
 					{ 
 						//printf("SOC! %d, %d %lf\n");
-						t0 = SOCsign*hops[i];
+						t0 = possign*SOCsign*hops[i];
 					}
 				}
 			}
@@ -1287,7 +1683,7 @@ double _Complex grapheneSOCTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, in
 				{
 					if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
 					{ 
-						t0 = SOCsign*hops[i];
+						t0 = possign*SOCsign*hops[i];
 					}
 				}
 			}
@@ -1338,36 +1734,98 @@ double _Complex grapheneSOCTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, in
 					}
 				}
 			}
-			//Intrinsic SOC - A sublattice
-			if(num_neigh>=1)
+			
+			
+			possign=0;
+			
+			//check clockwise/anticlockwise ness for 2NNs
+			if(distp > (para->NN_lowdis[1]) && distp < (para->NN_highdis[1]))
 			{
-				i=1;
-				if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
+				k=0; j=0; i=0;
+				
+				
+				while(j!=1 && i< (acnxp->site_cnxnum)[a])
 				{
+					//is this neighbour an NN of a AND b?
+					midx=(aDeviceCell->pos)[(acnxp->site_cnx)[a][i]][0];
+					midy=(aDeviceCell->pos)[(acnxp->site_cnx)[a][i]][1];
+					dista = sqrt(pow(midx-x1, 2.0) + pow(midy-y1, 2.0));
+					distb = sqrt(pow(midx-x2, 2.0) + pow(midy-y2p, 2.0));
+					
+					if(dista >= (para->NN_lowdis[0]) && dista < (para->NN_highdis[0]) && distb >= (para->NN_lowdis[0]) && distb < (para->NN_highdis[0]))
+					{
+						j=1;
+					}
+					else
+						i++;
+				}
+				
+				i=0;
+				
+				//if not, check if an NN of b is an NN of a
+				while(j!=1 && i< (bcnxp->site_cnxnum)[b])
+				{
+					//is this neighbour an NN of a AND b?
+					midx=(bDeviceCell->pos)[(bcnxp->site_cnx)[b][i]][0] + bshifts[0];
+					midy=(bDeviceCell->pos)[(bcnxp->site_cnx)[b][i]][1] + bshifts[1] + ycelldist;
+					dista = sqrt(pow(midx-x1, 2.0) + pow(midy-y1, 2.0));
+					distb = sqrt(pow(midx-x2, 2.0) + pow(midy-y2p, 2.0));
+					
+					if(dista >= (para->NN_lowdis[0]) && dista < (para->NN_highdis[0]) && distb >= (para->NN_lowdis[0]) && distb < (para->NN_highdis[0]))
+					{
+						j=1;
+					}
+					else
+					{
+						i++;
+					}
+				}
+				
+				if(j==1)
+				{
+				//v1=vector from b to midpoint, v2 from midpoint to a
+					v11= midx-x2; v12=midy-y2p;
+					v21= x1-midx; v22=y1-midy;
+					
+					crsp = v11*v22 - v12*v21;
+					
+					if(crsp > 0)
+						possign = 1;
+					if(crsp < 0)
+						possign = -1;
+				}
+			
+			//Intrinsic SOC - A sublattice
+				if(num_neigh>=1)
+				{
+					i=1;
 					if( (aDeviceCell->siteinfo)[a][1]==0 && (bDeviceCell->siteinfo)[b][1]==0)
 					{
 						if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
 						{
-							t0 = SOCsign*hops[i];
+							t0 = possign*SOCsign*hops[i];
 						}
 					}
+					
 				}
-			}
 			//Intrinsic SOC - B sublattice
-			if(num_neigh>=2)
-			{
-				i=2;
-				if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
+				if(num_neigh>=2)
 				{
+					i=2;
+					
 					if( (aDeviceCell->siteinfo)[a][1]==1 && (bDeviceCell->siteinfo)[b][1]==1)
 					{
 						if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
 						{
-							t0 = SOCsign*hops[i];
+							t0 = possign*SOCsign*hops[i];
 						}
 					}
+					
 				}
+			
+			
 			}
+			
 			
 		ans+=t0*cexp(-I*kpar);	
 			
@@ -1395,36 +1853,98 @@ double _Complex grapheneSOCTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, in
 					}
 				}
 			}
-			//Intrinsic SOC - A sublattice
-			if(num_neigh>=1)
+			
+			
+			possign=0;
+			
+			//check clockwise/anticlockwise ness for 2NNs
+			if(distp > (para->NN_lowdis[1]) && distp < (para->NN_highdis[1]))
 			{
-				i=1;
-				if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
+				k=0; j=0; i=0;
+				
+				
+				while(j!=1 && i< (acnxp->site_cnxnum)[a])
 				{
+					//is this neighbour an NN of a AND b?
+					midx=(aDeviceCell->pos)[(acnxp->site_cnx)[a][i]][0];
+					midy=(aDeviceCell->pos)[(acnxp->site_cnx)[a][i]][1];
+					dista = sqrt(pow(midx-x1, 2.0) + pow(midy-y1, 2.0));
+					distb = sqrt(pow(midx-x2, 2.0) + pow(midy-y2p, 2.0));
+					
+					if(dista >= (para->NN_lowdis[0]) && dista < (para->NN_highdis[0]) && distb >= (para->NN_lowdis[0]) && distb < (para->NN_highdis[0]))
+					{
+						j=1;
+					}
+					else
+						i++;
+				}
+				
+				i=0;
+				
+				//if not, check if an NN of b is an NN of a
+				while(j!=1 && i< (bcnxp->site_cnxnum)[b])
+				{
+					//is this neighbour an NN of a AND b?
+					midx=(bDeviceCell->pos)[(bcnxp->site_cnx)[b][i]][0] + bshifts[0];
+					midy=(bDeviceCell->pos)[(bcnxp->site_cnx)[b][i]][1] + bshifts[1] - ycelldist;
+					dista = sqrt(pow(midx-x1, 2.0) + pow(midy-y1, 2.0));
+					distb = sqrt(pow(midx-x2, 2.0) + pow(midy-y2p, 2.0));
+					
+					if(dista >= (para->NN_lowdis[0]) && dista < (para->NN_highdis[0]) && distb >= (para->NN_lowdis[0]) && distb < (para->NN_highdis[0]))
+					{
+						j=1;
+					}
+					else
+					{
+						i++;
+					}
+				}
+				
+				if(j==1)
+				{
+				//v1=vector from b to midpoint, v2 from midpoint to a
+					v11= midx-x2; v12=midy-y2p;
+					v21= x1-midx; v22=y1-midy;
+					
+					crsp = v11*v22 - v12*v21;
+					
+					if(crsp > 0)
+						possign = 1;
+					if(crsp < 0)
+						possign = -1;
+				}
+			
+				//Intrinsic SOC - A sublattice
+				if(num_neigh>=1)
+				{
+					i=1;
 					if( (aDeviceCell->siteinfo)[a][1]==0 && (bDeviceCell->siteinfo)[b][1]==0)
 					{
 						if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
 						{
-							t0 = SOCsign*hops[i];
+							t0 = possign*SOCsign*hops[i];
 						}
 					}
+					
 				}
-			}
-			//Intrinsic SOC - B sublattice
-			if(num_neigh>=2)
-			{
-				i=2;
-				if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
+				//Intrinsic SOC - B sublattice
+				if(num_neigh>=2)
 				{
+					i=2;
+					
 					if( (aDeviceCell->siteinfo)[a][1]==1 && (bDeviceCell->siteinfo)[b][1]==1)
 					{
 						if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
 						{
-							t0 = SOCsign*hops[i];
+							t0 = possign*SOCsign*hops[i];
 						}
 					}
+					
 				}
+			
+			
 			}
+			
 		
 		ans+=t0*cexp(I*kpar); 
 	
@@ -1432,6 +1952,7 @@ double _Complex grapheneSOCTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, in
 	
   }
   
+  free(possible);
   return ans;
   
 }
@@ -1988,7 +2509,7 @@ void multipleLeads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadC
     double *bshifts0 = createDoubleArray(3);
     hoppingfunc *hopfn = (hoppingfunc *)(params->hopfn);
     
-    
+
     for(leadloop=0; leadloop < num_leads; leadloop++)
     {
   
@@ -2009,13 +2530,13 @@ void multipleLeads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadC
 	  RubioSGF(SL, g00, V12, V21, dim1, &lcount, elemerr*dim1*dim1);
 	  
 	  
-	    if(leadloop==0)
-	  {
+// 	    if(leadloop==0)
+// 	  {
 // 	    printf("DIM %d\n", dim1);
 // 	    listNonZero(ginv, dim1, dim1);
 // 	    listNonZero(V12, dim1, dim1);
 // 	    listNonZero(V21, dim1, dim1);
-	  }
+// 	  }
 	  FreeMatrix(ginv); FreeMatrix(V12); FreeMatrix(V21); FreeMatrix (g00);
 	
 
@@ -2412,7 +2933,7 @@ void lead_prep2_mag(double _Complex En, RectRedux *LeadCell, int leadindex, rib_
 		for(i=0; i <dim; i++)
 		{
 			
-			ginv[i][i] = En - (LeadCell->site_pots[i]) - (hopfn)(LeadCell, LeadCell, i, i, bshifts, (params->hoppara) ) ;
+			ginv[i][i] = En - (LeadCell->site_pots[i]) - (hopfn)(LeadCell, LeadCell, i, i, bshifts,  (params->hoppara) ) ;
 			
 			if(are_spin_pots == 1)
 			{
@@ -2459,50 +2980,59 @@ void lead_prep2_mag(double _Complex En, RectRedux *LeadCell, int leadindex, rib_
 	
 	if(spin_channel == 2)
 	{
+		
 	   for(s1=0; s1<2; s1++)
 	   {
 		(hoppingparams->spinA)=s1;
+		
+		//common for both spins
+		for(i=0; i <dim; i++)
+		{
+			ginv[s1*dim+i][s1*dim+i] = En- (LeadCell->site_pots[i]);
+		}
+		
+		
 		for(s2=0; s2<2; s2++)
 		{
 			(hoppingparams->spinB)=s2;
 			
 		
+			
+			for(i=0; i<3; i++)
+				bshifts[i] = 0.0;
+			
 			//g00
 			for(i=0; i <dim; i++)
 			{
 				
-				ginv[s1*dim+i][s1*dim+i] = En -   (hopfn)(LeadCell, LeadCell, i, i, bshifts, (params->hoppara) ) ;
+				ginv[s1*dim+i][s2*dim+i] -= (hopfn)(LeadCell, LeadCell, i, i, bshifts, (params->hoppara) ) ;
 				
-				//onsites
-				if(s1==s2)
-				{
-					ginv[s1*dim+i][s1*dim+i] -= (LeadCell->site_pots[i]);
-				}
 				
 				//spin potentials
 				if(are_spin_pots == 1)
 				{
 					if(s1 ==0 && s2==0)
 					{
-						ginv[s1*dim+i][s1*dim+i] -= (const_spin_pots[2] + spin_pots[i][2]);
+						ginv[s1*dim+i][s2*dim+i] -= (const_spin_pots[2] + spin_pots[i][2]);
 					}
 					
 					if(s1==0 && s2==1)
 					{
-						ginv[s1*dim+i][s1*dim+i] -= (const_spin_pots[0] + spin_pots[i][0] - I*(const_spin_pots[1] + spin_pots[i][1]));
+						ginv[s1*dim+i][s2*dim+i] -= (const_spin_pots[0] + spin_pots[i][0] - I*(const_spin_pots[1] + spin_pots[i][1]));
 					}
 					
 					if(s1==1 && s2==0)
 					{
-						ginv[s1*dim+i][s1*dim+i] -= (const_spin_pots[0] + spin_pots[i][0] + I*(const_spin_pots[1] + spin_pots[i][1]));
+						ginv[s1*dim+i][s2*dim+i] -= (const_spin_pots[0] + spin_pots[i][0] + I*(const_spin_pots[1] + spin_pots[i][1]));
 					}
 					
 					
 					if(s1 ==1 && s2==1)
 					{
-						ginv[s1*dim+i][s1*dim+i] -= (-const_spin_pots[2] - spin_pots[i][2]);
+						ginv[s1*dim+i][s2*dim+i] -= (-const_spin_pots[2] - spin_pots[i][2]);
 					}
 				}
+				
 				
 				for(j=0; j<dim; j++)
 				{
@@ -2511,6 +3041,7 @@ void lead_prep2_mag(double _Complex En, RectRedux *LeadCell, int leadindex, rib_
 						ginv[s1*dim+i][s2*dim+j] = - (hopfn)(LeadCell, LeadCell, i, j, bshifts, (params->hoppara) );
 					}
 				}
+				
 			}
 
 			//Vs
@@ -2527,6 +3058,7 @@ void lead_prep2_mag(double _Complex En, RectRedux *LeadCell, int leadindex, rib_
 			
 			for(i=0; i<3; i++)
 				bshifts[i] = -(params->shift_vec)[i];
+			
 			for(i=0; i <dim; i++)
 			{
 				for(j=0; j<dim; j++)
@@ -2534,6 +3066,7 @@ void lead_prep2_mag(double _Complex En, RectRedux *LeadCell, int leadindex, rib_
 					V21[s1*dim+i][s2*dim+j] =  (hopfn)(LeadCell, LeadCell, i, j, bshifts, (params->hoppara) );
 				}
 			}
+			
 		}
 	   }
 	}
@@ -2663,7 +3196,6 @@ void multipleCustomLeads (double _Complex En, RectRedux *DeviceCell, RectRedux *
            //external function call of multiple.indiv_lead_fn to calculate sigma
 	    (singlefn)(leadloop, En, DeviceCell, LeadCells, cellinfo, singleparams, smallSigma);
             
-            
             MatrixCopyPart(smallSigma, Sigma, 0, 0, dimcounta, dimcounta, dim1a, dim1a);
 	    
 	    if(spindep==1)
@@ -2684,7 +3216,6 @@ void multipleCustomLeads (double _Complex En, RectRedux *DeviceCell, RectRedux *
             dimcounta += dim1a;
 	  
     }
-    
     
  
 
@@ -2748,11 +3279,13 @@ void singleRibbonLead (int leadnum, double _Complex En, RectRedux *DeviceCell, R
 			lead_prep2_mag(En, LeadCells[leadnum], leadnum, ribpara, ginv, V12, V21, 2);
 	  
 	  
+	 //printEMatrix(ginv, dim2);
 
 	  InvertMatrixGSL(ginv, g00, dim2);
+	  //printEMatrix(V21, dim2);
 	  RubioSGF(SL, g00, V12, V21, dim2, &lcount, elemerr*dim2*dim2);
 	  FreeMatrix(ginv); FreeMatrix(V12); FreeMatrix(V21); FreeMatrix (g00);
-	
+	//printEMatrix(SL, dim2);
 
     //connections of leads to device
 	  //leads are connected to the device using the hopping rules of the lead region, 

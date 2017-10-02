@@ -44,6 +44,6 @@ double graphene_SOCTB_highdis[] = 	{0.59, 1.02, 1.02};
 double graphene_SOCTB_shifts[] = 	{0.0, 0.0, 0.0};
 double graphene_SOCTB_zmin[] = 		{0.0, 0.0, 0.0};
 double graphene_SOCTB_zmax[] = 		{0.01, 0.01, 0.01};
-double _Complex graphene_SOCTB_hops[] = 	{-1.0, -0.001*I, -0.001*I};
+double _Complex graphene_SOCTB_hops[] = 	{-1.0, -0.01*I, -0.01*I};
 
 gen_hop_params graphene_SOCTB_hop_params = {3,  graphene_SOCTB_max_neigh, graphene_SOCTB_hops, 0, 0, graphene_SOCTB_lowdis,graphene_SOCTB_highdis,graphene_SOCTB_shifts,graphene_SOCTB_zmin,  graphene_SOCTB_zmax, 0, 0.0, NULL, NULL, 0, 0  };

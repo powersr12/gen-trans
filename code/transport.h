@@ -32,9 +32,7 @@ typedef struct {
 	double Btes;
 	int *restrics;	//are there limits on x, y with field
 	double **limits; //what are the limits on x, y with field
-	
-	 //these are set before calling an instance of the hopping routine to determine whats happening in spin space.
-	int spinA;
+	int spinA;   //these are set before calling an instance of the hopping routine to determine whats happening in spin space. 
 	int spinB;
 }gen_hop_params;
 
@@ -43,12 +41,13 @@ typedef struct {
 	int num_leads;
 	int TRsym;
 	double **transmissions;
+	double **spin_trans;
 }trans_params;
 
 
 
 void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp, 
-		      cellDivision *cellinfo, hoppingfunc *hoppingfn, gen_hop_params *hoppingparams, int mode, int mode2, int spinA, int spinB,
+		      cellDivision *cellinfo, hoppingfunc *hoppingfn, gen_hop_params *hoppingparams, int mode, int mode2, int spinchannel,
 		      double _Complex **Gon, double _Complex *Gdiags, double _Complex **Goff, double _Complex **Sigma);
 
 double _Complex simpleTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, int b, double *bshifts, void *hoppingparams);
