@@ -101,3 +101,111 @@ void potentialDisorder (RectRedux *DeviceCell, void *p, int disprof_out, char *f
   
   
 }
+
+
+//general edge potentials
+void customEdgePots (RectRedux *DeviceCell, void *p)
+{
+  cedgepot_para *params = (cedgepot_para *)p;
+
+  int Ntot = *(DeviceCell->Ntot);
+  int Nrem = *(DeviceCell->Nrem);
+  int length1 = (DeviceCell->length);
+  int length2 = (DeviceCell->length2);
+  int geo = (DeviceCell->geo);
+  int i, j, k;
+  double *dispots = createDoubleArray(Ntot);
+  int type = params->type;
+  
+  double topedge, bottomedge, topdist, botdist;
+  
+	//these are the exact positions of the top and bottom atomic sites
+	if(geo==0)
+	{
+		topedge=length1*sqrt(3)/2 - 1.0/(2*sqrt(3));
+		bottomedge=1.0/(2*sqrt(3));
+	}
+
+	//armchair offset slightly to avoid division by zero for very edge sites
+	if(geo==1 )
+	{
+		topedge=(length1 -1)*0.5;
+		bottomedge = 0.0;
+	}
+
+  
+ 
+    for(j=0; j<Ntot; j++)
+    {
+      if( (DeviceCell->siteinfo[j][0]) == 0 && (DeviceCell->siteinfo[j][1]) == 0)
+      {
+	      
+	if(type==0)
+	{
+	  if( fabs((DeviceCell->pos)[j][1] + (params->AT3) - topedge) < (params->AT2) )
+		dispots[j] += (params->AT1);
+	  
+	  if( fabs((DeviceCell->pos)[j][1] - (params->AB3) - bottomedge) < (params->AB2) )
+		dispots[j] += (params->AB1);
+	}
+	
+	if(type==1)
+	{
+  	  dispots[j] += (params->AT1)*exp(- (params->AT2) * fabs((DeviceCell->pos)[j][1] + (params->AT3) - topedge) ) +  (params->AB1)*exp(- (params->AB2) * fabs((DeviceCell->pos)[j][1] - (params->AB3) - bottomedge) );
+	}
+	
+	if(type==2)
+	{
+  	  dispots[j] += (params->AT1)*pow(fabs( ((DeviceCell->pos)[j][1] + (params->AT3) - topedge)), -(params->AT2)) + (params->AB1)*pow(fabs( ((DeviceCell->pos)[j][1] - (params->AB3) - bottomedge)), -(params->AB2)) ;
+	}
+	
+      }
+      
+      if( (DeviceCell->siteinfo[j][0]) == 0 && (DeviceCell->siteinfo[j][1]) == 1)
+      {
+	      
+	if(type==0)
+	{
+	  if( fabs((DeviceCell->pos)[j][1] + (params->BT3) - topedge) < (params->BT2) )
+		dispots[j] += (params->BT1);
+	  
+	  if( fabs((DeviceCell->pos)[j][1] - (params->BB3) - bottomedge) < (params->BB2) )
+		dispots[j] += (params->BB1);
+	}
+	
+	if(type==1)
+	{
+  	  dispots[j] += (params->BT1)*exp(- (params->BT2) * fabs((DeviceCell->pos)[j][1] + (params->BT3) - topedge) ) +  (params->BB1)*exp(- (params->BB2) * fabs((DeviceCell->pos)[j][1] - (params->BB3) - bottomedge) );
+	}
+	
+	if(type==2)
+	{
+  	  dispots[j] += (params->BT1)*pow(fabs( ((DeviceCell->pos)[j][1] + (params->BT3) - topedge)), -(params->BT2)) + (params->BB1)*pow(fabs( ((DeviceCell->pos)[j][1] - (params->BB3) - bottomedge)), -(params->BB2)) ;
+	}
+	
+      }
+      
+      
+      
+      
+    }
+  
+    
+  
+  for(i=0; i<Ntot; i++)
+  {
+    (DeviceCell->site_pots[i]) += dispots[i];
+  }
+  
+  
+  
+  free(dispots);
+  
+  
+}
+
+
+
+
+
+

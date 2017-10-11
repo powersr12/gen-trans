@@ -23,7 +23,7 @@ main(int argc, char *argv[])
 	  
 	  //general system inputs and default values
 	      char systemtype[32];
-	      char geotype[32], peritype[40], leadtype[32], sysinfo[120], loopinfo[80], loopmininfo[80], disinfo[40];
+	      char geotype[32], peritype[40], leadtype[32], sysinfo[120], loopinfo[80], loopmininfo[80], disinfo[40], cedgeinfo[40];
 	      sprintf(systemtype, "SUBLATTICEPOT");
 	      int length1=2, length2=3*length1, geo=0, isperiodic=1, ismagnetic=0;
 	      int makebands = 0, unfold=0, project=0, kxpoints=51, bandsonly=0, bandsminset=0, bandsmaxset=100000;
@@ -64,6 +64,9 @@ main(int argc, char *argv[])
 				//this forces the choice gauge=0
 	      int gauge = 0; 	//default gauge choice, phase is along x
 	      int potdis =0;	//is there an additional, random potential disorder in the system?
+	      int cedge = 0;	//is/are there (a) custom potential(s) near the ribbon edges
+	      
+	      
 	      int splitgen =0;	//if =1, splits the system generation and calculation
 	      int metal_leads = 0;      //if this is set to 1, metallic leads are used instead of ribbons -
                                         //these need to be accounted for properly with positions etc...
@@ -156,6 +159,10 @@ main(int argc, char *argv[])
 		    if(strcmp("-potdis", argv[i]) == 0)
 		    {
 			sscanf(argv[i+1], "%d", &potdis);
+		    }
+		    if(strcmp("-cedge", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &cedge);
 		    }
 		  }
 			//default value of num_neigh for single layer graphene.
@@ -1349,6 +1356,183 @@ main(int argc, char *argv[])
 		
 		 sprintf(disinfo, "POTDIS_c_%.4lf_d_%.3lf_xi_%.1lf", pdconc, pddelta, pdxi);
 	      }
+	      
+	      
+	//potential profiles near edges
+		int cedge_leads=0, cedge_posonly=0;
+		int cedge_type=0;
+		char cedgeconf[40], cedgetypename[40];
+		//strength (1) and coefficients (2,3,4) for each sublattice at top T and bottom B edges
+		//(2) generally shows the extent of the potential (decay constant, etc)
+		//(3) is generally a distance modifying the edge position from the edgemost atom to elsewhere
+		double cedge_AT1=0.0, cedge_AT2=0, cedge_AT3=0.0, cedge_AT4=0;
+		double cedge_BT1=0.0, cedge_BT2=0, cedge_BT3=0.0, cedge_BT4=0;
+		double cedge_AB1=0.0, cedge_AB2=0, cedge_AB3=0.0, cedge_AB4=0;
+		double cedge_BB1=0.0, cedge_BB2=0, cedge_BB3=0.0, cedge_BB4=0;
+		
+			sprintf(cedgeconf, "misc");
+			sprintf(cedgetypename, "");
+		
+		cedgepot_para cedgepara = {};
+		
+		if(cedge==1)
+		{
+			for(i=1; i<argc-1; i++)
+			{
+				if(strcmp("-celeads", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &cedge_leads);
+				}
+				if(strcmp("-ceposonly", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &cedge_posonly);
+				}
+				if(strcmp("-cetype", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &cedge_type);
+				}
+				//shorthand arguments for multiple params
+				//sets that there is no dependence on particlar sublattice or edge
+				if(strcmp("-ce1", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &cedge_AT1);
+					cedge_BT1 = cedge_AT1;
+					cedge_AB1 = cedge_AT1;
+					cedge_BB1 = cedge_AT1;
+				}
+				if(strcmp("-ce2", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &cedge_AT2);
+					cedge_BT2 = cedge_AT2;
+					cedge_AB2 = cedge_AT2;
+					cedge_BB2 = cedge_AT2;
+				}
+				if(strcmp("-ce3", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &cedge_AT3);
+					cedge_BT3 = cedge_AT3;
+					cedge_AB3 = cedge_AT3;
+					cedge_BB3 = cedge_AT3;
+				}
+				if(strcmp("-ce4", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &cedge_AT4);
+					cedge_BT4 = cedge_AT4;
+					cedge_AB4 = cedge_AT4;
+					cedge_BB4 = cedge_AT4;
+				}
+				
+				//individual sublattice/edge params
+				if(strcmp("-ceAT1", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &cedge_AT1);
+				}
+				if(strcmp("-ceAT2", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &cedge_AT2);
+				}
+				if(strcmp("-ceAT3", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &cedge_AT3);
+				}
+				if(strcmp("-ceAT4", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &cedge_AT4);
+				}
+				
+				if(strcmp("-ceBT1", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &cedge_BT1);
+				}
+				if(strcmp("-ceBT2", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &cedge_BT2);
+				}
+				if(strcmp("-ceBT3", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &cedge_BT3);
+				}
+				if(strcmp("-ceBT4", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &cedge_BT4);
+				}
+				
+				if(strcmp("-ceAB1", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &cedge_AB1);
+				}
+				if(strcmp("-ceAB2", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &cedge_AB2);
+				}
+				if(strcmp("-ceAB3", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &cedge_AB3);
+				}
+				if(strcmp("-ceAB4", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &cedge_AB4);
+				}
+				
+				if(strcmp("-ceBB1", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &cedge_BB1);
+				}
+				if(strcmp("-ceBB2", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &cedge_BB2);
+				}
+				if(strcmp("-ceBB3", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &cedge_BB3);
+				}
+				if(strcmp("-ceBB4", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &cedge_BB4);
+				}
+				
+				if(strcmp("-cename", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%s", cedgeconf);
+				}
+				
+				if(cedge_type==0)
+					sprintf(cedgetypename, "cnst");  //const pot within distance of edge
+					
+				if(cedge_type==1)
+					sprintf(cedgetypename, "expdcy");  //power law from edge
+				
+				if(cedge_type==2)
+					sprintf(cedgetypename, "pwrlaw");  //exponential decay from edge
+				
+			
+			}
+		
+			cedgepara.type=cedge_type;
+			cedgepara.AT1=cedge_AT1;
+			cedgepara.AT2=cedge_AT2;
+			cedgepara.AT3=cedge_AT3;
+			cedgepara.AT4=cedge_AT4; 
+			cedgepara.BT1=cedge_BT1;
+			cedgepara.BT2=cedge_BT2;
+			cedgepara.BT3=cedge_BT3;
+			cedgepara.BT4=cedge_BT4;
+			cedgepara.AB1=cedge_AB1;
+			cedgepara.AB2=cedge_AB2;
+			cedgepara.AB3=cedge_AB3;
+			cedgepara.AB4=cedge_AB4;
+			cedgepara.BB1=cedge_BB1;
+			cedgepara.BB2=cedge_BB2;
+			cedgepara.BB3=cedge_BB3;
+			cedgepara.BB4=cedge_BB4;
+			
+			sprintf(cedgeinfo, "CEDGE_%s_%s", cedgetypename, cedgeconf);
+			
+			if(cedge_leads==0)
+				sprintf(cedgeinfo, "CEDGEnl_%s_%s", cedgetypename, cedgeconf);
+		}
+	      
+	      
 	  
 	  
 	  connectrules = default_connect_rule;
@@ -2175,6 +2359,11 @@ main(int argc, char *argv[])
 	    {
 	      sprintf(direcname, "%s/%s", direcname, disinfo);
 	    }
+	     if(cedge==1)
+	    {
+	      sprintf(direcname, "%s/%s", direcname, cedgeinfo);
+	    }
+	    
 	    
 	    sprintf(command, "mkdir -p %s", direcname);
 	    system(command);
@@ -2300,8 +2489,17 @@ main(int argc, char *argv[])
 					potentialDisorder (&System, &dispara, pdmap, disorderfile );
 				}
 				
-				//export the disorder configuration for the other processes calculating the same configuration
 				
+				//additional edge related potentials
+				if(cedge == 1)
+				{
+					customEdgePots (&System, &cedgepara);
+					
+					
+				}
+				
+				
+				//export the disorder configuration for the other processes calculating the same configuration
 				if(procs>0)
 				{
 					exportRectConf(&System, conffile);
@@ -2434,6 +2632,28 @@ main(int argc, char *argv[])
 		genCustomLeads (&System, LeadCells, num_leads, &leadp);
 		
 	  }
+	  
+	  
+	  //lead edge potentials! 
+		//this is only implemented for ribbon and custom leads (ishallbar == 0 || 4)
+		if(cedge==1 && cedge_leads == 1)
+		{
+			for(i=0; i<num_leads; i++)
+			{
+				if(ishallbar==0)
+					customEdgePots (LeadCells[i], &cedgepara);
+				
+				if(ishallbar==4)
+				{
+					if(strcmp("RIBBON", (mleadps[i]->name)) == 0 && ( (mleadps[i]->def_pos) == 0 || (mleadps[i]->def_pos) == 1 ) )
+					{
+						customEdgePots (LeadCells[i], &cedgepara);
+					}
+				}
+				
+			}				
+		}
+	  
 
 
 	  cnxProfile cnxp;
