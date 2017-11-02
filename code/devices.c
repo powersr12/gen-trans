@@ -123,7 +123,7 @@ void simpleRibbonGeo (RectRedux *SiteArray, void *p, int struc_out, char *filena
 // 			  (SiteArray->chaininfo)[l][0] = tempint;
 			}
 			*Nrem = tempint2;
-			
+			*Ntot = *Nrem;
 			/*
 			(SiteArray->chaininfo)[0][1] = 0;
 			for(l=1; l<length2; l++)
