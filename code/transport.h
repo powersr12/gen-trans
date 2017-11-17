@@ -66,6 +66,10 @@ void simple2leads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadCe
 void lead_prep(double _Complex En, RectRedux *LeadCell, int leadindex, lead_para *params, double _Complex **ginv, double _Complex **V12, double _Complex **V21);
 void lead_prep2(double _Complex En, RectRedux *LeadCell, int leadindex, rib_lead_para *params, double _Complex **ginv, double _Complex **V12, double _Complex **V21);
 
+void lead_prep_mag(double _Complex En, RectRedux *LeadCell, int leadindex, lead_para *params, double _Complex **ginv, double _Complex **V12, double _Complex **V21, int spin_channel);
+void lead_prep2_mag(double _Complex En, RectRedux *LeadCell, int leadindex, rib_lead_para *params, double _Complex **ginv, double _Complex **V12, double _Complex **V21, int spin_channel);
+
+
 void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Leads, cnxProfile *cnxp, 
 		      cellDivision *cellinfo, hoppingfunc *hoppingfn, gen_hop_params *hoppingparams,
 		      lead_para *leadsparams, trans_params *tpara, int mode, double *ldoses, double ***currents);

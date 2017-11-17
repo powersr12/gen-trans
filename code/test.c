@@ -1642,8 +1642,9 @@ main(int argc, char *argv[])
 		int nleft, nright, nfull;
 		int counttop, countbot, countleft, countright, countfull;
 		double metaldim2=2.0;
-	if(ishallbar==4)
-	{
+		
+		if(ishallbar==4)
+		{
 			currIn=1;
 			currOut=0;
 			connectrules = default_connect_rule;
@@ -2007,7 +2008,7 @@ main(int argc, char *argv[])
 			
 			sprintf(peritype, "%s_%d_LEADS_%d_to_%d_%s", leadconf, num_leads, currIn, currOut, additional_lead_info);
 			
-	}
+		}
 		
 	  
 	  //loop info
@@ -2395,7 +2396,7 @@ main(int argc, char *argv[])
 	  if(ishallbar == 4)
 	  {
 		leadp.multiple = mleadps;
-		leadp.leadsfn = &multipleCustomLeads;
+		leadp.leadsfn = &multipleCustomLeads; //this is overwritten later, and reset --tidy
 		genCustomLeads (&System, LeadCells, num_leads, &leadp);
 		
 	  }
@@ -2619,6 +2620,7 @@ main(int argc, char *argv[])
                 leadp.hoppara = &metal_hop_p;
                 leadp.leadsfn = &multipleSimplestMetalLeads;
             }
+            
             
             if(ishallbar == 4)
 	    {
@@ -2962,7 +2964,9 @@ main(int argc, char *argv[])
 		  fprintf(output, "%lf	%e\n", VG, kavg);
 		}
 	      }
-	      
+	      if(spindep!=0)
+		printf("%lf	%.8e	%.8e	%.8e\n", realE, spin_trans[0][1], spin_trans[2][3], transmissions[0][1]);
+
 	      
 	      //print maps
 	      double xc, yc;
@@ -3379,7 +3383,7 @@ main(int argc, char *argv[])
 // 						}
 // 						printf("\n");
 // 					}
-					printf("%lf	%.8e	%.8e	%.8e\n", realE, spin_trans[0][1], spin_trans[2][3], transmissions[0][1]);
+					//printf("%lf	%.8e	%.8e	%.8e\n", realE, spin_trans[0][1], spin_trans[2][3], transmissions[0][1]);
 				}
 				
 				

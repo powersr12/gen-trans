@@ -1,5 +1,28 @@
 #include "useful_hops.h"
 
+
+
+// typedef struct {
+// 	int num_neigh;
+// 	int *max_neigh;
+// 	double _Complex *hops;		
+// 	int isperiodic;
+// 	double kpar;
+// 	double *NN_lowdis;
+// 	double *NN_highdis;
+// 	double *NN_shifts;
+// 	double *NN_zmin;
+// 	double *NN_zmax;
+// 	int gauge;
+// 	double Btes;
+// 	int *restrics;	//are there limits on x, y with field
+// 	double **limits; //what are the limits on x, y with field
+// 	int spinA;   //these are set before calling an instance of the hopping routine to determine whats happening in spin space. 
+// 	int spinB;
+// }gen_hop_params;
+
+
+
 //Graphene TB - stores 1st, 2nd and 3rd NNTB hopping params for graphene
 //last 2 params are placeholders for spin indices during transport calculations
 
