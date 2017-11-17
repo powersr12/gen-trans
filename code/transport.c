@@ -2238,6 +2238,7 @@ void singleRibbonLead (int leadnum, double _Complex En, RectRedux *DeviceCell, R
 	  MatrixMultNS(VDL, SL, temp1, dim1a, dim1, dim1);
 	  MatrixMultNS(temp1, VLD, Sigma, dim1a, dim1, dim1a);
 	  FreeMatrix(temp1); FreeMatrix(VLD); FreeMatrix(VDL);
+	  FreeMatrix(SL);
 	
     free(bshifts0);
 }
