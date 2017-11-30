@@ -40,6 +40,8 @@ typedef struct {
 	void *hoppara;
 	multiple_para **multiple;
 	void *additional_params;
+	int *leadspin;
+	int *spinpots;
 }lead_para;
 
 typedef struct {

@@ -171,6 +171,11 @@ void simpleRibbonGeo (RectRedux *SiteArray, void *p, int struc_out, char *filena
 			  (SiteArray->pos) = site_coords;
 			  (SiteArray->site_pots) = site_pots;
 			  (SiteArray->siteinfo) = siteinfo;
+			  
+			  
+			  //site-dependent spin-depependent potentials
+			  double **spin_pots = createNonSquareDoubleMatrix(tot_sites, 3);
+			  (SiteArray->spin_pots) = spin_pots;
   
   
 }
@@ -188,6 +193,7 @@ void genLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, int mode, 
   if(mode==0)
   {
    
+	
     
     for(i=0; i < numleads; i++)
     {
@@ -195,8 +201,9 @@ void genLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, int mode, 
       (Leads[i]->geo) = (SiteArray->geo);
       (Leads[i]->length) = (SiteArray->length);
       (Leads[i]->length2) = 1;
-      (Leads[i]->spindep) = 0;
-      (Leads[i]->are_spin_pots) = 0;
+      (Leads[i]->spindep) = (params->leadspin)[i];
+      (Leads[i]->are_spin_pots) = (params->spinpots)[i];
+      (Leads[i]->const_spin_pots) = (SiteArray->const_spin_pots);
       (Leads[i]->Nrem) = (int *)malloc(sizeof(int));
       (Leads[i]->Ntot) = (int *)malloc(sizeof(int));
       simpleRibbonGeo (Leads[i], NULL, 0, NULL);
@@ -236,6 +243,9 @@ void genLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, int mode, 
 		(Leads[i]->geo) = (SiteArray->geo);
 		(Leads[i]->length) = (SiteArray->length);
 		(Leads[i]->length2) = 1;
+		(Leads[i]->spindep) = (params->leadspin)[i];
+		(Leads[i]->are_spin_pots) = (params->spinpots)[i];
+		(Leads[i]->const_spin_pots) = (SiteArray->const_spin_pots);
 		(Leads[i]->Nrem) = (int *)malloc(sizeof(int));
 		(Leads[i]->Ntot) = (int *)malloc(sizeof(int));
 		simpleBilayerGeo (Leads[i], params->additional_params, 0, NULL);
@@ -302,7 +312,6 @@ void genSingleRibbonLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, v
 	(Lead->geo) = (ribpara->geo);
 	(Lead->length) = (ribpara->width);
 	(Lead->length2) = 1;
-	(Lead->spindep) = 0;
 	
 	simpleRibbonGeo (Lead, NULL, 0, NULL);
 
@@ -395,7 +404,6 @@ void genSingleBLGLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, void
 	(Lead->geo) = (ribpara->geo);
 	(Lead->length) = (ribpara->width);
 	(Lead->length2) = 1;
-	(Lead->spindep) = 0;
 	(Lead->are_spin_pots) = 0;
 
 	simpleBilayerGeo (Lead, ribpara->bilayer_para, 0, NULL);
@@ -490,7 +498,6 @@ void genSingleMetalLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, vo
 
 	//Lead->pos is used here to give the max x/y of the lead
 	(Lead->pos) = createNonSquareDoubleMatrix(2, 3);
-	(Lead->spindep) = 0;
 	(Lead->are_spin_pots) = 0;
     
 	//lead sizes etc are such that they correspond to that of a ribbon with the same width param
@@ -575,8 +582,10 @@ void genCustomLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, lead
 	Leads[i] = (RectRedux *)malloc(sizeof(RectRedux));
 	(Leads[i]->Nrem) = (int *)malloc(sizeof(int));
 	(Leads[i]->Ntot) = (int *)malloc(sizeof(int));
-	(Leads[i]->spindep) = (SiteArray->spindep);
-	(Leads[i]->are_spin_pots) = (SiteArray->are_spin_pots);
+	(Leads[i]->spindep) = (params->leadspin)[i];
+	
+	(Leads[i]->are_spin_pots) = (params->spinpots)[i];
+	(Leads[i]->const_spin_pots) = (SiteArray->const_spin_pots);
 	*(Leads[i]->Nrem)=0;
 	*(Leads[i]->Ntot)=0;
 	
@@ -588,7 +597,7 @@ void genCustomLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, lead
 	indiv_params = ((params->multiple)[i])->indiv_lead_para;
 	
 	(leadgn) (SiteArray, Leads[i], i, indiv_params);
-	
+	printf("#genCust %d %d\n", i,  (Leads[i]->spindep));
   }
   
 }
@@ -883,6 +892,10 @@ void genSublatticeInterface(RectRedux *SiteArray, void *p, int struc_out, char *
 			  (SiteArray->pos) = site_coords;
 			  (SiteArray->site_pots) = site_pots;
 			  (SiteArray->siteinfo) = siteinfo;
+			  
+			   //site-dependent spin-depependent potentials
+			  double **spin_pots = createNonSquareDoubleMatrix(tot_sites, 3);
+			  (SiteArray->spin_pots) = spin_pots;
 
 	
 }
@@ -1204,6 +1217,10 @@ void genSublatticeTwoInts(RectRedux *SiteArray, void *p, int struc_out, char *fi
 			  (SiteArray->site_pots) = site_pots;
 			  (SiteArray->siteinfo) = siteinfo;
 
+			  
+			   //site-dependent spin-depependent potentials
+			  double **spin_pots = createNonSquareDoubleMatrix(tot_sites, 3);
+			  (SiteArray->spin_pots) = spin_pots;
 	
 }
 
@@ -1432,6 +1449,10 @@ void genSublatticeDevice(RectRedux *SiteArray, void *p, int struc_out, char *fil
 			  (SiteArray->pos) = site_coords;
 			  (SiteArray->site_pots) = site_pots;
 			  (SiteArray->siteinfo) = siteinfo;
+			  
+			   //site-dependent spin-depependent potentials
+			  double **spin_pots = createNonSquareDoubleMatrix(tot_sites, 3);
+			  (SiteArray->spin_pots) = spin_pots;
 
 	
 }
@@ -1802,6 +1823,10 @@ void genSublatticeMoire(RectRedux *SiteArray, void *p, int struc_out, char *file
 			  (SiteArray->pos) = site_coords;
 			  (SiteArray->site_pots) = site_pots;
 			  (SiteArray->siteinfo) = siteinfo;
+			  
+			   //site-dependent spin-depependent potentials
+			  double **spin_pots = createNonSquareDoubleMatrix(tot_sites, 3);
+			  (SiteArray->spin_pots) = spin_pots;
 			  
 			  
 }
@@ -2574,6 +2599,10 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 			  (SiteArray->pos) = site_coords;
 			  (SiteArray->site_pots) = site_pots;
 			  (SiteArray->siteinfo) = siteinfo;
+			  
+			   //site-dependent spin-depependent potentials
+			  double **spin_pots = createNonSquareDoubleMatrix(tot_sites, 3);
+			  (SiteArray->spin_pots) = spin_pots;
 
 
 				
@@ -2952,6 +2981,11 @@ void genEdgeDisorderedDevice(RectRedux *SiteArray, void *p, int struc_out, char 
 		  (SiteArray->pos) = site_coords;
 		  (SiteArray->site_pots) = site_pots;
 		  (SiteArray->siteinfo) = siteinfo;
+		  
+		  
+		   //site-dependent spin-depependent potentials
+			  double **spin_pots = createNonSquareDoubleMatrix(tot_sites, 3);
+			  (SiteArray->spin_pots) = spin_pots;
 		  
 		  int tempint2;
 		   //chaininfo needed for conductance calcs (if atoms are missing)
@@ -3418,8 +3452,6 @@ void HallBarify (RectRedux *System, RectRedux **Leads, hallbpara *hall_para, lea
 		(Leads[i]->length2) = 1;
 		(Leads[i]->Nrem) = (int *)malloc(sizeof(int));
 		(Leads[i]->Ntot) = (int *)malloc(sizeof(int));
-		(Leads[i]->spindep) = 0;
-		(Leads[i]->are_spin_pots) = 0;
 		simpleRibbonGeo (Leads[i], NULL, 0, NULL);
 	      }
 	      
@@ -3430,8 +3462,6 @@ void HallBarify (RectRedux *System, RectRedux **Leads, hallbpara *hall_para, lea
 		(Leads[i]->geo) = tbgeo;
 		(Leads[i]->length) = toppw[i-2];
 		(Leads[i]->length2) = 1;
-		(Leads[i]->spindep) = 0;
-		(Leads[i]->are_spin_pots) = 0;
 		(Leads[i]->Nrem) = (int *)malloc(sizeof(int));
 		(Leads[i]->Ntot) = (int *)malloc(sizeof(int));
 		simpleRibbonGeo (Leads[i], NULL, 0, NULL);
@@ -3762,6 +3792,10 @@ void simpleBilayerGeo (RectRedux *SiteArray, void *p, int struc_out, char *filen
 	(SiteArray->pos) = site_coords;
 	(SiteArray->site_pots) = site_pots;
 	(SiteArray->siteinfo) = siteinfo;
+	
+	 //site-dependent spin-depependent potentials
+	double **spin_pots = createNonSquareDoubleMatrix(tot_sites, 3);
+	(SiteArray->spin_pots) = spin_pots;
 
   
 }

@@ -1452,6 +1452,7 @@ double _Complex simpleTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, 
 //(include possibility of Peierl's magnetic field phases also... (later!))
 //hoppings are in the sequence:
 //0=NNTB, 1=lambda_IA, 2=lambda_IB 
+//for hoppings in leads, and between leads and device, SO terms are only included if leads are spin dependent (how smart!)
 
 double _Complex grapheneSOCTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, int b, double *bshifts, void *hoppingparams)
 {
@@ -1484,6 +1485,12 @@ double _Complex grapheneSOCTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, in
   
   cnxProfile *acnxp = (cnxProfile *)(aDeviceCell->cnxp);
   cnxProfile *bcnxp = (cnxProfile *)(bDeviceCell->cnxp);
+  
+  //turn off spin dependent terms if any of the regions are not spin-dependent
+  if( (aDeviceCell->spindep == 0) || (bDeviceCell->spindep == 0))
+  {
+	num_neigh=1;
+  }
 
   
   //this hopping routine is zero for elements off-diagonal in spin-space
@@ -1649,7 +1656,7 @@ double _Complex grapheneSOCTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, in
 		}
 		
 	//Intrinsic SOC - A sublattice
-		if(num_neigh>=1)
+		if(num_neigh>1)
 		{
 			i=1;
 			
@@ -1673,7 +1680,7 @@ double _Complex grapheneSOCTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, in
 		}
 		
 	//Intrinsic SOC - B sublattice	
-		if(num_neigh>=2)
+		if(num_neigh>2)
 		{
 			i=2;
 			
@@ -1915,7 +1922,7 @@ double _Complex grapheneSOCTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, in
 				}
 			
 				//Intrinsic SOC - A sublattice
-				if(num_neigh>=1)
+				if(num_neigh>1)
 				{
 					i=1;
 					if( (aDeviceCell->siteinfo)[a][1]==0 && (bDeviceCell->siteinfo)[b][1]==0)
@@ -1928,7 +1935,7 @@ double _Complex grapheneSOCTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, in
 					
 				}
 				//Intrinsic SOC - B sublattice
-				if(num_neigh>=2)
+				if(num_neigh>2)
 				{
 					i=2;
 					
@@ -2512,7 +2519,7 @@ void multipleLeads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadC
     gen_hop_params *hoppingparams = (gen_hop_params *)(ribpara->hoppara);
 
     int spindep = DeviceCell->spindep;
-    int leadspindep;
+    int leadspindep, sumspin;
     int cell1dim = (cellinfo->cell1dim);
 
     for(leadloop=0; leadloop < num_leads; leadloop++)
@@ -2524,19 +2531,19 @@ void multipleLeads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadC
 	dim1 = *(LeadCells[leadloop]->Nrem);
 	dim1a = (cellinfo->lead_dims)[leadloop];
 	  
-	if(spindep==0)
+	if(spindep==0 || leadspindep == 0)
 	{
 		dim2 = dim1;
 		dim2a = dim1a;
 	}
-	if(spindep==1 || spindep==2)
+	if((spindep==1 || spindep==2) && leadspindep == 1)
 	{
 		dim2 = 2*dim1;
 		dim2a = 2*dim1a;
 	}
 	  
 	 //generate smallSigma for spindep=0 or 1
-	if(spindep == 0 || spindep ==1)
+	if(spindep == 0 || spindep ==1 || leadspindep == 0)
 	{
 		ginv = createSquareMatrix(dim2);
 		V12 = createSquareMatrix(dim2);
@@ -2545,9 +2552,9 @@ void multipleLeads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadC
 		SL = createSquareMatrix(dim2);
 
 		//generate the info required for Rubio method
-		if(spindep==0)
+		if(spindep==0 || leadspindep == 0)
 			lead_prep(En, LeadCells[leadloop], leadloop, params, ginv, V12, V21);
- 		if(spindep==1)
+ 		if(spindep==1 && leadspindep == 1)
  			lead_prep_mag(En, LeadCells[leadloop], leadloop, params, ginv, V12, V21, 2);
 
 		
@@ -2564,12 +2571,15 @@ void multipleLeads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadC
 		VLD = createNonSquareMatrix(dim2, dim2a);
 		VDL = createNonSquareMatrix(dim2a, dim2);
 		
+		sumspin=spindep+1;
+		if(leadspindep==0)
+			sumspin=1;
 		
 		
-		for(s1=0; s1<spindep+1; s1++)
+		for(s1=0; s1<sumspin; s1++)
 		{
 			(hoppingparams->spinA) = s1;
-			for(s2=0; s2<spindep+1; s2++)
+			for(s2=0; s2<sumspin; s2++)
 			{
 				(hoppingparams->spinB) = s2;
 				for(i=0; i <dim1; i++)
@@ -2596,8 +2606,11 @@ void multipleLeads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadC
 		
 	}
 	
+
+
+	
 	//generate smallSigma for spindep=2
-	if(spindep == 2)
+	if(spindep == 2 && leadspindep == 1)
 	{	
 		
 		smallSigma = createNonSquareMatrix(2*dim2a, dim2a);
@@ -2655,17 +2668,30 @@ void multipleLeads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadC
 	  
 	MatrixCopyPart(smallSigma, Sigma, 0, 0, dimcounta, dimcounta, dim1a, dim1a);
 	
-	if(spindep==1)
+	if(spindep==1 && leadspindep == 1)
 	{
 		MatrixCopyPart(smallSigma, Sigma, 0, dim1a, dimcounta, cell1dim + dimcounta, dim1a, dim1a);
 		MatrixCopyPart(smallSigma, Sigma, dim1a, dim1a, cell1dim + dimcounta, cell1dim + dimcounta, dim1a, dim1a);
 		MatrixCopyPart(smallSigma, Sigma, dim1a, 0, cell1dim + dimcounta, dimcounta, dim1a, dim1a);
 	}
 	
-	if(spindep==2)
+	if(spindep==1 && leadspindep == 0)
+	{
+		MatrixCopyPart(smallSigma, Sigma, 0, 0, cell1dim + dimcounta, cell1dim + dimcounta, dim1a, dim1a);
+	}
+	
+	
+	if(spindep==2 && leadspindep == 1)
 	{
 		MatrixCopyPart(smallSigma, Sigma, dim1a, 0, cell1dim + dimcounta, dimcounta, dim1a, dim1a);
 	}
+	
+	if(spindep==2 && leadspindep == 0)
+	{
+		MatrixCopyPart(smallSigma, Sigma, 0, 0, cell1dim + dimcounta, dimcounta, dim1a, dim1a);
+	}
+	
+	
 	
 	
 		FreeMatrix(smallSigma); 
@@ -3420,17 +3446,17 @@ void multipleCustomLeads (double _Complex En, RectRedux *DeviceCell, RectRedux *
             dim1a = (cellinfo->lead_dims)[leadloop];
 
             
-	    if(spindep == 0)
+	    if(spindep == 0 || leadspindep == 0)
 	    {
 		    dim2 =  dim1a;
 		    dim2a = dim1a;
 	    }
-	    if(spindep == 1)
+	    if(spindep == 1 && leadspindep == 1)
 	    {
 		dim2 = 2*dim1a;
 		dim2a = 2*dim1a;
 	    }
-	    if(spindep == 2)
+	    if(spindep == 2 && leadspindep == 1)
 	    {
 		dim2 = 2*dim1a;
 		dim2a = dim1a;
@@ -3443,17 +3469,27 @@ void multipleCustomLeads (double _Complex En, RectRedux *DeviceCell, RectRedux *
             
             MatrixCopyPart(smallSigma, Sigma, 0, 0, dimcounta, dimcounta, dim1a, dim1a);
 	    
-	    if(spindep==1)
+	    if(spindep==1 && leadspindep == 1)
 	    {
 		MatrixCopyPart(smallSigma, Sigma, 0, dim1a, dimcounta, cell1dim + dimcounta, dim1a, dim1a);
 		MatrixCopyPart(smallSigma, Sigma, dim1a, dim1a, cell1dim + dimcounta, cell1dim + dimcounta, dim1a, dim1a);
 		MatrixCopyPart(smallSigma, Sigma, dim1a, 0, cell1dim + dimcounta, dimcounta, dim1a, dim1a);
 	    }
 	    
+	    if(spindep==1 && leadspindep == 0)
+	    {
+		MatrixCopyPart(smallSigma, Sigma, 0, 0, cell1dim + dimcounta, cell1dim + dimcounta, dim1a, dim1a);
+	    }
+	    
 	     
-	    if(spindep==2)
+	    if(spindep==2 && leadspindep == 1)
 	    {
 		MatrixCopyPart(smallSigma, Sigma, dim1a, 0, cell1dim + dimcounta, dimcounta, dim1a, dim1a);
+	    }
+	    
+	     if(spindep==2 && leadspindep == 0)
+	    {
+		MatrixCopyPart(smallSigma, Sigma, 0, 0, cell1dim + dimcounta, dimcounta, dim1a, dim1a);
 	    }
 	    
             FreeMatrix(smallSigma); 
@@ -3476,11 +3512,11 @@ void singleRibbonLead (int leadnum, double _Complex En, RectRedux *DeviceCell, R
 	
     rib_lead_para *ribpara = (rib_lead_para *)params;
     
-    int i, j, k, s1, s2;
+    int i, j, k, s1, s2, sumspin;
   
     int spindep = (DeviceCell->spindep);
     int leadspindep = (LeadCells[leadnum] -> spindep);
-    
+
     double *bshifts0 = createDoubleArray(3);
     hoppingfunc *hopfn = (hoppingfunc *)(ribpara->hopfn);
     gen_hop_params *hoppingparams = (gen_hop_params *)(ribpara->hoppara);
@@ -3494,12 +3530,12 @@ void singleRibbonLead (int leadnum, double _Complex En, RectRedux *DeviceCell, R
 	dim1 = *(LeadCells[leadnum]->Nrem);
 	dim1a = (cellinfo->lead_dims)[leadnum];
 	
-	if(spindep==0)
+	if(spindep==0 || leadspindep == 0)
 	{
 		dim2 = dim1;
 		dim2a = dim1a;
 	}
-	if(spindep==1 || spindep==2)
+	if((spindep==1 || spindep==2) && leadspindep == 1)
 	{
 		dim2 = 2*dim1;
 		dim2a = 2*dim1a;
@@ -3507,7 +3543,7 @@ void singleRibbonLead (int leadnum, double _Complex En, RectRedux *DeviceCell, R
 		
 	
       //generate leads SGFs
-      if(spindep == 0 || spindep == 1)
+      if(spindep == 0 || spindep ==1 || leadspindep == 0)
       {
 	  
 	  ginv = createSquareMatrix(dim2);
@@ -3518,9 +3554,9 @@ void singleRibbonLead (int leadnum, double _Complex En, RectRedux *DeviceCell, R
 
 	  //generate the info required for Rubio method
 	  
-		if(spindep==0)
+		if(spindep==0|| leadspindep == 0)
 			lead_prep2(En, LeadCells[leadnum], leadnum, ribpara, ginv, V12, V21);
-		if(spindep==1)
+		if(spindep==1 && leadspindep == 1)
 			lead_prep2_mag(En, LeadCells[leadnum], leadnum, ribpara, ginv, V12, V21, 2);
 	  
 	  
@@ -3541,10 +3577,14 @@ void singleRibbonLead (int leadnum, double _Complex En, RectRedux *DeviceCell, R
 	  VDL = createNonSquareMatrix(dim2a, dim2);
 	  
 	  
-	  for(s1=0; s1<spindep+1; s1++)
+	sumspin=spindep+1;
+	if(leadspindep==0)
+		sumspin=1;
+	  
+	  for(s1=0; s1<sumspin; s1++)
  	  {
 		  (hoppingparams->spinA) = s1;
- 		  for(s2=0; s2<spindep+1; s2++)
+ 		  for(s2=0; s2<sumspin; s2++)
 		  {
 			(hoppingparams->spinB) = s2;
 			for(i=0; i <dim1; i++)
@@ -3566,7 +3606,7 @@ void singleRibbonLead (int leadnum, double _Complex En, RectRedux *DeviceCell, R
 	  FreeMatrix(SL);
       }
       
-      if(spindep == 2)
+      if(spindep == 2 && leadspindep == 1)
       {
 		for(s1=0; s1<2; s1++)
 		{

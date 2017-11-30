@@ -311,19 +311,32 @@ main(int argc, char *argv[])
 		//eventually each lead should also have this option...
 		//for the moment all leads are non-magnetic, and have same self energies for both channels
 	//spindep_pots =0 - no spin dependent potentials to be generated and/or saved 
+	//whether these effects are copied over to ALL leads
+	//for individual leads, this should be set in custom mode
+	//default is that leads are non-spin-dependent 
+	
 		int spindep=0, spindep_pots=0;
+		int spindep_leads=0, spinlead_pots=0;
+		int *leadspin;
+		int *leadspinpots;
 		for(i=1; i<argc-1; i++)
 		{
 			if(strcmp("-spindep", argv[i]) == 0)
 			{
 				sscanf(argv[i+1], "%d", &spindep);
 			}
-			if(strcmp("-spindep_pots", argv[i]) == 0)
+			if(strcmp("-spindeppots", argv[i]) == 0)
 			{
 				sscanf(argv[i+1], "%d", &spindep_pots);
 			}
-			
-			
+			if(strcmp("-spindepleads", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%d", &spindep_leads);
+			}
+			if(strcmp("-spinleadpots", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%d", &spinlead_pots);
+			}
 		}
 		
 		//constant spin dependent potentials that are added during the loop
@@ -446,6 +459,16 @@ main(int argc, char *argv[])
 				sscanf(argv[i+1], "%d", &num_leads);
 			}
 		  }
+		  
+		  
+		//all leads have the general value of spin dependence by default  
+		leadspin = createIntArray(num_leads);
+		leadspinpots = createIntArray(num_leads);
+		for(i=0; i<num_leads; i++)
+		{
+			leadspin[i] = spindep_leads;
+			leadspinpots[i] = spinlead_pots;
+		}
 	  
 	  
 	      if(isperiodic==0)
@@ -1697,7 +1720,6 @@ main(int argc, char *argv[])
 				sprintf(mleadps[j]->name, "RIBBON"); //default is ribbon
 				cstart_p.leadtype[j]=0;
 				
-
 								
 				if(j==0)
 					(mleadps[j]->def_pos)=0;
@@ -1716,6 +1738,8 @@ main(int argc, char *argv[])
 						sscanf(argv[i+1], "%d", &(mleadps[j]->def_pos));
 					}
 				}
+							
+				
 				
 				if((mleadps[j]->def_pos)==0)
 					countleft++;
@@ -1778,7 +1802,25 @@ main(int argc, char *argv[])
 						}
 						
 					}
+					
 				}
+				
+				
+				//set spin-dependence of individual leads
+				for(i=1; i<argc-1; i++)
+				{
+					sprintf(temp_in_string, "-lead%dspindep", j);
+					if(strcmp(temp_in_string, argv[i]) == 0)
+					{
+						sscanf(argv[i+1], "%d", leadspin[j]);
+					}
+					sprintf(temp_in_string, "-lead%dspinpots", j);
+					if(strcmp(temp_in_string, argv[i]) == 0)
+					{
+						sscanf(argv[i+1], "%d", leadspinpots[j]);
+					}
+				}
+					
 				
 				
 				//set other lead properties
@@ -2334,6 +2376,10 @@ main(int argc, char *argv[])
 	  {
 	    gauge = 1;
 	  }
+	  
+	  
+	  leadp.leadspin=leadspin;
+	  leadp.spinpots=leadspinpots;
 		  
 		  
 	  if(ishallbar == 1 || ishallbar == 2)
@@ -2401,6 +2447,11 @@ main(int argc, char *argv[])
 		
 	  }
 
+
+	  
+	  //lead cells const-magnetic potentials
+	  
+	  
 
 	  cnxProfile cnxp;
 	 
@@ -2660,6 +2711,7 @@ main(int argc, char *argv[])
 	  double *ldoses ;
 	  double ***currents;
 	 
+	
 	  
 	  
 	  if(mappings != 0)
