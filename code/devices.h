@@ -42,6 +42,7 @@ typedef struct {
 	void *additional_params;
 	int *leadspin;
 	int *spinpots;
+	int *spinpol;
 }lead_para;
 
 typedef struct {

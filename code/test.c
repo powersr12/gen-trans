@@ -316,9 +316,10 @@ main(int argc, char *argv[])
 	//default is that leads are non-spin-dependent 
 	
 		int spindep=0, spindep_pots=0;
-		int spindep_leads=0, spinlead_pots=0;
+		int spindep_leads=0, spinlead_pots=0, spinlead_pol=0;
 		int *leadspin;
 		int *leadspinpots;
+		int *leadspinpol;
 		for(i=1; i<argc-1; i++)
 		{
 			if(strcmp("-spindep", argv[i]) == 0)
@@ -337,6 +338,11 @@ main(int argc, char *argv[])
 			{
 				sscanf(argv[i+1], "%d", &spinlead_pots);
 			}
+			if(strcmp("-spinleadpol", argv[i]) == 0)
+			{
+				sscanf(argv[i+1], "%d", &spinlead_pol);
+			}
+			
 		}
 		
 		//constant spin dependent potentials that are added during the loop
@@ -464,10 +470,12 @@ main(int argc, char *argv[])
 		//all leads have the general value of spin dependence by default  
 		leadspin = createIntArray(num_leads);
 		leadspinpots = createIntArray(num_leads);
+		leadspinpol = createIntArray(num_leads);
 		for(i=0; i<num_leads; i++)
 		{
 			leadspin[i] = spindep_leads;
 			leadspinpots[i] = spinlead_pots;
+			leadspinpol[i] = spinlead_pol;
 		}
 	  
 	  
@@ -1812,13 +1820,19 @@ main(int argc, char *argv[])
 					sprintf(temp_in_string, "-lead%dspindep", j);
 					if(strcmp(temp_in_string, argv[i]) == 0)
 					{
-						sscanf(argv[i+1], "%d", leadspin[j]);
+						sscanf(argv[i+1], "%d", &leadspin[j]);
 					}
 					sprintf(temp_in_string, "-lead%dspinpots", j);
 					if(strcmp(temp_in_string, argv[i]) == 0)
 					{
-						sscanf(argv[i+1], "%d", leadspinpots[j]);
+						sscanf(argv[i+1], "%d", &leadspinpots[j]);
 					}
+					sprintf(temp_in_string, "-lead%dspinpol", j);
+					if(strcmp(temp_in_string, argv[i]) == 0)
+					{
+						sscanf(argv[i+1], "%d", &leadspinpol[j]);
+					}
+					
 				}
 					
 				
@@ -2272,6 +2286,26 @@ main(int argc, char *argv[])
 	
 		srand(this_proc); // ? why is this here??
 
+		
+		//FM polarised leads -- each lead unpolarised, with polarised hoppings to device
+		//This reverts any spin dependent settings that would conflict, and sets necessary spindep modes
+		for(i=0; i<num_leads; i++)
+		{
+			if (leadspinpol[i] != 0 && abs(leadspinpol[i]) != 3)
+			{
+				leadspin[i] = 0;
+				spindep = 1;
+			}
+			
+ 			if (abs(leadspinpol[i]) == 3)
+			{
+				leadspin[i] = 0;
+				if(spindep==0)
+					spindep=1;
+			}
+			
+		}
+		
 
     
       
@@ -2378,9 +2412,11 @@ main(int argc, char *argv[])
 	  }
 	  
 	  
+	  
+	  
 	  leadp.leadspin=leadspin;
 	  leadp.spinpots=leadspinpots;
-		  
+	  leadp.spinpol=leadspinpol;
 		  
 	  if(ishallbar == 1 || ishallbar == 2)
 	  {
@@ -2449,8 +2485,7 @@ main(int argc, char *argv[])
 
 
 	  
-	  //lead cells const-magnetic potentials
-	  
+  
 	  
 
 	  cnxProfile cnxp;
