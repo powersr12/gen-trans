@@ -1504,6 +1504,12 @@ main(int argc, char *argv[])
 				
 				if(cedge_type==2)
 					sprintf(cedgetypename, "pwrlaw");  //exponential decay from edge
+					
+				if(cedge_type==3)
+					sprintf(cedgetypename, "lindrop");  //power law from edge
+				
+				if(cedge_type==4)
+					sprintf(cedgetypename, "efetov");  //exponential decay from edge	
 				
 			
 			}

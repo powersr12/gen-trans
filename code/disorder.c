@@ -117,13 +117,24 @@ void customEdgePots (RectRedux *DeviceCell, void *p)
   double *dispots = createDoubleArray(Ntot);
   int type = params->type;
   
-  double topedge, bottomedge, topdist, botdist;
+  double topedge, bottomedge, topdist, botdist, ribcenter;
+  double subs_eps=3.9;
+  double subs_thick=0.1E-6, n0, nmax, ny, gate_voltage;
+  double edge_cut=5.0;
   
 	//these are the exact positions of the top and bottom atomic sites
 	if(geo==0)
 	{
 		topedge=length1*sqrt(3)/2 - 1.0/(2*sqrt(3));
 		bottomedge=1.0/(2*sqrt(3));
+		
+		//efetov type
+		if(type == 4)
+		{
+			topedge=length1*sqrt(3)/2;
+			bottomedge=0.0;
+			ribcenter = topedge/2;
+		}
 	}
 
 	//armchair offset slightly to avoid division by zero for very edge sites
@@ -131,6 +142,14 @@ void customEdgePots (RectRedux *DeviceCell, void *p)
 	{
 		topedge=(length1 -1)*0.5;
 		bottomedge = 0.0;
+		
+		//efetov type
+		if(type == 4)
+		{
+			topedge=(length1)*0.5;
+			bottomedge = -0.5;
+			ribcenter = topedge/2 -0.25;
+		}
 	}
 
   
@@ -159,6 +178,11 @@ void customEdgePots (RectRedux *DeviceCell, void *p)
   	  dispots[j] += (params->AT1)*pow(fabs( ((DeviceCell->pos)[j][1] + (params->AT3) - topedge)), -(params->AT2)) + (params->AB1)*pow(fabs( ((DeviceCell->pos)[j][1] - (params->AB3) - bottomedge)), -(params->AB2)) ;
 	}
 	
+	if(type==3)
+	{
+	  dispots[j] += (params->AB1) + ((params->AT1)-(params->AB1)) * ( (DeviceCell->pos)[j][1] - (params->AB3) - bottomedge) / (topedge - (params->AT3) - (params->AB3) - bottomedge);
+	}
+	
       }
       
       if( (DeviceCell->siteinfo[j][0]) == 0 && (DeviceCell->siteinfo[j][1]) == 1)
@@ -183,7 +207,47 @@ void customEdgePots (RectRedux *DeviceCell, void *p)
   	  dispots[j] += (params->BT1)*pow(fabs( ((DeviceCell->pos)[j][1] + (params->BT3) - topedge)), -(params->BT2)) + (params->BB1)*pow(fabs( ((DeviceCell->pos)[j][1] - (params->BB3) - bottomedge)), -(params->BB2)) ;
 	}
 	
+	if(type==3)
+	{
+	  dispots[j] += (params->BB1) + ((params->BT1)-(params->BB1)) * ( (DeviceCell->pos)[j][1] - (params->BB3) - bottomedge) / (topedge - (params->BT3) - (params->BB3) - bottomedge);
+	}
+	
       }
+      
+      
+      //basic efefov: AT1=VG, AT2=edge_cut, AT3=subs_thick, subs_eps=3.9 (SiO2)
+	if(type==4)
+	{
+		//allow non-default values of edge_cut and subs_thick
+		if( (params->AT2) != 0.0)
+		{
+			edge_cut = (params->AT2);
+		}
+		
+		if( (params->AT3) != 0.0)
+		{
+			subs_thick = (params->AT3);
+		}
+		
+		gate_voltage = (params->AT1);
+		
+		n0= (subs_eps)*(8.85E-12)*fabs(gate_voltage)/(2*subs_thick * 1.6E-19);
+		nmax = n0 * ((topedge-bottomedge)/2) / sqrt( pow( (topedge-bottomedge)/2, 2)  - pow((topedge-ribcenter) - edge_cut, 2) );
+		
+		
+		ny = n0 * ((topedge-bottomedge)/2)  / sqrt( pow((topedge-bottomedge)/2, 2)  - pow((DeviceCell->pos)[j][1] - ribcenter, 2) );
+	
+		if(ny>nmax)
+			ny=nmax;
+		
+		
+		if(gate_voltage != 0.0)
+		{
+			dispots[j] += (- gate_voltage/ fabs(gate_voltage)) * (1.05E-28) * (ny/fabs(ny))* sqrt(M_PI * fabs(ny) ) / (2.7 * 1.6E-19) ;
+		}
+		
+	
+	}
       
       
       
