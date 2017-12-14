@@ -23,7 +23,7 @@ main(int argc, char *argv[])
 	  
 	  //general system inputs and default values
 	      char systemtype[32];
-	      char geotype[32], peritype[40], leadtype[32], sysinfo[120], loopinfo[80], loopmininfo[80], disinfo[40], cedgeinfo[40];
+	      char geotype[32], peritype[40], leadtype[32], sysinfo[120], loopinfo[80], loopmininfo[80], disinfo[40], cedgeinfo[40], dedgeinfo[40];
 	      sprintf(systemtype, "SUBLATTICEPOT");
 	      int length1=2, length2=3*length1, geo=0, isperiodic=1, ismagnetic=0;
 	      int makebands = 0, unfold=0, project=0, kxpoints=51, bandsonly=0, bandsminset=0, bandsmaxset=100000;
@@ -65,6 +65,7 @@ main(int argc, char *argv[])
 	      int gauge = 0; 	//default gauge choice, phase is along x
 	      int potdis =0;	//is there an additional, random potential disorder in the system?
 	      int cedge = 0;	//is/are there (a) custom potential(s) near the ribbon edges
+	      int dedge = 0;    //secondary edge potential
 	      
 	      
 	      int splitgen =0;	//if =1, splits the system generation and calculation
@@ -164,6 +165,11 @@ main(int argc, char *argv[])
 		    {
 			sscanf(argv[i+1], "%d", &cedge);
 		    }
+		    if(strcmp("-dedge", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &dedge);
+		    }
+		    
 		  }
 			//default value of num_neigh for single layer graphene.
 			//each mode increases the num of neighbour terms by 1
@@ -1539,6 +1545,186 @@ main(int argc, char *argv[])
 		}
 	      
 	      
+	      
+	//secondary potential profiles near edges
+		int dedge_leads=0, dedge_posonly=0;
+		int dedge_type=0;
+		char dedgeconf[40], dedgetypename[40];
+		//strength (1) and coefficients (2,3,4) for each sublattice at top T and bottom B edges
+		//(2) generally shows the extent of the potential (decay constant, etc)
+		//(3) is generally a distance modifying the edge position from the edgemost atom to elsewhere
+		double dedge_AT1=0.0, dedge_AT2=0, dedge_AT3=0.0, dedge_AT4=0;
+		double dedge_BT1=0.0, dedge_BT2=0, dedge_BT3=0.0, dedge_BT4=0;
+		double dedge_AB1=0.0, dedge_AB2=0, dedge_AB3=0.0, dedge_AB4=0;
+		double dedge_BB1=0.0, dedge_BB2=0, dedge_BB3=0.0, dedge_BB4=0;
+		
+			sprintf(dedgeconf, "misc");
+			sprintf(dedgetypename, "");
+		
+		cedgepot_para dedgepara = {};
+		
+		if(dedge==1)
+		{
+			for(i=1; i<argc-1; i++)
+			{
+				if(strcmp("-deleads", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &dedge_leads);
+				}
+				if(strcmp("-deposonly", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &dedge_posonly);
+				}
+				if(strcmp("-detype", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &dedge_type);
+				}
+				//shorthand arguments for multiple params
+				//sets that there is no dependence on particlar sublattice or edge
+				if(strcmp("-de1", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &dedge_AT1);
+					dedge_BT1 = dedge_AT1;
+					dedge_AB1 = dedge_AT1;
+					dedge_BB1 = dedge_AT1;
+				}
+				if(strcmp("-de2", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &dedge_AT2);
+					dedge_BT2 = dedge_AT2;
+					dedge_AB2 = dedge_AT2;
+					dedge_BB2 = dedge_AT2;
+				}
+				if(strcmp("-de3", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &dedge_AT3);
+					dedge_BT3 = dedge_AT3;
+					dedge_AB3 = dedge_AT3;
+					dedge_BB3 = dedge_AT3;
+				}
+				if(strcmp("-de4", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &dedge_AT4);
+					dedge_BT4 = dedge_AT4;
+					dedge_AB4 = dedge_AT4;
+					dedge_BB4 = dedge_AT4;
+				}
+				
+				//individual sublattice/edge params
+				if(strcmp("-deAT1", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &dedge_AT1);
+				}
+				if(strcmp("-deAT2", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &dedge_AT2);
+				}
+				if(strcmp("-deAT3", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &dedge_AT3);
+				}
+				if(strcmp("-deAT4", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &dedge_AT4);
+				}
+				
+				if(strcmp("-deBT1", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &dedge_BT1);
+				}
+				if(strcmp("-deBT2", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &dedge_BT2);
+				}
+				if(strcmp("-deBT3", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &dedge_BT3);
+				}
+				if(strcmp("-deBT4", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &dedge_BT4);
+				}
+				
+				if(strcmp("-deAB1", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &dedge_AB1);
+				}
+				if(strcmp("-deAB2", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &dedge_AB2);
+				}
+				if(strcmp("-deAB3", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &dedge_AB3);
+				}
+				if(strcmp("-deAB4", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &dedge_AB4);
+				}
+				
+				if(strcmp("-deBB1", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &dedge_BB1);
+				}
+				if(strcmp("-deBB2", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &dedge_BB2);
+				}
+				if(strcmp("-deBB3", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &dedge_BB3);
+				}
+				if(strcmp("-deBB4", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &dedge_BB4);
+				}
+				
+				if(strcmp("-dename", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%s", dedgeconf);
+				}
+				
+				if(dedge_type==0)
+					sprintf(dedgetypename, "cnst");  //const pot within distance of edge
+					
+				if(dedge_type==1)
+					sprintf(dedgetypename, "expdcy");  //power law from edge
+				
+				if(dedge_type==2)
+					sprintf(dedgetypename, "pwrlaw");  //exponential decay from edge
+					
+				if(dedge_type==3)
+					sprintf(dedgetypename, "lindrop");  //power law from edge
+				
+				if(dedge_type==4)
+					sprintf(dedgetypename, "efetov");  //exponential decay from edge	
+				
+			
+			}
+		
+			dedgepara.type=dedge_type;
+			dedgepara.AT1=dedge_AT1;
+			dedgepara.AT2=dedge_AT2;
+			dedgepara.AT3=dedge_AT3;
+			dedgepara.AT4=dedge_AT4; 
+			dedgepara.BT1=dedge_BT1;
+			dedgepara.BT2=dedge_BT2;
+			dedgepara.BT3=dedge_BT3;
+			dedgepara.BT4=dedge_BT4;
+			dedgepara.AB1=dedge_AB1;
+			dedgepara.AB2=dedge_AB2;
+			dedgepara.AB3=dedge_AB3;
+			dedgepara.AB4=dedge_AB4;
+			dedgepara.BB1=dedge_BB1;
+			dedgepara.BB2=dedge_BB2;
+			dedgepara.BB3=dedge_BB3;
+			dedgepara.BB4=dedge_BB4;
+			
+			sprintf(dedgeinfo, "CEDGE_%s_%s", dedgetypename, dedgeconf);
+			
+			if(dedge_leads==0)
+				sprintf(dedgeinfo, "CEDGEnl_%s_%s", dedgetypename, dedgeconf);
+		}
 	  
 	  
 	  connectrules = default_connect_rule;
@@ -2369,7 +2555,10 @@ main(int argc, char *argv[])
 	    {
 	      sprintf(direcname, "%s/%s", direcname, cedgeinfo);
 	    }
-	    
+	    if(dedge==1)
+	    {
+	      sprintf(direcname, "%s/%s", direcname, dedgeinfo);
+	    }
 	    
 	    sprintf(command, "mkdir -p %s", direcname);
 	    system(command);
@@ -2500,10 +2689,11 @@ main(int argc, char *argv[])
 				if(cedge == 1)
 				{
 					customEdgePots (&System, &cedgepara);
-					
-					
 				}
-				
+				if(dedge == 1)
+				{
+					customEdgePots (&System, &dedgepara);
+				}
 				
 				//export the disorder configuration for the other processes calculating the same configuration
 				if(procs>0)
@@ -2659,6 +2849,25 @@ main(int argc, char *argv[])
 				
 			}				
 		}
+		
+		if(dedge==1 && dedge_leads == 1)
+		{
+			for(i=0; i<num_leads; i++)
+			{
+				if(ishallbar==0)
+					customEdgePots (LeadCells[i], &dedgepara);
+				
+				if(ishallbar==4)
+				{
+					if(strcmp("RIBBON", (mleadps[i]->name)) == 0 && ( (mleadps[i]->def_pos) == 0 || (mleadps[i]->def_pos) == 1 ) )
+					{
+						customEdgePots (LeadCells[i], &dedgepara);
+					}
+				}
+				
+			}				
+		}
+		
 	  
 
 
