@@ -2289,6 +2289,8 @@ main(int argc, char *argv[])
 		
 		//FM polarised leads -- each lead unpolarised, with polarised hoppings to device
 		//This reverts any spin dependent settings that would conflict, and sets necessary spindep modes
+		//(i.e. turns off spin dependence IN leads)
+		
 		for(i=0; i<num_leads; i++)
 		{
 			if (leadspinpol[i] != 0 && abs(leadspinpol[i]) != 3)
@@ -2300,8 +2302,10 @@ main(int argc, char *argv[])
  			if (abs(leadspinpol[i]) == 3)
 			{
 				leadspin[i] = 0;
+				
+				//(not sure why this case would arise, but anyway...)
 				if(spindep==0)
-					spindep=1;
+					spindep=1; //set this to 2 when 2 is implemented fully!
 			}
 			
 		}
@@ -3052,7 +3056,7 @@ main(int argc, char *argv[])
 		}
 	      }
 	      if(spindep!=0)
-		printf("%lf	%.8e	%.8e	%.8e\n", realE, spin_trans[0][1], spin_trans[2][3], transmissions[0][1]);
+		printf("%lf	%.8e	%.8e	%.8e	%.8e	%.8e\n", realE, transmissions[0][1], spin_trans[0][1], spin_trans[0][3], spin_trans[2][1], spin_trans[2][3] );
 
 	      
 	      //print maps
