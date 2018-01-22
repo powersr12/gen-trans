@@ -2297,7 +2297,7 @@ main(int argc, char *argv[])
 			{
 				leadspin[i] = 0;
 				spindep = 1;
-			}
+		}
 			
  			if (abs(leadspinpol[i]) == 3)
 			{
