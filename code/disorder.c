@@ -191,6 +191,7 @@ void customEdgePots (RectRedux *DeviceCell, void *p)
 		if((DeviceCell->pos)[j][1] > (topedge - (params->AT3)))
 		{
 			dispots[j] += (params->AT1);
+
 		}
 		
 	}
