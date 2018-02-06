@@ -180,7 +180,19 @@ void customEdgePots (RectRedux *DeviceCell, void *p)
 	
 	if(type==3)
 	{
-	  dispots[j] += (params->AB1) + ((params->AT1)-(params->AB1)) * ( (DeviceCell->pos)[j][1] - (params->AB3) - bottomedge) / (topedge - (params->AT3) - (params->AB3) - bottomedge);
+		if((DeviceCell->pos)[j][1] > (bottomedge + (params->AB3)) && (DeviceCell->pos)[j][1] < (topedge - (params->AT3)))
+		{
+			dispots[j] += (params->AB1) + ((params->AT1)-(params->AB1)) * ( (DeviceCell->pos)[j][1] - (params->AB3) - bottomedge) / (topedge - (params->AT3) - (params->AB3) - bottomedge);
+		}
+		if((DeviceCell->pos)[j][1] < (bottomedge + (params->AB3)))
+		{
+			dispots[j] += (params->AB1);
+		}
+		if((DeviceCell->pos)[j][1] > (topedge - (params->AT3)))
+		{
+			dispots[j] += (params->AT1);
+		}
+		
 	}
 	
       }
@@ -209,7 +221,24 @@ void customEdgePots (RectRedux *DeviceCell, void *p)
 	
 	if(type==3)
 	{
-	  dispots[j] += (params->BB1) + ((params->BT1)-(params->BB1)) * ( (DeviceCell->pos)[j][1] - (params->BB3) - bottomedge) / (topedge - (params->BT3) - (params->BB3) - bottomedge);
+	  //dispots[j] += (params->BB1) + ((params->BT1)-(params->BB1)) * ( (DeviceCell->pos)[j][1] - (params->BB3) - bottomedge) / (topedge - (params->BT3) - (params->BB3) - bottomedge);
+	  
+		if((DeviceCell->pos)[j][1] > (bottomedge + (params->BB3)) && (DeviceCell->pos)[j][1] < (topedge - (params->BT3)))
+		{
+			dispots[j] += (params->BB1) + ((params->BT1)-(params->BB1)) * ( (DeviceCell->pos)[j][1] - (params->BB3) - bottomedge) / (topedge - (params->BT3) - (params->BB3) - bottomedge);
+		}
+		if((DeviceCell->pos)[j][1] < (bottomedge + (params->BB3)))
+		{
+			dispots[j] += (params->BB1);
+		}
+		if((DeviceCell->pos)[j][1] > (topedge - (params->BT3)))
+		{
+			dispots[j] += (params->BT1);
+		}
+	  
+	  
+	  
+	  
 	}
 	
       }
