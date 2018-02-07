@@ -23,7 +23,7 @@ main(int argc, char *argv[])
 	  
 	  //general system inputs and default values
 	      char systemtype[32];
-	      char geotype[32], peritype[40], leadtype[32], sysinfo[120], loopinfo[80], loopmininfo[80], disinfo[40], cedgeinfo[40], dedgeinfo[40];
+	      char geotype[32], peritype[40], leadtype[32], sysinfo[120], loopinfo[80], loopmininfo[80], disinfo[40], cedgeinfo[40], dedgeinfo[40], eedgeinfo[40];
 	      sprintf(systemtype, "SUBLATTICEPOT");
 	      int length1=2, length2=3*length1, geo=0, isperiodic=1, ismagnetic=0;
 	      int makebands = 0, unfold=0, project=0, kxpoints=51, bandsonly=0, bandsminset=0, bandsmaxset=100000;
@@ -66,6 +66,8 @@ main(int argc, char *argv[])
 	      int potdis =0;	//is there an additional, random potential disorder in the system?
 	      int cedge = 0;	//is/are there (a) custom potential(s) near the ribbon edges
 	      int dedge = 0;    //secondary edge potential
+      	      int eedge = 0;    //tertiary edge potential (is this taking the piss a bit?)
+
 	      
 	      
 	      int splitgen =0;	//if =1, splits the system generation and calculation
@@ -168,6 +170,10 @@ main(int argc, char *argv[])
 		    if(strcmp("-dedge", argv[i]) == 0)
 		    {
 			sscanf(argv[i+1], "%d", &dedge);
+		    }
+		    if(strcmp("-eedge", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &eedge);
 		    }
 		    
 		  }
@@ -1727,6 +1733,187 @@ main(int argc, char *argv[])
 		}
 	  
 	  
+	//tertiary potential profiles near edges
+		int eedge_leads=0, eedge_posonly=0;
+		int eedge_type=0;
+		char eedgeconf[40], eedgetypename[40];
+		//strength (1) and coefficients (2,3,4) for each sublattice at top T and bottom B edges
+		//(2) generally shows the extent of the potential (decay constant, etc)
+		//(3) is generally a distance modifying the edge position from the edgemost atom to elsewhere
+		double eedge_AT1=0.0, eedge_AT2=0, eedge_AT3=0.0, eedge_AT4=0;
+		double eedge_BT1=0.0, eedge_BT2=0, eedge_BT3=0.0, eedge_BT4=0;
+		double eedge_AB1=0.0, eedge_AB2=0, eedge_AB3=0.0, eedge_AB4=0;
+		double eedge_BB1=0.0, eedge_BB2=0, eedge_BB3=0.0, eedge_BB4=0;
+		
+			sprintf(eedgeconf, "misc");
+			sprintf(eedgetypename, "");
+		
+		cedgepot_para eedgepara = {};
+		
+		if(eedge==1)
+		{
+			for(i=1; i<argc-1; i++)
+			{
+				if(strcmp("-eeleads", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &eedge_leads);
+				}
+				if(strcmp("-eeposonly", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &eedge_posonly);
+				}
+				if(strcmp("-eetype", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &eedge_type);
+				}
+				//shorthand arguments for multiple params
+				//sets that there is no dependence on particlar sublattice or edge
+				if(strcmp("-ee1", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", eedge_AT1);
+					eedge_BT1 = eedge_AT1;
+					eedge_AB1 = eedge_AT1;
+					eedge_BB1 = eedge_AT1;
+				}
+				if(strcmp("-ee2", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &eedge_AT2);
+					eedge_BT2 = eedge_AT2;
+					eedge_AB2 = eedge_AT2;
+					eedge_BB2 = eedge_AT2;
+				}
+				if(strcmp("-ee3", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &eedge_AT3);
+					eedge_BT3 = eedge_AT3;
+					eedge_AB3 = eedge_AT3;
+					eedge_BB3 = eedge_AT3;
+				}
+				if(strcmp("-ee4", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &eedge_AT4);
+					eedge_BT4 = eedge_AT4;
+					eedge_AB4 = eedge_AT4;
+					eedge_BB4 = eedge_AT4;
+				}
+				
+				//individual sublattice/edge params
+				if(strcmp("-eeAT1", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &eedge_AT1);
+				}
+				if(strcmp("-eeAT2", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &eedge_AT2);
+				}
+				if(strcmp("-eeAT3", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &eedge_AT3);
+				}
+				if(strcmp("-eeAT4", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &eedge_AT4);
+				}
+				
+				if(strcmp("-eeBT1", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &eedge_BT1);
+				}
+				if(strcmp("-eeBT2", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &eedge_BT2);
+				}
+				if(strcmp("-eeBT3", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &eedge_BT3);
+				}
+				if(strcmp("-eeBT4", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &eedge_BT4);
+				}
+				
+				if(strcmp("-eeAB1", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &eedge_AB1);
+				}
+				if(strcmp("-eeAB2", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &eedge_AB2);
+				}
+				if(strcmp("-eeAB3", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &eedge_AB3);
+				}
+				if(strcmp("-eeAB4", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &eedge_AB4);
+				}
+				
+				if(strcmp("-eeBB1", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &eedge_BB1);
+				}
+				if(strcmp("-eeBB2", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &eedge_BB2);
+				}
+				if(strcmp("-eeBB3", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &eedge_BB3);
+				}
+				if(strcmp("-eeBB4", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &eedge_BB4);
+				}
+				
+				if(strcmp("-eename", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%s", eedgeconf);
+				}
+				
+				if(eedge_type==0)
+					sprintf(eedgetypename, "cnst");  //const pot within distance of edge
+					
+				if(eedge_type==1)
+					sprintf(eedgetypename, "expdcy");  //power law from edge
+				
+				if(eedge_type==2)
+					sprintf(eedgetypename, "pwrlaw");  //exponential decay from edge
+					
+				if(eedge_type==3)
+					sprintf(eedgetypename, "lindrop");  //power law from edge
+				
+				if(eedge_type==4)
+					sprintf(eedgetypename, "efetov");  //exponential decay from edge	
+				
+			
+			}
+		
+			eedgepara.type=eedge_type;
+			eedgepara.AT1=eedge_AT1;
+			eedgepara.AT2=eedge_AT2;
+			eedgepara.AT3=eedge_AT3;
+			eedgepara.AT4=eedge_AT4; 
+			eedgepara.BT1=eedge_BT1;
+			eedgepara.BT2=eedge_BT2;
+			eedgepara.BT3=eedge_BT3;
+			eedgepara.BT4=eedge_BT4;
+			eedgepara.AB1=eedge_AB1;
+			eedgepara.AB2=eedge_AB2;
+			eedgepara.AB3=eedge_AB3;
+			eedgepara.AB4=eedge_AB4;
+			eedgepara.BB1=eedge_BB1;
+			eedgepara.BB2=eedge_BB2;
+			eedgepara.BB3=eedge_BB3;
+			eedgepara.BB4=eedge_BB4;
+			
+			sprintf(eedgeinfo, "CEDGE_%s_%s", eedgetypename, eedgeconf);
+			
+			if(eedge_leads==0)
+				sprintf(eedgeinfo, "CEDGEnl_%s_%s", eedgetypename, eedgeconf);
+		}
+		
+	  
 	  connectrules = default_connect_rule;
 	  
 	  //standard hall settings
@@ -2559,6 +2746,10 @@ main(int argc, char *argv[])
 	    {
 	      sprintf(direcname, "%s/%s", direcname, dedgeinfo);
 	    }
+	    if(eedge==1)
+	    {
+	      sprintf(direcname, "%s/%s", direcname, eedgeinfo);
+	    }
 	    
 	    sprintf(command, "mkdir -p %s", direcname);
 	    system(command);
@@ -2693,6 +2884,10 @@ main(int argc, char *argv[])
 				if(dedge == 1)
 				{
 					customEdgePots (&System, &dedgepara);
+				}
+				if(eedge == 1)
+				{
+					customEdgePots (&System, &eedgepara);
 				}
 				
 				//export the disorder configuration for the other processes calculating the same configuration
@@ -2862,6 +3057,24 @@ main(int argc, char *argv[])
 					if(strcmp("RIBBON", (mleadps[i]->name)) == 0 && ( (mleadps[i]->def_pos) == 0 || (mleadps[i]->def_pos) == 1 ) )
 					{
 						customEdgePots (LeadCells[i], &dedgepara);
+					}
+				}
+				
+			}				
+		}
+		
+		if(eedge==1 && eedge_leads == 1)
+		{
+			for(i=0; i<num_leads; i++)
+			{
+				if(ishallbar==0)
+					customEdgePots (LeadCells[i], &eedgepara);
+				
+				if(ishallbar==4)
+				{
+					if(strcmp("RIBBON", (mleadps[i]->name)) == 0 && ( (mleadps[i]->def_pos) == 0 || (mleadps[i]->def_pos) == 1 ) )
+					{
+						customEdgePots (LeadCells[i], &eedgepara);
 					}
 				}
 				
