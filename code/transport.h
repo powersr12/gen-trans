@@ -41,7 +41,7 @@ typedef struct {
 	int num_leads;
 	int TRsym;
 	double **transmissions;
-	double **spin_trans;
+	double _Complex **spin_trans;
 }trans_params;
 
 

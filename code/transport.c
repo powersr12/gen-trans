@@ -225,7 +225,7 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 	//Calculate the transmissions between all the leads	
 		//s1 and s2 keep track of cumulative dimensions (i.e starting indices)
 		
-		double tempt=0, tempt2=0, temptud=0, temptdu=0;
+		double _Complex tempt=0, tempt2=0, temptud=0, temptdu=0;
 		//each lead pair has only a total electronic transmission
 		if(spindep == 0)
 		{
@@ -297,10 +297,28 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 					
 				//Gamma is now spin dependent!
 				Gamma1 = createSquareMatrix(2*d1);
-				//MatrixCopyPart(Gamma, Gamma1, s1, s1, 0, 0, d1, d1);
-				//MatrixCopyPart(Gamma, Gamma1, tcell1dim+s1, tcell1dim+s1, d1, d1, d1, d1);	
-				//MatrixCopyPart(Gamma, Gamma1, s1, tcell1dim+s1, 0, d1, d1, d1);	
+				MatrixCopyPart(Gamma, Gamma1, s1, s1, 0, 0, d1, d1);
+				MatrixCopyPart(Gamma, Gamma1, tcell1dim+s1, tcell1dim+s1, d1, d1, d1, d1);	
+				MatrixCopyPart(Gamma, Gamma1, s1, tcell1dim+s1, 0, d1, d1, d1);	
 				MatrixCopyPart(Gamma, Gamma1, tcell1dim+s1, s1, d1, 0, d1, d1);
+				
+//z-spin				
+// 				MatrixCopyPartM(Gamma, Gamma1, 1.0, s1, s1, 0, 0, d1, d1);
+// 				MatrixCopyPartM(Gamma, Gamma1, -1.0, tcell1dim+s1, tcell1dim+s1, d1, d1, d1, d1);	
+// 				MatrixCopyPartM(Gamma, Gamma1, 1.0, s1, tcell1dim+s1, 0, d1, d1, d1);	
+// 				MatrixCopyPartM(Gamma, Gamma1, -1.0, tcell1dim+s1, s1, d1, 0, d1, d1);
+				
+//x-spin				
+// 				MatrixCopyPartM(Gamma, Gamma1, 1.0, s1, s1, d1, 0, d1, d1);
+// 				MatrixCopyPartM(Gamma, Gamma1, 1.0, s1, tcell1dim+s1, d1, d1, d1, d1);	
+// 				MatrixCopyPartM(Gamma, Gamma1, 1.0, tcell1dim+s1, s1, 0, 0, d1, d1);		
+// 				MatrixCopyPartM(Gamma, Gamma1, 1.0, tcell1dim+s1, tcell1dim+s1, 0, d1, d1, d1);
+				
+//y-spin				
+// 				MatrixCopyPartM(Gamma, Gamma1, I, s1, s1, d1, 0, d1, d1);
+// 				MatrixCopyPartM(Gamma, Gamma1, I, s1, tcell1dim+s1, d1, d1, d1, d1);	
+// 				MatrixCopyPartM(Gamma, Gamma1, -I, tcell1dim+s1, s1, 0, 0, d1, d1);		
+// 				MatrixCopyPartM(Gamma, Gamma1, -I, tcell1dim+s1, tcell1dim+s1, 0, d1, d1, d1);
 				
 				//printEMatrix(Gamma1, 2*d1);
 					
@@ -336,6 +354,7 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 						temp2=createNonSquareMatrix(2*d1, 2*d2);
 						MatrixMultNS(temp1, Gamma2, temp2, 2*d1, 2*d2, 2*d2);
 						FreeMatrix(temp1);
+						FreeMatrix(gsr);
 						
 						
 						tempt=0; tempt2 =0; temptud=0; temptdu=0;
@@ -343,23 +362,23 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 						{
 							for(l=0; l<d2; l++)
 							{
-								tempt += creal( temp2[k][l] * gsa[l][k]);
-								tempt2 += creal( temp2[d1+k][d2+l] * gsa[d2+l][d1+k]);
-								temptud += creal( temp2[k][d2+l] * gsa[d2+l][k]);
-								temptdu += creal( temp2[d1+k][l] *gsa[l][d1+k]);
+								tempt +=temp2[k][l] * gsa[l][k];
+								tempt2 += temp2[d1+k][d2+l] * gsa[d2+l][d1+k];
+								temptud +=  temp2[k][d2+l] * gsa[d2+l][k];
+								temptdu +=  temp2[d1+k][l] *gsa[l][d1+k];
 							}
 						}
 						(tpara->spin_trans)[i][j] = tempt;
 						(tpara->spin_trans)[num_leads+i][num_leads+j] = tempt2;
 						(tpara->spin_trans)[i][num_leads+j] = temptud;
 						(tpara->spin_trans)[num_leads+i][j] = temptdu;
-						(tpara->transmissions)[i][j] = tempt +tempt2 + temptud + temptdu;
+						(tpara->transmissions)[i][j] = creal(tempt +tempt2 + temptud + temptdu);
 						//printf("# %lf	%lf	%lf	%lf\n", tempt ,tempt2 , temptud , temptdu);
 						FreeMatrix(temp2);
 						
 						
 						s2+=d2;
-						FreeMatrix(gsr); FreeMatrix(Gamma2); FreeMatrix(gsa);
+						 FreeMatrix(Gamma2); FreeMatrix(gsa);
 						
 					}
 					s1+=d1;
@@ -656,7 +675,7 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp, ce
 					}
 					
 				}
-// 				printEMatrix(g00inv, dim);
+//  				printEMatrix(g00inv, 2*dim);
 
 			
 			
@@ -748,16 +767,17 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp, ce
 						}
 					}
 				}
+				//printEMatrix(g00inv, 2*dim);
 
 						//check non-zero elements at the cell stage
-//  						printf("%d cell \n#g00inv\n", it_count);
-//  						listNonZero(g00inv, dim, dim);
-//  						if(it_count>0)
-//  						{
+//   						printf("%d cell \n#g00inv\n", it_count);
+//   						listNonZero(g00inv, 2*dim, 2*dim);
+//   						if(it_count>0)
+//   						{
 //  							  printf("\n#V21\n");
-//  							  listNonZero(V21, dim, dim_old);
-// 							  printf("\n#V12\n");
-//  							  listNonZero(V12, dim_old, dim);
+//   							  listNonZero(V21, dim, dim_old);
+//  							  printf("\n#V12\n");
+//   							  listNonZero(V12, dim_old, dim);
 //  						}
 		
 		
@@ -2524,12 +2544,14 @@ void multipleLeads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadC
     gen_hop_params *hoppingparams = (gen_hop_params *)(ribpara->hoppara);
 
     int spindep = DeviceCell->spindep;
-    int leadspindep, sumspin;
+    int leadspindep, sumspin, leadspinpol, spinpolsign;
     int cell1dim = (cellinfo->cell1dim);
 
     for(leadloop=0; leadloop < num_leads; leadloop++)
     {
 	leadspindep = (LeadCells[leadloop]->spindep);
+	leadspinpol = (params->spinpol)[leadloop];
+
 	
       //generate leads SGFs
   
@@ -2671,35 +2693,103 @@ void multipleLeads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadC
 			
 	}
 	  
-	MatrixCopyPart(smallSigma, Sigma, 0, 0, dimcounta, dimcounta, dim1a, dim1a);
-	
-	if(spindep==1 && leadspindep == 1)
+	//Lead is not "brute-polarised"
+	if(leadspinpol == 0)
 	{
-		MatrixCopyPart(smallSigma, Sigma, 0, dim1a, dimcounta, cell1dim + dimcounta, dim1a, dim1a);
-		MatrixCopyPart(smallSigma, Sigma, dim1a, dim1a, cell1dim + dimcounta, cell1dim + dimcounta, dim1a, dim1a);
-		MatrixCopyPart(smallSigma, Sigma, dim1a, 0, cell1dim + dimcounta, dimcounta, dim1a, dim1a);
+		MatrixCopyPart(smallSigma, Sigma, 0, 0, dimcounta, dimcounta, dim1a, dim1a);
+		
+		if(spindep==1 && leadspindep == 1)
+		{
+			MatrixCopyPart(smallSigma, Sigma, 0, dim1a, dimcounta, cell1dim + dimcounta, dim1a, dim1a);
+			MatrixCopyPart(smallSigma, Sigma, dim1a, dim1a, cell1dim + dimcounta, cell1dim + dimcounta, dim1a, dim1a);
+			MatrixCopyPart(smallSigma, Sigma, dim1a, 0, cell1dim + dimcounta, dimcounta, dim1a, dim1a);
+		}
+		
+		if(spindep==1 && leadspindep == 0)
+		{
+			MatrixCopyPart(smallSigma, Sigma, 0, 0, cell1dim + dimcounta, cell1dim + dimcounta, dim1a, dim1a);
+		}
+		
+		
+		if(spindep==2 && leadspindep == 1)
+		{
+			MatrixCopyPart(smallSigma, Sigma, dim1a, 0, cell1dim + dimcounta, dimcounta, dim1a, dim1a);
+		}
+		
+		if(spindep==2 && leadspindep == 0)
+		{
+			MatrixCopyPart(smallSigma, Sigma, 0, 0, cell1dim + dimcounta, dimcounta, dim1a, dim1a);
+		}
 	}
 	
-	if(spindep==1 && leadspindep == 0)
+	
+	//Lead is "brute polarised" (i.e. hoppings to bulk modified -- leadspindep=0, spindep=1 or 2
+	//(in this case leadspindep=0 should be set from the main code)
+	if(leadspinpol != 0)
 	{
-		MatrixCopyPart(smallSigma, Sigma, 0, 0, cell1dim + dimcounta, cell1dim + dimcounta, dim1a, dim1a);
+		spinpolsign = leadspinpol / abs(leadspinpol);
+		
+		//error!    
+		if(leadspindep !=0)
+		{
+			exit(1);
+		}
+	
+		//x-direction spin polarised leads (spindep=1 and leadspindep=0)
+		if(leadspinpol == 1 || leadspinpol == -1)
+		{
+			for(i=0; i<dim1a; i++)
+			{
+				for(j=0; j<dim1a; j++)
+				{
+					Sigma[dimcounta + i][dimcounta + j] = 0.5 * smallSigma[i][j];
+					Sigma[dimcounta + i][cell1dim + dimcounta + j] = 0.5 * spinpolsign * smallSigma[i][j];
+					Sigma[cell1dim + dimcounta + i][dimcounta + j] = 0.5 * spinpolsign* smallSigma[i][j];
+					Sigma[cell1dim + dimcounta + i][cell1dim + dimcounta + j] = 0.5 * smallSigma[i][j];
+				}
+			}
+		}
+	
+		//y-direction spin polarised leads (spindep=1 and leadspindep=0)
+		if(leadspinpol == 2 || leadspinpol == -2)
+		{
+			for(i=0; i<dim1a; i++)
+			{
+				for(j=0; j<dim1a; j++)
+				{
+					Sigma[dimcounta + i][dimcounta + j] = 0.5 * smallSigma[i][j];
+					Sigma[dimcounta + i][cell1dim + dimcounta + j] = - 0.5 * I * spinpolsign * smallSigma[i][j];
+					Sigma[cell1dim + dimcounta + i][dimcounta + j] = 0.5 * I * spinpolsign * smallSigma[i][j];
+					Sigma[cell1dim + dimcounta + i][cell1dim + dimcounta + j] = 0.5 * smallSigma[i][j];
+				}
+			}
+		}
+		
+		
+		//z-direction spin polarised leads (spindep=1 and leadspindep=0)
+		if(leadspinpol == 3)
+		{
+			MatrixCopyPart(smallSigma, Sigma, 0, 0, dimcounta, dimcounta, dim1a, dim1a);
+		}
+		
+		if(leadspinpol == -3 && spindep == 1)
+		{
+			MatrixCopyPart(smallSigma, Sigma, 0, 0, cell1dim + dimcounta, cell1dim + dimcounta, dim1a, dim1a);
+		}
+		if(leadspinpol == -3 && spindep == 2)
+		{
+			MatrixCopyPart(smallSigma, Sigma, 0, 0, cell1dim + dimcounta, dimcounta, dim1a, dim1a);
+		}
+	
+	
+	
+	
+	
 	}
-	
-	
-	if(spindep==2 && leadspindep == 1)
-	{
-		MatrixCopyPart(smallSigma, Sigma, dim1a, 0, cell1dim + dimcounta, dimcounta, dim1a, dim1a);
-	}
-	
-	if(spindep==2 && leadspindep == 0)
-	{
-		MatrixCopyPart(smallSigma, Sigma, 0, 0, cell1dim + dimcounta, dimcounta, dim1a, dim1a);
-	}
-	
-	
-	
 	
 		FreeMatrix(smallSigma); 
+		
+		
 		
 		
 		

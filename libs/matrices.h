@@ -17,6 +17,9 @@
 
 void MatrixCopy(double _Complex **Orig, double _Complex **Copy, int dim);
 void MatrixCopyPart(double _Complex **Orig, double _Complex **Copy, int istartdim1, int jstartdim1,  int istartdim2, int jstartdim2, int dim1, int dim2);
+void MatrixCopyPartM(double _Complex **Orig, double _Complex **Copy, double _Complex factor, int istartdim1, int jstartdim1,  int istartdim2, int jstartdim2, int dim1, int dim2);
+
+
 void IntMatrixCopyPart(int **Orig, int **Copy, int istartdim1, int jstartdim1,  int istartdim2, int jstartdim2, int dim1, int dim2);
 
 double _Complex **createSquareMatrix(int dim)	;

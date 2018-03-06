@@ -364,7 +364,7 @@ main(int argc, char *argv[])
 			}
 			if(strcmp("-spinzpot", argv[i]) == 0)
 			{
-				sscanf(argv[i+1], "%lf", &spinypot);
+				sscanf(argv[i+1], "%lf", &spinzpot);
 			}
 		}
 		
@@ -2090,6 +2090,18 @@ main(int argc, char *argv[])
 
 	      }
 	      
+	      //loops over zeeman-type magnetic fields
+	      if(strcmp("Zx", loop_type) == 0 || strcmp("Zy", loop_type) == 0 || strcmp("Zz", loop_type) == 0)
+	      {
+		realE = Emin;
+		loopmin = Bmin;
+		loopmax = Bmax;
+		sprintf(loopinfo, "%sloop_%+.2lf_to_%+.2lf_Efixed_%+.3lf", loop_type, Bmin, Bmax, realE);
+		sprintf(loopmininfo, "E_%+.3lf_B_%+.3lf", realE, Bmin);
+
+
+	      }
+	      
 	      
 	      
 	      double edge_cut=5.0, subs_thick=0.1E-6, subs_epsr=3.9;
@@ -2722,11 +2734,11 @@ main(int argc, char *argv[])
 	  tpara.num_leads=num_leads;
 	  tpara.TRsym=ismagnetic;
 	  double **transmissions = createNonSquareDoubleMatrix(num_leads, num_leads);
-	  double **spin_trans;
+	  double _Complex **spin_trans;
 	  
 	  if(spindep == 1 || spindep == 2)
 	  {
-		  spin_trans = createNonSquareDoubleMatrix(2*num_leads, 2*num_leads);
+		  spin_trans = createNonSquareMatrix(2*num_leads, 2*num_leads);
 	  }
 	  
 	  double **ttildas=createNonSquareDoubleMatrix(num_leads, num_leads);
@@ -2950,6 +2962,29 @@ main(int argc, char *argv[])
 
 	      }
 	      
+	      if(strcmp("Zx", loop_type) == 0 )
+	      {
+		spinxpot = loop_min_temp + en*loop_step;
+		(System.const_spin_pots)[0]= spinxpot;
+	      }
+	      
+	      if(strcmp("Zy", loop_type) == 0 )
+	      {
+		spinypot = loop_min_temp + en*loop_step;
+		(System.const_spin_pots)[1]= spinypot;
+	      }
+	      
+	      if(strcmp("Zz", loop_type) == 0 )
+	      {
+		spinzpot = loop_min_temp + en*loop_step;
+		(System.const_spin_pots)[2]= spinzpot;
+	      }
+	      
+		
+	      
+		      
+		      
+	      
 	      if(strcmp("VG", loop_type) == 0)
 	      {
 		VG =  loop_min_temp + en*loop_step;
@@ -3050,13 +3085,28 @@ main(int argc, char *argv[])
   // 		printf("%lf	%e	%e	%e	%e	%e\n", Bfield, transmissions[0][1], transmissions[0][2], transmissions[0][3], transmissions[0][4], transmissions[0][5]);
 		}
 		
+		if(strcmp("Zx", loop_type) == 0)
+		{
+		  fprintf(output, "%lf	%e\n", spinxpot, kavg);
+		}
+		if(strcmp("Zy", loop_type) == 0)
+		{
+		  fprintf(output, "%lf	%e\n", spinypot, kavg);
+		}
+		if(strcmp("Zz", loop_type) == 0)
+		{
+		  fprintf(output, "%lf	%e\n", spinzpot, kavg);
+		}
+		
+		
+		
 		if(strcmp("VG", loop_type) == 0)
 		{
 		  fprintf(output, "%lf	%e\n", VG, kavg);
 		}
 	      }
 	      if(spindep!=0)
-		printf("%lf	%.8e	%.8e	%.8e	%.8e	%.8e\n", realE, transmissions[0][1], spin_trans[0][1], spin_trans[0][3], spin_trans[2][1], spin_trans[2][3] );
+		printf("%lf	%.8e	%.8e	%.8e	%.8e	%.8e\n", realE, transmissions[0][1], creal(spin_trans[0][1]), creal(spin_trans[0][3]), creal(spin_trans[2][1]), creal(spin_trans[2][3]) );
 
 	      
 	      //print maps
@@ -3172,6 +3222,20 @@ main(int argc, char *argv[])
                         fprintf(output, "%lf	%.12e	%.12e	%.12e	%.12e	%.12e	%.12e	%.12e\n", Bfield, (vecx[1]-vecx[3])/vecx[0], (vecx[1]-vecx[2])/vecx[0], kavg, vecx[1], vecx[2], vecx[3], vecx[4]);		
         // 		printf("%lf	%e	%e	%e	%e	%e\n", Bfield, transmissions[0][1], transmissions[0][2], transmissions[0][3], transmissions[0][4], transmissions[0][5]);
                         }
+                        
+                        if(strcmp("Zx", loop_type) == 0)
+			{
+				fprintf(output, "%lf	%.12e	%.12e	%.12e	%.12e	%.12e	%.12e	%.12e\n", spinxpot, (vecx[1]-vecx[3])/vecx[0], (vecx[1]-vecx[2])/vecx[0], kavg, vecx[1], vecx[2], vecx[3], vecx[4]);
+			}
+			if(strcmp("Zy", loop_type) == 0)
+			{
+				fprintf(output, "%lf	%.12e	%.12e	%.12e	%.12e	%.12e	%.12e	%.12e\n", spinypot, (vecx[1]-vecx[3])/vecx[0], (vecx[1]-vecx[2])/vecx[0], kavg, vecx[1], vecx[2], vecx[3], vecx[4]);
+			}
+			if(strcmp("Zz", loop_type) == 0)
+			{
+				fprintf(output, "%lf	%.12e	%.12e	%.12e	%.12e	%.12e	%.12e	%.12e\n", spinzpot, (vecx[1]-vecx[3])/vecx[0], (vecx[1]-vecx[2])/vecx[0], kavg, vecx[1], vecx[2], vecx[3], vecx[4]);
+			}
+                        
                         
                         
                         
@@ -3289,10 +3353,20 @@ main(int argc, char *argv[])
                         if(strcmp("B", loop_type) == 0)
                         {
                             fprintf(output, "%lf	%.12e\n", Bfield, (vecx[3]-vecx[4])/vecx[2]);		
-
                         }
                         
-                        
+			if(strcmp("Zx", loop_type) == 0)
+                        {
+                            fprintf(output, "%lf	%.12e\n", spinxpot, (vecx[3]-vecx[4])/vecx[2]);		
+                        }
+                        if(strcmp("Zy", loop_type) == 0)
+                        {
+                            fprintf(output, "%lf	%.12e\n", spinypot, (vecx[3]-vecx[4])/vecx[2]);		
+                        }
+                        if(strcmp("Zz", loop_type) == 0)
+                        {
+                            fprintf(output, "%lf	%.12e\n", spinzpot, (vecx[3]-vecx[4])/vecx[2]);		
+                        }
                         
                             //make a composite map for multiprobe systems
                             if(mapmode == 1)
@@ -3461,6 +3535,79 @@ main(int argc, char *argv[])
 					fprintf(tsoutput, "\n");
 					
 					
+				}
+				
+				if(strcmp("Zx", loop_type) == 0)
+				{
+					fprintf(output, "%lf	%.12e\n", spinxpot, (vecx[2]-vecx[1])/vecx[0]);	
+					fprintf(fulloutput, "%lf\t", spinxpot);
+					fprintf(tsoutput, "%lf\t", spinxpot);
+					for(i=0; i<num_leads; i++)
+					{
+						fprintf(fulloutput, "%.12e\t", probe_pots[i]);
+					}
+					for(i=0; i<num_leads; i++)
+					{
+						fprintf(fulloutput, "%.12e\t", probe_currs[i]);
+					}
+					fprintf(fulloutput, "\n");
+					
+					for(i=0; i<num_leads; i++)
+					{
+						for(j=0; j<num_leads; j++)
+						{	
+							fprintf(tsoutput, "%.12e\t", transmissions[i][j]);
+						}
+					}
+					fprintf(tsoutput, "\n");
+				}
+				if(strcmp("Zy", loop_type) == 0)
+				{
+					fprintf(output, "%lf	%.12e\n", spinypot, (vecx[2]-vecx[1])/vecx[0]);	
+					fprintf(fulloutput, "%lf\t", spinypot);
+					fprintf(tsoutput, "%lf\t", spinypot);
+					for(i=0; i<num_leads; i++)
+					{
+						fprintf(fulloutput, "%.12e\t", probe_pots[i]);
+					}
+					for(i=0; i<num_leads; i++)
+					{
+						fprintf(fulloutput, "%.12e\t", probe_currs[i]);
+					}
+					fprintf(fulloutput, "\n");
+					
+					for(i=0; i<num_leads; i++)
+					{
+						for(j=0; j<num_leads; j++)
+						{	
+							fprintf(tsoutput, "%.12e\t", transmissions[i][j]);
+						}
+					}
+					fprintf(tsoutput, "\n");
+				}
+				if(strcmp("Zz", loop_type) == 0)
+				{
+					fprintf(output, "%lf	%.12e\n", spinzpot, (vecx[2]-vecx[1])/vecx[0]);	
+					fprintf(fulloutput, "%lf\t", spinzpot);
+					fprintf(tsoutput, "%lf\t", spinzpot);
+					for(i=0; i<num_leads; i++)
+					{
+						fprintf(fulloutput, "%.12e\t", probe_pots[i]);
+					}
+					for(i=0; i<num_leads; i++)
+					{
+						fprintf(fulloutput, "%.12e\t", probe_currs[i]);
+					}
+					fprintf(fulloutput, "\n");
+					
+					for(i=0; i<num_leads; i++)
+					{
+						for(j=0; j<num_leads; j++)
+						{	
+							fprintf(tsoutput, "%.12e\t", transmissions[i][j]);
+						}
+					}
+					fprintf(tsoutput, "\n");
 				}
 				
 				if(spindep != 0)

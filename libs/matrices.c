@@ -39,6 +39,22 @@
 		
 	}
 	
+// //Function to copy parts of a complex matrix into parts of another complex matrix (with a multiplying factor)
+	void MatrixCopyPartM(double _Complex **Orig, double _Complex **Copy, double _Complex factor, int istartdim1, int jstartdim1,  int istartdim2, int jstartdim2, int dim1, int dim2)
+	{
+		int i, j;
+		
+		for(i=0; i<dim1;i++)
+		{
+			for(j=0; j<dim2; j++)
+			{
+				Copy[istartdim2 + i][jstartdim2 + j] = factor*Orig[istartdim1 + i][jstartdim1 + j];
+				
+			}
+		}
+		
+	}
+	
 	//Function to copy parts of a complex matrix into parts of another complex matrix
 	void IntMatrixCopyPart(int **Orig, int **Copy, int istartdim1, int jstartdim1,  int istartdim2, int jstartdim2, int dim1, int dim2)
 	{
@@ -997,7 +1013,7 @@ int *createIntArray(int dimension)
 	    for(j=0; j<dim2; j++)
 	    {
 	     // printf("%d	%d	%e\n", i, j, creal(Matrix[i][j]));
-	      if(Matrix[i][j] != 0.0)
+	      if(creal(Matrix[i][j]) != 0.0 || cimag(Matrix[i][j]) != 0.0)
 	      {
 		printf("#	%d	%d	%e	%e\n", i, j, creal(Matrix[i][j]), cimag(Matrix[i][j]));
 	      }
