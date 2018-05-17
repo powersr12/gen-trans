@@ -708,8 +708,8 @@ void genSingleMetalLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, vo
     
 	if(metpara->def_pos == 1)
 	{
-		(Lead->pos)[0][0] =xright - (metpara->width)*x_cell_diff + (x_cell_diff/2) - 0.001;
-		(Lead->pos)[0][1] =xright + (x_cell_diff/2) ;
+		(Lead->pos)[0][0] =xright - (metpara->width)*x_cell_diff; // + (x_cell_diff/2);
+		(Lead->pos)[0][1] =xright; // + (x_cell_diff/2) ;
 		
 		(Lead->pos)[1][0] = (metpara->start_coord2)*y_cell_diff/2;
 		(Lead->pos)[1][1] = (metpara->start_coord2 + metpara->width2)*y_cell_diff/2;
