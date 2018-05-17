@@ -75,7 +75,7 @@ main(int argc, char *argv[])
                                         //these need to be accounted for properly with positions etc...
                                         
 	      
-                                        
+              int take_first_chain_pots = 0;                          
                                         
                                         
 	     //lead_para moved here to allow additional_params to be specified in system generation
@@ -174,6 +174,10 @@ main(int argc, char *argv[])
 		    if(strcmp("-eedge", argv[i]) == 0)
 		    {
 			sscanf(argv[i+1], "%d", &eedge);
+		    }
+		    if(strcmp("-takefirst", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &take_first_chain_pots);
 		    }
 		    
 		  }
@@ -759,6 +763,8 @@ main(int argc, char *argv[])
 		    
 		    
 		    printf("#interface 1: %lf, 2: %lf\n", (sub2intp.int_pos1), (sub2intp.int_pos2));
+			
+
 		    
 		    //set functions and params for use below
 		    SysFunction = &genSublatticeTwoInts;

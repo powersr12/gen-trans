@@ -676,7 +676,7 @@ void genSingleMetalLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, vo
 		ybot = 0.0;
 		ytop = 1/(2*sqrt(3)) + length * sqrt(3)/2;
 		xleft = 0.5;
-		xright = length2*1.0 - 0.5;
+		xright = length2*1.0 - 0.5 -0.001;
 		x_cell_diff = 1.0;
 		y_cell_diff = sqrt(3);
 	}
@@ -1227,6 +1227,8 @@ void genSublatticeTwoInts(RectRedux *SiteArray, void *p, int struc_out, char *fi
 	      delta_pota2 = a_pot3 - a_pot2;
 	      delta_potb2 = b_pot3 - b_pot2;
 	      
+	      //printf("#%lf	%lf	%lf	%lf\n", side1a, side2a, side1b, side2b );
+	      
 	      for(l=buffer_rows*2*length; l<2*length*length2 - 2*buffer_rows*length; l++)
 	      {
 		site_pots[l] = 0.0;
@@ -1305,6 +1307,7 @@ void genSublatticeTwoInts(RectRedux *SiteArray, void *p, int struc_out, char *fi
 		    site_pots[l] = b_pot_temp;
 		}
 		//printf("%d	%lf	%d	%lf\n", l, temprandnum, siteinfo[l][1], site_pots[l]);
+		//printf("%d	%lf	%lf	%lf	%lf	%lf	%lf	%lf	%lf\n", l, site_coords[l][1], relposa, relposb, site_pots[l], a_pot_temp, b_pot_temp, a_conc_temp, b_conc_temp);
 	      }
 	      
 	      
