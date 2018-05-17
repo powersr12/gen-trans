@@ -687,7 +687,7 @@ void genSingleMetalLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, vo
 		ytop = 0.5*length;
 		xleft = -1/(2*sqrt(3)) + sqrt(3)/2;
 		//xright = -1/(2*sqrt(3))+ sqrt(3)/2 + (length2-1)*sqrt(3);
-		xright = -1/(2*sqrt(3))+ sqrt(3)/2 + (length2-1)*sqrt(3);
+		xright =  sqrt(3)/2 + (length2-1)*sqrt(3);
 
 		x_cell_diff = sqrt(3);
 		y_cell_diff = 1.0;
