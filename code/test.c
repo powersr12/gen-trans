@@ -2840,6 +2840,8 @@ main(int argc, char *argv[])
 	    System.length2=length2;
 	    System.Nrem=&Nrem;
 	    System.Ntot=&Ntot;
+            
+            //printf("HERE! %d\n", Nrem);
 	    
 	    
 	    RectRedux *LeadCells[num_leads];
