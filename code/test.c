@@ -75,7 +75,10 @@ main(int argc, char *argv[])
                                         //these need to be accounted for properly with positions etc...
                                         
 	      
-              int take_first_chain_pots = 0;                          
+              int take_first_chain_pots = 0;          
+              
+              int abs_pots = 0;         //use absorbing potentials on top and bottom of nanoribbons
+              double abs_pots_width = 2.0; //width of absorbing region
                                         
                                         
 	     //lead_para moved here to allow additional_params to be specified in system generation
@@ -178,6 +181,14 @@ main(int argc, char *argv[])
 		    if(strcmp("-takefirst", argv[i]) == 0)
 		    {
 			sscanf(argv[i+1], "%d", &take_first_chain_pots);
+		    }
+		    if(strcmp("-abspots", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &abs_pots);
+		    }
+		    if(strcmp("-abspotsw", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%lf", &abs_pots_width);
 		    }
 		    
 		  }
@@ -2756,6 +2767,12 @@ main(int argc, char *argv[])
 	    {
 	      sprintf(direcname, "%s/%s", direcname, eedgeinfo);
 	    }
+	    if(abs_pots == 1)
+            {
+                sprintf(direcname, "%s/%s", direcname, "abs_pot");
+            }
+	    
+	    
 	    
 	    sprintf(command, "mkdir -p %s", direcname);
 	    system(command);
@@ -2948,7 +2965,16 @@ main(int argc, char *argv[])
 	    int **siteinfo = System.siteinfo;
 	    double *site_pots = System.site_pots;
 	    
+            
+            double *cap_pots = NULL;
 
+            if(abs_pots == 1)
+            {
+                cap_pots = createDoubleArray(Ntot);
+                cap_potential(&System, abs_pots_width);
+            }
+                
+                
 	  
 
 	  	  int halloutput;

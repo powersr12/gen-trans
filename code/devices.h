@@ -14,6 +14,7 @@ typedef struct {
 	int **siteinfo;		//in lattice? which sublattice?
 	double **pos;
 	double *site_pots;
+//double *cap_pots;
 	int **chaininfo;
 	int *Nrem;
 	int *Ntot;

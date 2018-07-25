@@ -1,6 +1,68 @@
 #include "disorder.h"
 
 
+//complex absorbing potentials at the top and bottom edges of nanoribbon devices.
+//based on arxiv:1805.10220 (and ref[47] within)
+
+void cap_potential(RectRedux *DeviceCell, double width)
+{
+    int Ntot = *(DeviceCell->Ntot);
+    int Nrem = *(DeviceCell->Nrem);
+    int length1 = (DeviceCell->length);
+    int length2 = (DeviceCell->length2);
+    int geo = (DeviceCell->geo);
+    double topedge, bottomedge, topdist, botdist, xi, xf, x;
+    double *cap_pots = (DeviceCell->cap_pots);
+    double magn = (0.23 / width) * (4*M_PI*M_PI) * (4 / (2.62*2.62)); //0.23 = hbar^2 / 2 m renormalised for del x in a
+    
+    int i, j, k;
+    
+    //top and bottom of ribbon (offset)
+        if(geo==0)
+        {
+            topedge=length1*sqrt(3)/2;
+            bottomedge=0.0;
+        }
+        if(geo==1 )
+        {
+            topedge=(length1)*0.5;
+            bottomedge = -0.5;
+        }
+    
+    
+    
+    for(j=0; j<Ntot; j++)
+    {
+        if( (DeviceCell->siteinfo[j][0]) == 0)
+        {
+            //top edge
+            if( (DeviceCell->pos)[j][1] < (topedge - width) )
+            {
+                x = (DeviceCell->pos)[j][1];
+                xi = (topedge - width);
+                xf = topedge;
+                
+                cap_pots[j] = magn * ( pow(( width / (xf - 2*xi + x) ),2) + pow(( width / (xf - x) ),2) -2 );
+            }
+            
+            //bottom edge
+            if( (DeviceCell->pos)[j][1] < (bottomedge + width) )
+            {
+                x = (DeviceCell->pos)[j][1];
+                xi = bottomedge + width;
+                xf = bottomedge;
+                
+                cap_pots[j] = magn * ( pow(( width / (xf - 2*xi + x) ),2) + pow(( width / (xf - x) ),2) -2 );
+            }
+        }
+    }
+            
+    
+    
+}
+
+
+
 //form of general additional disorder routines: read in DeviceCell info and a disorder params structure and fileout info
 //additional info written ADDED to what is already in site_pots and other DeviceCell arrays
 //no way of adding offdiagonal disorder directly - this could possibly by varying atomic positions here and using a clever hopping rule at the GF stage
