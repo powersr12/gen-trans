@@ -12,7 +12,7 @@ void cap_potential(RectRedux *DeviceCell, double width)
     int length2 = (DeviceCell->length2);
     int geo = (DeviceCell->geo);
     double topedge, bottomedge, topdist, botdist, xi, xf, x;
-    double *cap_pots = (DeviceCell->cap_pots);
+    (DeviceCell->cap_pots) = createDoubleArray(Ntot);
     double magn = (0.23 / width) * (4*M_PI*M_PI) * (4 / (2.62*2.62)); //0.23 = hbar^2 / 2 m renormalised for del x in a
     
     int i, j, k;
@@ -36,13 +36,13 @@ void cap_potential(RectRedux *DeviceCell, double width)
         if( (DeviceCell->siteinfo[j][0]) == 0)
         {
             //top edge
-            if( (DeviceCell->pos)[j][1] < (topedge - width) )
+            if( (DeviceCell->pos)[j][1] > (topedge - width) )
             {
                 x = (DeviceCell->pos)[j][1];
                 xi = (topedge - width);
                 xf = topedge;
                 
-                cap_pots[j] = magn * ( pow(( width / (xf - 2*xi + x) ),2) + pow(( width / (xf - x) ),2) -2 );
+                (DeviceCell->cap_pots)[j] = magn * ( pow(( width / (xf - 2*xi + x) ),2) + pow(( width / (xf - x) ),2) -2 );
             }
             
             //bottom edge
@@ -52,9 +52,10 @@ void cap_potential(RectRedux *DeviceCell, double width)
                 xi = bottomedge + width;
                 xf = bottomedge;
                 
-                cap_pots[j] = magn * ( pow(( width / (xf - 2*xi + x) ),2) + pow(( width / (xf - x) ),2) -2 );
+                (DeviceCell->cap_pots)[j] = magn * ( pow(( width / (xf - 2*xi + x) ),2) + pow(( width / (xf - x) ),2) -2 );
             }
         }
+        //printf("%lf %lf\n", (DeviceCell->pos)[j][1], (DeviceCell->cap_pots)[j]);
     }
             
     

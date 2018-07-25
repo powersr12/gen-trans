@@ -1787,7 +1787,7 @@ main(int argc, char *argv[])
 				//sets that there is no dependence on particlar sublattice or edge
 				if(strcmp("-ee1", argv[i]) == 0)
 				{
-					sscanf(argv[i+1], "%lf", eedge_AT1);
+					sscanf(argv[i+1], "%lf", &eedge_AT1);
 					eedge_BT1 = eedge_AT1;
 					eedge_AB1 = eedge_AT1;
 					eedge_BB1 = eedge_AT1;
@@ -2858,7 +2858,6 @@ main(int argc, char *argv[])
 	    System.Nrem=&Nrem;
 	    System.Ntot=&Ntot;
 	    
-	    
 	    RectRedux *LeadCells[num_leads];
 
 	    //timing
@@ -2937,7 +2936,7 @@ main(int argc, char *argv[])
 				fprintf(listinputs, "\n");
 				fclose(listinputs);
 		}
-		
+
 
 // 		exit(0);
 		
@@ -2966,12 +2965,15 @@ main(int argc, char *argv[])
 	    double *site_pots = System.site_pots;
 	    
             
-            double *cap_pots = NULL;
+            //double *cap_pots = NULL;
 
             if(abs_pots == 1)
             {
-                cap_pots = createDoubleArray(Ntot);
                 cap_potential(&System, abs_pots_width);
+            }
+            else
+            {
+                System.cap_pots = NULL;
             }
                 
                 
@@ -3112,6 +3114,44 @@ main(int argc, char *argv[])
 				
 			}				
 		}
+		
+		
+		if(abs_pots == 1)
+                {
+                    cap_potential(&System, abs_pots_width);
+                }
+                else
+                {
+                    System.cap_pots = NULL;
+                }
+		
+		
+        //lead edge absorbing potentials
+		
+                for(i=0; i<num_leads; i++)
+                {
+                    if(abs_pots == 1)
+                    {
+                        if(ishallbar==0)
+                        {
+                                cap_potential(LeadCells[i], abs_pots_width);
+                        }
+                        
+                        if(ishallbar==4)
+                        {
+                                if(strcmp("RIBBON", (mleadps[i]->name)) == 0 && ( (mleadps[i]->def_pos) == 0 || (mleadps[i]->def_pos) == 1 ) )
+                                {
+                                        cap_potential(LeadCells[i], abs_pots_width);
+                                }
+                        }
+                    }
+                    else
+                    {
+                        (LeadCells[i]->cap_pots) = NULL;
+                    }
+                        
+                }				
+		
 		
 	  
 

@@ -338,7 +338,14 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 	{
 	  index1 = (cellinfo->cells_site_order)[this0 +i];
 	  
-	  g00inv[i][i] = En - (DeviceCell->site_pots)[index1] - hoppingfn(DeviceCell, DeviceCell, index1, index1, bshifts, hoppingparams);;
+	  g00inv[i][i] = En - (DeviceCell->site_pots)[index1] - hoppingfn(DeviceCell, DeviceCell, index1, index1, bshifts, hoppingparams);
+          
+          
+          //magnitude is negative, hence += to add to the inverse GF
+          if(DeviceCell->cap_pots != NULL)
+          {
+              g00inv[i][i] += I* (DeviceCell->cap_pots)[index1];
+          }
 	  
 	  
 	  
@@ -762,6 +769,12 @@ void genKXbandproj(RectRedux *DeviceCell,  hoppingfunc *hoppingfn, void *hopping
     k=rem_tot_mapping[i];
     Ham[i][i] = (DeviceCell->site_pots)[k];   
 		  //check that the onsite correction here works properly at some stage
+    
+     if(DeviceCell->cap_pots != NULL)
+          {
+              Ham[i][i] -= I* (DeviceCell->cap_pots)[k];
+          }
+	  
     
     //intra and inter -cell hoppings - this should also fix onsite hopping corrections
     for(j=0; j< Nrem; j++)
@@ -1917,6 +1930,13 @@ void lead_prep(double _Complex En, RectRedux *LeadCell, int leadindex, lead_para
     {
       ginv[i][i] = En - (LeadCell->site_pots[i]) - (hopfn)(LeadCell, LeadCell, i, i, bshifts, (params->hoppara) ) ;
       
+        //magnitude is negative, hence += to add to the inverse GF
+          if(LeadCell->cap_pots != NULL)
+          {
+              ginv[i][i] += I* (LeadCell->cap_pots)[i];
+          }
+      
+      
       for(j=0; j<dim; j++)
       {
 	if(j!=i)
@@ -1990,6 +2010,12 @@ void lead_prep2(double _Complex En, RectRedux *LeadCell, int leadindex, rib_lead
     for(i=0; i <dim; i++)
     {
       ginv[i][i] = En - (LeadCell->site_pots[i]) - (hopfn)(LeadCell, LeadCell, i, i, bshifts, (params->hoppara) ) ;
+      
+        //magnitude is negative, hence += to add to the inverse GF
+          if(LeadCell->cap_pots != NULL)
+          {
+              ginv[i][i] += I* (LeadCell->cap_pots)[i];
+          }
       
       for(j=0; j<dim; j++)
       {
