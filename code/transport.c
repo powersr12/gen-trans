@@ -338,7 +338,14 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 	{
 	  index1 = (cellinfo->cells_site_order)[this0 +i];
 	  
-	  g00inv[i][i] = En - (DeviceCell->site_pots)[index1] - hoppingfn(DeviceCell, DeviceCell, index1, index1, bshifts, hoppingparams);;
+	  g00inv[i][i] = En - (DeviceCell->site_pots)[index1] - hoppingfn(DeviceCell, DeviceCell, index1, index1, bshifts, hoppingparams);
+          
+          
+          //magnitude is negative, hence += to add to the inverse GF
+          if(DeviceCell->cap_pots != NULL)
+          {
+              g00inv[i][i] += I* (DeviceCell->cap_pots)[index1];
+          }
 	  
 	  
 	  
@@ -763,6 +770,12 @@ void genKXbandproj(RectRedux *DeviceCell,  hoppingfunc *hoppingfn, void *hopping
     Ham[i][i] = (DeviceCell->site_pots)[k];   
 		  //check that the onsite correction here works properly at some stage
     
+     if(DeviceCell->cap_pots != NULL)
+          {
+              Ham[i][i] -= I* (DeviceCell->cap_pots)[k];
+          }
+	  
+    
     //intra and inter -cell hoppings - this should also fix onsite hopping corrections
     for(j=0; j< Nrem; j++)
     {
@@ -1095,6 +1108,164 @@ double _Complex simpleTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, 
 }
 
 
+//A simple implementation of hopping parameters for a strained graphene system
+double _Complex strainedTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, int b, double *bshifts, void *hoppingparams)
+{
+  gen_hop_params *para = (gen_hop_params *)hoppingparams; 
+  int num_neigh = para->num_neigh;
+  double _Complex *hops = para->hops;
+  double  *NN_lowdis = para->NN_lowdis;
+  double  *NN_highdis = para->NN_highdis;
+  double  *NN_shifts = para->NN_shifts;
+  double  *NN_zmin= para->NN_zmin;
+  double  *NN_zmax = para->NN_zmax;
+  double t0;
+  double kpar = para->kpar;
+  double _Complex ans=0.0;
+  double x1 = (aDeviceCell->pos)[a][0], y1 = (aDeviceCell->pos)[a][1];
+  double x2 = (bDeviceCell->pos)[b][0] + bshifts[0], y2 = (bDeviceCell->pos)[b][1] + bshifts[1];
+  double y2p, distp;
+  double basedist[] = {1/sqrt(3), 1, 2/sqrt(3)};
+  double beta = 3.37;
+  
+  double dist = sqrt(pow(x2-x1, 2.0) + pow(y2-y1, 2.0));
+  double zdiff = fabs((bDeviceCell->pos)[b][2] - (aDeviceCell->pos)[a][2]);
+  double ycelldist;
+  int i;
+  double x1r, x2r, y1r, y2r, z1r, z2r, distr, distpr, y2pr;
+  
+    if(aDeviceCell->pert_pos != NULL)
+    {
+        x1r = (aDeviceCell->pert_pos)[a][0];
+        y1r = (aDeviceCell->pert_pos)[a][1];
+        z1r = (aDeviceCell->pert_pos)[a][2];
+    }
+    else
+    {
+        x1r=x1;
+        y1r=y1;
+        z1r=0.0;
+    }
+    if(bDeviceCell->pert_pos != NULL)
+    {
+        x2r = (bDeviceCell->pert_pos)[b][0] + bshifts[0];
+        y2r = (bDeviceCell->pert_pos)[b][1] + bshifts[1];
+        z2r = (bDeviceCell->pert_pos)[b][2];
+    }
+    else
+    {
+        x2r=x2;
+        y2r=y2;
+        z2r=0.0;
+    }
+    distr = sqrt(pow(x2r-x1r, 2.0) + pow(y2r-y1r, 2.0) + pow(z2r-z1r, 2.0));
+  
+
+  
+    //which coupling to use
+    t0=0.0;
+    for(i=0; i< num_neigh; i++)
+    {
+      if(dist >= (para->NN_lowdis[i]) && dist < (para->NN_highdis[i]))
+      {
+		if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
+		{ 
+			t0 = hops[i];
+                        
+                        //strain
+                        if(aDeviceCell->pert_pos != NULL || bDeviceCell-> pert_pos != NULL)
+                        {
+                            t0=t0*exp(-beta * ( (distr/basedist[i]) - 1.0) );
+                        }
+		}
+      }
+      
+      if(dist == 0.0)
+      {
+	t0 += NN_shifts[i];
+      }
+    }
+    ans=t0;
+    
+        
+ 
+  
+
+      //note the += to allow more than one connection between the same atoms (or their images)
+  if((para->isperiodic)==1)
+  {
+    //set separation to up and down cells
+    //this is only sensible for even-indexed ribbons, but will run with odd results for odd indices
+    if((aDeviceCell->geo)==0)
+    {
+	ycelldist = (aDeviceCell->length)*sqrt(3)/2;
+    }
+    if((aDeviceCell->geo)==1)
+    {
+	ycelldist = (aDeviceCell->length)*0.5;
+    }
+    
+    //check if b is in cell above
+    y2p = y2 + ycelldist;
+    y2pr = y2r + ycelldist;
+
+    distp= sqrt(pow(x2-x1, 2.0) + pow(y2p-y1, 2.0));
+    distpr = sqrt(pow(x2r-x1r, 2.0) + pow(y2pr-y1r, 2.0) + pow(z2r-z1r, 2.0));
+
+
+    
+    t0=0.0;
+    for(i=0; i< num_neigh; i++)
+    {
+      if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
+      {
+	      if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
+	      {
+		t0 = hops[i];
+                
+                //strain
+                if(aDeviceCell->pert_pos != NULL || bDeviceCell-> pert_pos != NULL)
+                {
+                    t0=t0*exp(-beta * ( (distpr/basedist[i]) - 1.0) );
+                }
+	      }
+      }
+    }
+    ans+=t0*cexp(-I*kpar); 
+    
+    
+    //check if b is in cell below
+    y2p = y2 - ycelldist;
+    y2pr = y2r - ycelldist;
+    distp= sqrt(pow(x2-x1, 2.0) + pow(y2p-y1, 2.0));
+    distpr = sqrt(pow(x2r-x1r, 2.0) + pow(y2pr-y1r, 2.0) + pow(z2r-z1r, 2.0));
+
+    
+    t0=0.0;
+    for(i=0; i< num_neigh; i++)
+    {
+      if(distp > (para->NN_lowdis[i]) && distp < (para->NN_highdis[i]))
+      {
+	      if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
+	      {
+			t0 = hops[i];
+                        
+                        //strain
+                        if(aDeviceCell->pert_pos != NULL || bDeviceCell-> pert_pos != NULL)
+                        {
+                            t0=t0*exp(-beta * ( (distpr/basedist[i]) - 1.0) );
+                        }
+	      }
+      }
+    }
+    ans+=t0*cexp(I*kpar); 
+    
+  }
+  return ans;
+  
+}
+
+
 
 double _Complex peierlsTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, int b, double *bshifts, void *hoppingparams)
 {
@@ -1200,6 +1371,9 @@ double _Complex peierlsTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a,
   }
   return ans;
 }
+
+
+
 
 
 
@@ -1917,6 +2091,13 @@ void lead_prep(double _Complex En, RectRedux *LeadCell, int leadindex, lead_para
     {
       ginv[i][i] = En - (LeadCell->site_pots[i]) - (hopfn)(LeadCell, LeadCell, i, i, bshifts, (params->hoppara) ) ;
       
+        //magnitude is negative, hence += to add to the inverse GF
+          if(LeadCell->cap_pots != NULL)
+          {
+              ginv[i][i] += I* (LeadCell->cap_pots)[i];
+          }
+      
+      
       for(j=0; j<dim; j++)
       {
 	if(j!=i)
@@ -1990,6 +2171,12 @@ void lead_prep2(double _Complex En, RectRedux *LeadCell, int leadindex, rib_lead
     for(i=0; i <dim; i++)
     {
       ginv[i][i] = En - (LeadCell->site_pots[i]) - (hopfn)(LeadCell, LeadCell, i, i, bshifts, (params->hoppara) ) ;
+      
+        //magnitude is negative, hence += to add to the inverse GF
+          if(LeadCell->cap_pots != NULL)
+          {
+              ginv[i][i] += I* (LeadCell->cap_pots)[i];
+          }
       
       for(j=0; j<dim; j++)
       {

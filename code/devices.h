@@ -13,7 +13,9 @@ typedef struct {
 	int length2;
 	int **siteinfo;		//in lattice? which sublattice?
 	double **pos;
+        double **pert_pos;
 	double *site_pots;
+        double *cap_pots;
 	int **chaininfo;
 	int *Nrem;
 	int *Ntot;
@@ -173,6 +175,24 @@ typedef struct {
 
 typedef struct {
 	int buffer_rows;
+	char *latgeo;
+	char *bubgeo;
+        int cell_length;
+	int cell_length2;
+	double bub_rad;
+        double bub_height;
+	int lat_width;
+	int lat_length;
+	int seed;
+	int isperiodic;
+	double radfluc;
+	double xyfluc;
+        double zfluc;
+}bubble_para;
+
+
+typedef struct {
+	int buffer_rows;
 	int sruns;
 	double smax;
 	double minper;
@@ -218,7 +238,7 @@ void genSublatticeTwoInts(RectRedux *SiteArray, void *p, int struc_out, char *fi
 void genSublatticeLeadPots(RectRedux **Leads, void *p);
 void genSublatticeMoire(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 
-
+void genBubbleDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 
 void genEdgeDisorderedDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename);
