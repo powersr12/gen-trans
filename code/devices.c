@@ -171,6 +171,7 @@ void simpleRibbonGeo (RectRedux *SiteArray, void *p, int struc_out, char *filena
 			  (SiteArray->pos) = site_coords;
 			  (SiteArray->site_pots) = site_pots;
 			  (SiteArray->siteinfo) = siteinfo;
+                          (SiteArray->pert_pos) = NULL;
   
   
 }
@@ -361,6 +362,7 @@ void simple558GB (RectRedux *SiteArray, void *p, int struc_out, char *filename)
 			  (SiteArray->pos) = site_coords;
 			  (SiteArray->site_pots) = site_pots;
 			  (SiteArray->siteinfo) = siteinfo;
+                          (SiteArray->pert_pos) = NULL;
   
   
 }
@@ -1085,6 +1087,7 @@ void genSublatticeInterface(RectRedux *SiteArray, void *p, int struc_out, char *
 			  (SiteArray->pos) = site_coords;
 			  (SiteArray->site_pots) = site_pots;
 			  (SiteArray->siteinfo) = siteinfo;
+                          (SiteArray->pert_pos) = NULL;
 
 	
 }
@@ -1408,6 +1411,7 @@ void genSublatticeTwoInts(RectRedux *SiteArray, void *p, int struc_out, char *fi
 			  (SiteArray->pos) = site_coords;
 			  (SiteArray->site_pots) = site_pots;
 			  (SiteArray->siteinfo) = siteinfo;
+                          (SiteArray->pert_pos) = NULL;
 
 	
 }
@@ -1637,6 +1641,7 @@ void genSublatticeDevice(RectRedux *SiteArray, void *p, int struc_out, char *fil
 			  (SiteArray->pos) = site_coords;
 			  (SiteArray->site_pots) = site_pots;
 			  (SiteArray->siteinfo) = siteinfo;
+                          (SiteArray->pert_pos) = NULL;
 
 	
 }
@@ -2007,6 +2012,7 @@ void genSublatticeMoire(RectRedux *SiteArray, void *p, int struc_out, char *file
 			  (SiteArray->pos) = site_coords;
 			  (SiteArray->site_pots) = site_pots;
 			  (SiteArray->siteinfo) = siteinfo;
+                          (SiteArray->pert_pos) = NULL;
 			  
 			  
 }
@@ -2046,8 +2052,8 @@ void genSublatticeLeadPots(RectRedux **Leads, void *p)
 
 
 
-//A general (non-disordered) antidot barrier-type device 
-//(circular ALs in triangular lattice for the moment - should be generalised later)
+//A general antidot barrier-type device 
+//(circular ALs in triangular lattice for the moment - should be generalised later -- HAS BEEN DONE!)
 //Different to the routine used in the disordered antidot paper
 //Modified to work with generic ribbons devices
 //Layout based on sublattice device routine
@@ -2779,11 +2785,549 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 			  (SiteArray->pos) = site_coords;
 			  (SiteArray->site_pots) = site_pots;
 			  (SiteArray->siteinfo) = siteinfo;
+                          (SiteArray->pert_pos) = NULL;
 
 
 				
 	
 }
+
+
+
+
+
+
+void genBubbleDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename)
+{  
+        bubble_para *params = (bubble_para *)p;
+        
+        int buffer_rows = (params->buffer_rows);
+        double bub_rad = (params->bub_rad);
+        double bub_height = (params->bub_height);
+        int lat_width = (params->lat_width);
+        int lat_length = (params->lat_length);
+        int cell_length = (params->cell_length);
+        int cell_length2 = (params->cell_length2);
+        char *latgeo = (params->latgeo);
+        char *bubgeo = (params->bubgeo);
+        int isperiodic = (params->isperiodic);
+        
+        double radfluc = (params->radfluc);
+        double xyfluc = (params->xyfluc);
+        double zfluc = (params->zfluc);
+
+        int seed = (params->seed);
+        
+        int length = SiteArray->length;
+        int length2 = SiteArray->length2;
+        int geo = SiteArray->geo;
+        
+	    
+        double smalldist;
+        
+        FILE *out;
+        
+        if(struc_out != 0)
+        {
+        out = fopen(filename, "w");
+        
+        }
+        
+        srand(time(NULL) + seed);
+	  
+	  
+        //atomic coordinates and the atoms that are in and out, similar to previous cases
+        int tot_sites = 2*length*length2;
+        double **site_coords = createNonSquareDoubleMatrix(tot_sites, 3);
+        double **pert_coords = createNonSquareDoubleMatrix(tot_sites, 3);
+        double *site_pots = createDoubleArray(tot_sites);
+        int **siteinfo = createNonSquareIntMatrix(tot_sites, 2);
+        double xstart, ystart;
+        int isclean, l, m, tempint, tempint2;
+        int *Nrem = (SiteArray->Nrem);
+        int i, j, k;
+        int *Ntot = (SiteArray->Ntot);
+	  
+        
+        
+        
+        *Ntot = tot_sites;
+	  
+        
+        //BASE XY GEOMETRIES
+        
+            //zigzag ribbon
+            if(geo==0)
+            {
+                for(l=0; l<length2; l++)
+                {
+                xstart=l*1.0;
+                for(m=0; m<length; m++)
+                {
+                    ystart= m*sqrt(3)/2 + 1/(2*sqrt(3));
+                    
+                    if((m%2) == 0)
+                    {
+                        site_coords[l*2*length + 2*m][0] = xstart+0.5;
+                        site_coords[l*2*length + 2*m + 1][0] = xstart;
+                    }
+                    
+                    if((m%2) == 1)
+                    {
+                        site_coords[l*2*length + 2*m][0] = xstart;
+                        site_coords[l*2*length + 2*m + 1][0] = xstart+0.5;
+                    }
+                    
+                        site_coords[l*2*length + 2*m][1] = ystart;
+                        site_coords[l*2*length + 2*m + 1][1] = ystart + 1/(2*sqrt(3));
+                        siteinfo[l*2*length + 2*m][1]=0;
+                        siteinfo[l*2*length + 2*m +1][1]=1;
+
+                    
+                }
+                }
+            }
+            
+            //armchair ribbon
+            if(geo==1)
+            {
+                for(l=0; l<length2; l++)
+                {
+                    xstart = l*sqrt(3);
+                    for(m=0; m<length; m++)
+                    {
+                    if((m%2) == 0)
+                    {
+                        site_coords[l*2*length + m][0] = xstart;
+                        site_coords[l*2*length + length + m][0] = xstart +2 / sqrt(3);
+                        siteinfo[l*2*length + m][1] = 0;
+                        siteinfo[l*2*length + length + m][1] = 1;
+                    }
+                    if((m%2) == 1)
+                    {
+                        site_coords[l*2*length + m][0] = xstart +  1/(2*sqrt(3));
+                        site_coords[l*2*length + length + m][0] = xstart + (sqrt(3))/2;
+                        siteinfo[l*2*length + m][1] = 1;
+                        siteinfo[l*2*length + length + m][1] = 0;
+                    }
+                    
+                    site_coords[l*2*length + m][1] = m*0.5;
+                    site_coords[l*2*length + length + m][1] = m*0.5;
+
+                    
+                    }
+                    
+                    
+                }
+                    
+            }
+	  
+        //Centre of bubble locations and radii (accounts for possible fluctuations)
+        
+            //Based on antidot locations for different lattice types ("holes")
+        
+            int holes_per_cell, tot_holes, rad_per_hole;
+            double renorm_fac=1.0; //how far outside "radius" to consider, e.g. in Gaussian types
+            
+            if(strcmp("trig", latgeo) == 0)
+            {
+                holes_per_cell=2;
+            }
+            
+            if(strcmp("rotrig", latgeo) == 0)
+            {
+                holes_per_cell=2;
+            }
+            
+            if(strcmp("rect", latgeo) == 0)
+            {
+                holes_per_cell=1;
+            }
+            
+            //how many "radius" parameters are needed (probably 1 for most bubble types!)
+            //(possibly Gaussian needs cut-off...?)
+            rad_per_hole = 1;
+            
+            //params for different bubble geometries can be set here if they involve some renormalisation
+            
+            if(strcmp("triaxgauss", bubgeo) == 0)
+            {
+                renorm_fac=3.0;
+            }
+            if(strcmp("gaussbump", bubgeo) == 0)
+            {
+                renorm_fac = 3.0;
+            }
+            
+	  
+	  
+	  
+            tot_holes = holes_per_cell*lat_width*lat_length;
+            double holes[tot_holes][3+rad_per_hole];
+            double unitholes[holes_per_cell][2];
+            double xshift, yshift;
+            
+            double cellyshift;
+	  
+            
+            if(geo==0)
+                cellyshift = length * sqrt(3) / 2;
+            
+            else if (geo==1)
+                cellyshift = length * 0.5;
+	  
+            
+            //unit cell hole positions (centres) and shift vectors
+	  
+            //triangular lattice
+                if(strcmp("trig", latgeo) == 0)
+                {
+                
+                        //zigzag ribbon
+                        if(geo==0)
+                        {
+                        xstart = buffer_rows*1.0;
+                        ystart = 0.0;
+                        xshift = 3.0*cell_length;
+                        yshift = sqrt(3)*cell_length;
+                        
+                        unitholes[0][0]  = (int) (cell_length*3.0/4) -0.5* ( ((int) (cell_length/2)) % 2 ); 
+                        unitholes[0][1] = (sqrt(3)/2.0) * (int) (cell_length /2.0)   ;
+                        unitholes[1][0] = unitholes[0][0] + 1.5*cell_length;
+                        unitholes[1][1] = unitholes[0][1] + sqrt(3)*cell_length/2.0;
+                        }
+                        
+                        
+                        //armchair ribbon 
+                        if(geo==1)
+                        {
+                        xstart = buffer_rows*sqrt(3);
+                        ystart = 0.0;
+                        xshift = sqrt(3)*cell_length;
+                        yshift = 3.0*cell_length;
+                        
+                
+                        unitholes[0][1] =3.0*cell_length - 0.5 - ((int) (cell_length*3.0/4) -0.5* ( ((int) (cell_length/2)) % 2 ));
+                        unitholes[0][0] = (sqrt(3)/2.0) * (int) (cell_length /2.0)  - 1 /(2*sqrt(3)) ;
+                        unitholes[1][1] = unitholes[0][1] - 1.5*cell_length;
+                        unitholes[1][0] = unitholes[0][0] + sqrt(3)*cell_length/2.0;
+
+                        
+                        
+                        }
+                }
+	  
+	  
+            //rotated triangular lattice
+                if(strcmp("rotrig", latgeo) == 0)
+                {
+                
+                        //zigzag ribbon
+                        if(geo==0)
+                        {
+                        xstart = buffer_rows*1.0;
+                        ystart = 0.0;
+                        xshift = (cell_length + 1)*1.0;
+                        yshift = (cell_length+1)*sqrt(3);
+                        
+                        unitholes[0][0] = (2*cell_length+1)*0.5 - ((int)(cell_length/4))*1.0 - 0.5; 
+                        unitholes[0][1] = (((int)(cell_length/4)) +0.5)*sqrt(3) + sqrt(3)/2;
+                        unitholes[1][0] = unitholes[0][0] - (cell_length+1)*0.5  ;
+                        unitholes[1][1] = unitholes[0][1] + (cell_length+1)*sqrt(3)*0.5 ;
+                        
+                        }
+                        
+                        
+                        //armchair ribbon 
+                        if(geo==1)
+                        {
+                        xstart = buffer_rows*sqrt(3);
+                        ystart = 0.0;
+                        xshift = (cell_length+1)*sqrt(3);
+                        yshift = (cell_length + 1)*1.0;
+                        
+                
+                        unitholes[0][1] = ((int)(cell_length/4))*1.0 + 0.5; 
+                        unitholes[0][0] = (((int)(cell_length/4)) +0.5)*sqrt(3) + 1/(sqrt(3));;
+                        unitholes[1][1] = unitholes[0][1] + (cell_length+1)*0.5  ;
+                        unitholes[1][0] = unitholes[0][0] + (cell_length+1)*sqrt(3)*0.5 ;
+
+                        
+                        
+                        }
+                }
+	  
+            //rectangular lattice
+	      //ADlength is armchair direction unit vector (in units of sqrt(3)a )
+	      //ADlength2 is zigzag direction unit vector  (in units of a)
+	      
+                if(strcmp("rect", latgeo) == 0)
+                {
+                
+                        //zigzag ribbon
+                        if(geo==0)
+                        {
+                        xstart = buffer_rows*1.0;
+                        ystart = 0.0;
+                        xshift = cell_length2;
+                        yshift = sqrt(3)*cell_length;
+                        
+                        unitholes[0][0]  = (int) (cell_length2/2) - 0.5* (  (cell_length % 2) ); 
+                        unitholes[0][1] = (sqrt(3)/2.0) * (int) (cell_length)   ;
+                        
+                        }
+                        
+                        
+                        //armchair ribbon 
+                        if(geo==1)
+                        {
+                        xstart = buffer_rows*sqrt(3);
+                        ystart = 0.0;
+                        xshift = sqrt(3)*cell_length;
+                        yshift = cell_length2;
+                        
+                
+                        unitholes[0][1]  = cell_length2 -0.5 - (int) (cell_length2/2) +0.5* (  (cell_length % 2) ); 
+                        unitholes[0][0] = (sqrt(3)/2.0) * (int) (cell_length)  - 1 /(2*sqrt(3)) ;
+                        
+                                
+
+                        
+                        
+                        }
+                }
+	  
+	  
+	  
+	  
+	  
+            //centre positions, heights, radii
+                for(i=0; i<lat_length; i++)
+                {
+                    for(j=0; j<lat_width; j++)
+                    {
+                        for(k=0; k <holes_per_cell; k++)
+                        {
+                            holes[holes_per_cell*i*lat_width + holes_per_cell*j + k][0] = xstart + i*xshift + unitholes[k][0] + myRandNum(-xyfluc, xyfluc);
+                            holes[holes_per_cell*i*lat_width + holes_per_cell*j + k][1] = ystart + j*yshift + unitholes[k][1] + myRandNum(-xyfluc, xyfluc);
+                            holes[holes_per_cell*i*lat_width + holes_per_cell*j + k][2] = bub_height + myRandNum(-zfluc, zfluc); 
+                            
+                            for(l=0; l<rad_per_hole; l++)
+                            {
+                                holes[holes_per_cell*i*lat_width + holes_per_cell*j + k][3+l] = bub_rad * renorm_fac + myRandNum(-radfluc, radfluc);
+                            }
+                        }
+                    }
+                }
+	  
+	
+	  
+	   
+	  //atomic restructuring!
+	  //this assumes no overlapping bubbles -- i.e no site is in two bubble regions
+	  //be  careful with bubbles with ill-defined radii! (Gaussian-type)
+	  
+                double effx, effy, effr, effr1, effth, ux, uy, ur, uth, uz, u0, u1, u2;
+                
+                for(i=0; i< tot_sites ; i++)
+                {
+                    pert_coords[i][0] = site_coords[i][0];
+                    pert_coords[i][1] = site_coords[i][1];
+                    pert_coords[i][2] = site_coords[i][2];
+                }
+          
+                for(i=2*length; i< tot_sites - 2*length ; i++)
+                {
+                    
+                    for(j=0; j< tot_holes; j++)
+                    {
+                        effx = site_coords[i][0] - holes[j][0];
+                        effy = site_coords[i][1] - holes[j][1];
+                        effr = sqrt(effx*effx + effy*effy);
+                        effth = atan2(effy, effx);
+                        
+                        ur=0; uth=0; uz=0; ux=0; uy=0;
+                        
+                        
+                        //calculate ur and uth for various different bubble types
+                        //convert to ux and uy at bottom, and account for periodicity then
+                        
+                            //triaxial in-plane with gaussian smoothening
+                                if(strcmp("triaxgauss", bubgeo) == 0)
+                                {
+                                    u0=holes[j][2];
+                                    //allow deformation out to 3*sigma
+                                    if (effr < renorm_fac*holes[j][3])
+                                    {
+                                        ur = u0 * effr * effr * sin (3*effth) * exp ( - (effr*effr)/(2*holes[j][3]*holes[j][3]));
+                                        uth = u0 * effr * effr * sin (3*effth) * exp ( - (effr*effr)/(2*holes[j][3]*holes[j][3]));
+                                    }
+                                }
+                            
+                            //Gaussian bump
+                                if(strcmp("gaussbump", bubgeo) == 0)
+                                {
+                                    u0=holes[j][2];
+                                    //allow deformation out to 3*sigma
+                                    if (effr < renorm_fac*holes[j][3])
+                                    {
+                                        uz = u0 * exp ( - (effr*effr)/(2*holes[j][3]*holes[j][3]));
+                                    }
+                                }
+                                
+                                
+                            //Membrane model
+                                if(strcmp("membrane", bubgeo) == 0)
+                                {
+                                    u0= 1.136 * pow(holes[j][2], 2) / holes[j][3];
+                                    if (effr < renorm_fac*holes[j][3])
+                                    {
+                                        ur = u0 * (effr / holes[j][3]) * ( 1.0 -  (effr / holes[j][3])  );
+                                        uz = holes[j][2] * (1.0 -  pow((effr / holes[j][3]), 2) ) ;
+                                    }
+                                }
+                                
+                             //Non-linear plate model
+                                if(strcmp("nlplate", bubgeo) == 0)
+                                {
+                                    u1= 1.308 * pow(holes[j][2], 2) / pow(holes[j][3], 3);
+                                    u2= -1.931 * pow(holes[j][2], 2) / pow(holes[j][3], 4);
+                                    if (effr < renorm_fac*holes[j][3])
+                                    {
+                                        ur = effr * (holes[j][3] - effr) * (u1 + u2 *effr);
+                                        uz = holes[j][2] * pow((1.0 -  pow((effr / holes[j][3]), 2) ), 2)  ;
+                                    }
+                                }   
+                            
+                            
+                            
+                            
+                                ux = ur * cos (effth) - uth * sin (effth);
+                                uy = ur * sin (effth) + uth * cos (effth);
+                                
+                                pert_coords[i][0] += ux;
+                                pert_coords[i][1] += uy;
+                                pert_coords[i][2] += uz;
+                        
+                        
+                                
+                    
+                                //periodic images of bubbles in upper and lower cells, which overlap with this cell
+                                if(isperiodic==1)
+                                {
+                                    effr1 = sqrt(effx*effx + pow(effy+cellyshift,2)   );
+                                    if(effr1 < renorm_fac*holes[j][3])
+                                    {
+                                        pert_coords[i][0] += ux;
+                                        pert_coords[i][1] += uy;
+                                        pert_coords[i][2] += uz;
+                                    }
+                                    
+                                    effr1 = sqrt(effx*effx + pow(effy-cellyshift,2)   );
+                                    if(effr1 < renorm_fac*holes[j][3])
+                                    {
+                                        pert_coords[i][0] += ux;
+                                        pert_coords[i][1] += site_coords[j][1] + uy;
+                                        pert_coords[i][2] += uz;
+                                    }
+                                }
+                        }
+                    }
+                
+	      
+	      
+		    
+	      //chaininfo needed for conductance calcs (if atoms are missing)
+		      (SiteArray->chaininfo) = createNonSquareIntMatrix(length2, 4);
+		      
+		      tempint=0, tempint2=0;
+	 
+		     
+			for(l=0; l<length2; l++)
+			{
+			  tempint=0;
+			  for(m=0; m<2*length; m++)
+			  {
+			    if(siteinfo[l*2*length +m][0] == 0)
+			    {
+			      tempint ++;
+			      tempint2++;
+			    }
+			  }
+			  (SiteArray->chaininfo)[l][0] = tempint;
+			}
+			*Nrem = tempint2;
+			
+			
+			(SiteArray->chaininfo)[0][1] = 0;
+			for(l=1; l<length2; l++)
+			{
+			  (SiteArray->chaininfo)[l][1] = (SiteArray->chaininfo)[l-1][1] + (SiteArray->chaininfo)[l-1][0];
+			}
+
+
+			//are first and last atoms in each chain present?
+			for(l=1; l<length2; l++)
+			{
+			  if(siteinfo[l*2*length][0] == 1)
+			    (SiteArray->chaininfo)[l][2] = 1;
+			  
+			  if(siteinfo[(l+1)*2*length -1][0] == 1)
+			    (SiteArray->chaininfo)[l][3] = 1;
+			}
+	  
+	  
+	  
+		      
+			if(struc_out == 1)
+			{
+			  for(l=0; l<2*length*length2; l++)
+			  {
+			    if(siteinfo[l][0] == 0)
+			      fprintf(out, "%lf	%lf  %lf\n", pert_coords[l][0], pert_coords[l][1], pert_coords[l][2]);
+			    
+			  }
+			  
+			}
+			  
+				    
+			    
+			
+			  
+			  //Fill the array of data structures describing the system
+			
+			  
+			  if(struc_out != 0)
+			  {
+			    fclose(out);
+			    
+			  }
+			  
+			  
+			  (SiteArray->pos) = site_coords;
+                          (SiteArray->pert_pos) = pert_coords;
+			  (SiteArray->site_pots) = site_pots;
+			  (SiteArray->siteinfo) = siteinfo;
+
+
+				
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //generates a ribbon device with a combination of smooth and rough edge disorder
 //the smooth disorder is generated by a superposition of random sinusoids 
@@ -3186,6 +3730,7 @@ void genEdgeDisorderedDevice(RectRedux *SiteArray, void *p, int struc_out, char 
 		  (SiteArray->pos) = site_coords;
 		  (SiteArray->site_pots) = site_pots;
 		  (SiteArray->siteinfo) = siteinfo;
+                  (SiteArray->pert_pos) = NULL;
 		  
 		  int tempint2;
 		   //chaininfo needed for conductance calcs (if atoms are missing)

@@ -440,9 +440,10 @@ main(int argc, char *argv[])
 	//disorder / system config parameters - for antidots overwrites some of the above...
 	  int AD_length=5, AD_length2=5, lat_width=1, lat_length=2;
 	  double AD_rad=1.0, xyfluc=0.0, radfluc=0.0;
-	  char latgeo[24], dotgeo[24];
+	  char latgeo[24], dotgeo[24], bubgeo[24];
 	  sprintf(latgeo, "trig");
 	  sprintf(dotgeo, "circ");
+          sprintf(bubgeo, "membrane");
 	  
 	
 	  
@@ -1002,6 +1003,162 @@ main(int argc, char *argv[])
 		    
 		    //set filename info? (circ and triglat to be generalised later!)
 		}
+		
+		
+		bubble_para bubp = {};
+                double bub_height = 1.0, zfluc=0.0;
+ 		char bub_info[60];   //(use lattice_info from antidots)
+		if(strcmp("BUBBLES", systemtype) == 0)
+		{	
+		    //default values
+		    
+		    bubp.buffer_rows = buffer_rows;
+		    bubp.cell_length = AD_length;
+		    bubp.cell_length2 = AD_length2;
+		    bubp.latgeo = latgeo;
+                    bubp.bubgeo = bubgeo;
+		    bubp.bub_rad = AD_rad;
+		    bubp.bub_height = bub_height;
+		    bubp.lat_width = lat_width;
+		    bubp.lat_length = lat_length;
+		    
+		    bubp.seed = conf_num;
+		    bubp.isperiodic = isperiodic;
+		    bubp.xyfluc = xyfluc;
+		    bubp.radfluc = radfluc;
+                    bubp.zfluc = zfluc;
+		    
+		    //check for command line arguments which vary these
+		    for(i=1; i<argc-1; i++)
+		    {
+		      if(strcmp("-celllength", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%d", &(bubp.cell_length));
+		      }
+		      if(strcmp("-celllength2", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%d", &(bubp.cell_length2));
+		      }
+		      if(strcmp("-bubrad", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(bubp.bub_rad));
+		      }
+		       if(strcmp("-bubheight", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(bubp.bub_height));
+		      }
+		      if(strcmp("-latw", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%d", &(bubp.lat_width));
+		      }
+		      if(strcmp("-latl", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%d", &(bubp.lat_length));
+		      }
+		      if(strcmp("-bufferrows", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%d", &(bubp.buffer_rows));
+		      }
+		      if(strcmp("-latgeo", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%s",  latgeo);
+		      }
+		      if(strcmp("-bubgeo", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%s", bubgeo);
+		      }
+		      if(strcmp("-xyfluc", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(bubp.xyfluc));
+		      }
+		      if(strcmp("-radfluc", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(bubp.radfluc));
+		      }
+		      if(strcmp("-zfluc", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(bubp.zfluc));
+		      }
+		      
+		    }
+		    
+// 		    printf("#BUFFERS %d %d\n", buffer_rows, adotp.buffer_rows);
+		    //antidot system sizes calculated from lattice details
+		    if(strcmp("trig", latgeo) == 0)
+		    {
+		      if(geo==0)
+		      {
+			length1=2*(bubp.lat_width)*(bubp.cell_length) ; 
+			length2= 3*(bubp.cell_length)*(bubp.lat_length) + 2*(bubp.buffer_rows);
+		      }
+		      
+		      if(geo==1)
+		      {
+			length1=6*(bubp.lat_width)*(bubp.cell_length) ; 
+			length2= (bubp.cell_length)*(bubp.lat_length) + 2*(bubp.buffer_rows);
+		      }
+		      
+		      sprintf(lattice_info, "%s_lat_L_%d", (bubp.latgeo),(bubp.cell_length)); 
+
+		    }
+		    
+		    if(strcmp("rotrig", latgeo) == 0)
+		    {
+		      if(geo==0)
+		      {
+			length1= 2*((bubp.cell_length)+1)*(bubp.lat_width); 
+			length2=  ((bubp.cell_length) + 1)*(bubp.lat_length) + 2*(bubp.buffer_rows);
+		      }
+		      
+		      if(geo==1)
+		      {
+			length1=(2*(bubp.cell_length) + 2)*(bubp.lat_width) ; 
+			length2= ((bubp.cell_length)+1)*(bubp.lat_length) + 2*(bubp.buffer_rows);
+		      }
+		      
+		      sprintf(lattice_info, "%s_lat_L_%d", (bubp.latgeo),(bubp.cell_length)); 
+		    }
+		    
+		    if(strcmp("rect", latgeo) == 0)
+		    {
+		      if(geo==0)
+		      {
+			length1=2*(bubp.lat_width)*(bubp.cell_length) ; 
+			length2= (bubp.cell_length2)*(bubp.lat_length) + 2*(bubp.buffer_rows);
+		      }
+		      
+		      if(geo==1)
+		      {
+			length1=2*(bubp.lat_width)*(bubp.cell_length2) ; 
+			length2= (bubp.cell_length)*(bubp.lat_length) + 2*(bubp.buffer_rows);
+		      }
+		      sprintf(lattice_info, "%s_lat_L_%d_%d", (bubp.latgeo),(bubp.cell_length), (bubp.cell_length2)); 
+
+		    }
+		    
+		    //if(strcmp("circ", dotgeo) == 0 || strcmp("hexAC", dotgeo) == 0 || strcmp("hexZZ", dotgeo) == 0)
+		    //{
+		      sprintf(bub_info, "%s_bub_R_%.1lf_H_%.1lf_%dx%d_xyf_%.1lf_rf_%.1lf_zf_%.1lf", (bubp.bubgeo), (bubp.bub_rad), (bubp.bub_height), (bubp.lat_width),  (bubp.lat_length), (bubp.xyfluc), (bubp.radfluc), (bubp.zfluc)); 
+		    //}
+		    
+// 		    if(strcmp("rect", dotgeo) == 0 )
+// 		    {
+// 		      sprintf(dot_info, "%s_dot_R_%.1lf_%.1lf_%dx%d_xyf_%.1lf_rf_%.1lf", (adotp.dotgeo), (adotp.AD_rad), (adotp.AD_rad2), (adotp.lat_width),  (adotp.lat_length), (adotp.xyfluc), (adotp.radfluc)); 
+// 		    }
+
+		    
+		    sprintf(sysinfo, "%s_%s", lattice_info, bub_info);
+		    
+		    //set functions and params for use below
+		    SysFunction = &genBubbleDevice;
+		    SysPara = &bubp;
+                    hopfn = &strainedTB;
+		    
+		}
+		
+		
+		
+		
 		
 		
 		
