@@ -3,46 +3,23 @@
 ZZX=1.0
 ZZY=1.73206
 REDUCFACT=1
-GEO=0
+GEO=1
 MAXPTS=10000
 
-# BASEFOLDER=/home/ICN2/spower/projects/gen-trans/res/
-# PROJFOLDER=ANTIDOTS_RIBBON_1e-06/ZZ288_rect_lat_L_36_64_circ_dot_R_8.0_4x8_xyf_0.0_rf_0.0/
-# PROJNAME=E_+0.40_B_+163.500_longbuf.conf00
 
+BASEFOLDER=/home/powersr/projects/gen-trans/res/
+PROJFOLDER=BUBBLES_RIBBON_1e-06/AC240_rect_lat_L_72_120_membrane_bub_R_40.6_H_12.2_1x1_xyf_0.0_rf_0.0_zf_0.0/POTDIS_c_0.0500_d_0.500_xi_0.3/abs_pot/
+PROJNAME=E_+0.0500_B_+0.000_abs5.conf00
 
-# BASEFOLDER=/home/ICN2/spower/projects/gen-trans/res/
-# PROJFOLDER=CLEAN_rnltest_4_LEADS_1_to_0__1e-06/ZZ200_clean_l2_1000/POTDIS_c_0.01_d_0.200_xi_3.0/
-# PROJNAME=E_+0.00_B_+12.333_NEW.conf00
-
-BASEFOLDER=/home/ICN2/spower/projects/gen-trans/res/
-PROJFOLDER=GB558_NLINFRIB_6_LEADS_1_to_0__1e-06/AC400_GB558_l2_200_VACW_1.0_VACP_0.0600/
-PROJNAME=E_-0.0040_B_+25.000_map.conf00
-
-# PROJFOLDER=CLEAN_RIBBON_1e-06/ZZ3N_500_clean_l2_20/
-# PROJNAME=VG_efetov_2.50_E_+0.00_B_+10.000_NEW.conf00
-
-
-# BASEFOLDER=/home/ICN2/spower/DTU_GEN_RES/
-# PROJFOLDER=ANTIDOTS_RIBBON_1e-05/ZZ720_rect_lat_L_60_104_circ_dot_R_20.0_6x8_xyf_0.0_rf_0.0/
-# PROJNAME=E_+0.40_B_+44.000_NEWlong.conf00
-
-# BASEFOLDER=/home/spow/GEN_TRANS_RESULTS/
-# PROJFOLDER=ANTIDOTS_HALLBAR_2_2_rw_6_1e-06/ZZ480_rect_lat_L_60_104_circ_dot_R_5.0_4x8_xyf_0.0_rf_0.0/
-# PROJNAME=E_+0.40_B_+65.500_NEW.conf00
-
-# BASEFOLDER=/home/spow/GEN_TRANS_RESULTS/
-# PROJFOLDER=ANTIDOTS_HALLBAR_2_2_rw_6_1e-05/ZZ480_rect_lat_L_60_104_circ_dot_R_15.0_4x8_xyf_0.0_rf_0.0/
-# PROJNAME=E_+0.40_B_+69.000_long.conf00
 
 BASENAME=$BASEFOLDER$PROJFOLDER$PROJNAME
 
 DOSNAME=$BASENAME.ldos
-CURRENTS="l0 l2 l3 l1 l4 l5 multi"
+#CURRENTS="l0 l2 l3 l1 l4 l5 multi"
 # CURRENTS="l0 l2 l3 l1 l4 "
 
 
-# CURRENTS="l0"
+CURRENTS="l0"
 # CURRENTS="multi"
 
 # CURRENTS="l0"
@@ -107,22 +84,6 @@ grep -v ^# ${DOSNAME}  | awk -vd1=$XCELLS -vd2=$YCELLS -vxe=$XE -vye=$YE -vxmin=
 # echo ${DOSNAME}_red.dat
 NEWMAXDOS=`cat ${DOSNAME}_red.dat | awk 'BEGIN{max=0} {if ($3>max) max=$3} END{printf "%lf",  max}'`
 
-# 
-# #Create Mathematica script to generate DOS only map
-# cat > tempmath.m << EOF
-# 
-# DOSdata =   Import["${DOSNAME}_red.dat", "Table"];
-# 
-# dmax = $NEWMAXDOS;
-# 
-# 
-# DOSplot = ListDensityPlot[DOSdata, PlotRange -> {{$MINX, $MAXX}, {$MINY, $MAXY}, {0.00, dmax}}, AspectRatio -> ( $MAXY - $MINY )/( $MAXX - $MINX ), ColorFunction -> (Lighter[Blue, 1 - (#/dmax)] &), 
-#   ColorFunctionScaling -> False, ClippingStyle -> {White, Blue},   MaxPlotPoints -> 200, InterpolationOrder -> 2];
-# 
-# Export["${DOSNAME}_map.png", DOSplot, ImageResolution -> 200];
-# 
-# 
-# EOF
 
 
 # Files containing reduced current and DOS maps
@@ -131,37 +92,6 @@ CNAME=$BASENAME.cmaps_${CSEL}
 grep -v ^# ${CNAME}  | awk -vd1=$XCELLS -vd2=$YCELLS -vxe=$XE -vye=$YE -vxmin=$MINX -vymin=$MINY 'BEGIN {for(i=0; i<d1*d2; i++) arr[i]=0.0; arr2[i]=0.0} {arr[int(  ($1 - xmin ) /xe)*d2 + int(($2 - ymin ) /ye )] += $3; arr2[int(  ($1 - xmin ) /xe)*d2 + int(($2 - ymin ) /ye )] += $4 } END {for(i=0; i<d1; i++) for(j=0; j<d2; j++) printf "%e %e %e %e\n", xmin + i*xe , ymin+j*ye,  arr[d2*i+j], arr2[d2*i+j]} ' > ${CNAME}_red.dat;
 done
 
-# #Add to Mathematica script to generate current maps with and without DOS background
-# 
-# cat >> tempmath.m << EOF
-# 
-# CurData =   Import["${CNAME}_red.dat", "Table"];
-# 
-# CurPlot${CSEL} =  ListVectorPlot[CurData, PlotRange -> {{$MINX, $MAXX}, {$MINY, $MAXY}}, VectorStyle -> RGBColor[0.9, 0.45, 0], VectorPoints -> {30, 30},  VectorScale -> {Medium, Scaled[1.15], Automatic}, AspectRatio -> ( $MAXY - $MINY )/( $MAXX - $MINX )];
-# 
-# Export["${CNAME}_map.png", CurPlot, ImageResolution -> 200];
-# 
-# CombinedPlot = Show[DOSplot, CurPlot];
-# 
-# Export["${CNAME}_map_comb.png", CombinedPlot, ImageResolution -> 200];
-# 
-# EOF
-# 
-# 
-# 
-# done
-# 
-# 
-# 
-# 
-# cat >> tempmath.m << EOF
-# 
-# CombinedPlot = Show[DOSplot, CurPlotl0, CurPlotl2, CurPlotl3];
-# 
-# Export["${CNAME}_map_comb.png", CombinedPlot, ImageResolution -> 200];
-# 
-# EOF
-# 
 
 
 #HALL BAR CURRENT SUMS
@@ -175,56 +105,3 @@ paste $FILELIST | awk '{print $1, $2, $3+$7+$11, $4+$8+$12 }' > ${BASENAME}_half
 
 
 
-
-
-
-
-
-# cat > tempmath.m << EOF
-# #!/bin/sh
-# #PBS -q fotonano
-# #PBS -l nodes=1:ppn=${NUMPROCS}
-# #PBS -l walltime=${WALLT}
-# #PBS -o output/\$PBS_JOBNAME.\$PBS_JOBID
-# #PBS -m a
-# #PBS -j oe
-# 
-# #source /zhome/0e/2/36189/.bashrc
-# source ~/.bashrc
-# 
-# #module purge
-# module load npa-cluster-setup
-# module load intel/2015.1.133
-# 
-# ulimit -s unlimited
-# date
-# 
-# #env
-# #echo ""
-# #env | grep NPA_
-# 
-# 
-# cd \$PBS_O_WORKDIR
-# 
-# d=.src_\$PBS_JOBID
-# trap "rm -rf \$d" SIGINT SIGKILL SIGTERM
-# mkdir \$d
-# cd \$d
-# cp -rf ../src/* .
-# make clean
-# make
-# cd ../
-# exe=\$d/template 	
-# 
-# #NPROCS=\$(wc -l \$PBS_NODEFILE)
-# #export OMPI_MCA_mpi_paffinity_alone=1
-# export OMP_NUM_THREADS=1
-# 
-# EOF
-# 
-
-
-
-
-
- 
