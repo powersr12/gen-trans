@@ -15,7 +15,7 @@ import scipy.interpolate
  
 basefolder="/home/powersr/projects/"
 projfolder="bubbles/"
-projname="E_+0.0030_B_+0.000_abs5.conf00"
+projname="E_+0.0090_B_+0.000_abs5.conf00"
  
  
  

@@ -3845,6 +3845,20 @@ void exportRectConf(RectRedux *System, char *filename)
        fprintf(fileout, "%d\n", *(System->Ntot));
 
   fclose(fileout);
+  
+  if( System->pert_pos != NULL )
+  {
+      
+    sprintf(fullname, "%s.pert_pos", filename);
+    fileout = fopen(fullname, "w");
+    for(j=0; j<tot_sites; j++)
+    {
+        fprintf(fileout, "%lf	%lf   %lf\n", (System->pert_pos)[j][0], (System->pert_pos)[j][1], (System->pert_pos)[j][2]);
+    }
+    fclose(fileout);
+  }
+  
+  
 
 }
 
@@ -3872,6 +3886,7 @@ void importRectConf(RectRedux *System, int length, int length2, char *filename)
 	  System->pos = createNonSquareDoubleMatrix(tot_sites, 3);
  	  System->site_pots = createDoubleArray(tot_sites);
 	  System->siteinfo = createNonSquareIntMatrix(tot_sites, 2);
+          System->pert_pos = NULL;
 // 	  (System->chaininfo) = createNonSquareIntMatrix(length2, 4);
 
 	  
@@ -3904,6 +3919,24 @@ void importRectConf(RectRedux *System, int length, int length2, char *filename)
       }
    
     fclose(fileout);
+    
+    //pertpos for strained systems
+    
+    sprintf(fullname, "%s.pert_pos", filename);
+      if((fileout = fopen(fullname, "r") ))    
+        {
+            System->pert_pos = createNonSquareDoubleMatrix(tot_sites, 3);
+            for(j=0; j<tot_sites; j++)
+            {
+                fscanf(fileout, "%lf	%lf   %lf", &(System->pert_pos)[j][0], &(System->pert_pos)[j][1], &(System->pert_pos)[j][2]);
+            }
+            fclose(fileout);
+            printf("#strained geometry imported!\n");
+        }
+        else
+            printf("#strained geometry NOT imported!\n");
+    
+    
     
     
 //     sprintf(fullname, "%s.chaininfo", filename);
