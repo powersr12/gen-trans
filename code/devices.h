@@ -188,6 +188,7 @@ typedef struct {
 	double radfluc;
 	double xyfluc;
         double zfluc;
+        double ifluc;
 }bubble_para;
 
 

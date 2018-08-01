@@ -1007,7 +1007,9 @@ main(int argc, char *argv[])
 		
 		bubble_para bubp = {};
                 double bub_height = 1.0, zfluc=0.0;
- 		char bub_info[60];   //(use lattice_info from antidots)
+                double ifluc=0.0;   //internal fluctuation in bubble perturbations 
+
+ 		char bub_info[66];   //(use lattice_info from antidots)
 		if(strcmp("BUBBLES", systemtype) == 0)
 		{	
 		    //default values
@@ -1027,6 +1029,7 @@ main(int argc, char *argv[])
 		    bubp.xyfluc = xyfluc;
 		    bubp.radfluc = radfluc;
                     bubp.zfluc = zfluc;
+                    bubp.ifluc = ifluc;
 		    
 		    //check for command line arguments which vary these
 		    for(i=1; i<argc-1; i++)
@@ -1078,6 +1081,10 @@ main(int argc, char *argv[])
 		      if(strcmp("-zfluc", argv[i]) == 0)
 		      {
 			  sscanf(argv[i+1], "%lf", &(bubp.zfluc));
+		      }
+		      if(strcmp("-ifluc", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(bubp.ifluc));
 		      }
 		      
 		    }
@@ -1138,7 +1145,7 @@ main(int argc, char *argv[])
 		    
 		    //if(strcmp("circ", dotgeo) == 0 || strcmp("hexAC", dotgeo) == 0 || strcmp("hexZZ", dotgeo) == 0)
 		    //{
-		      sprintf(bub_info, "%s_bub_R_%.1lf_H_%.1lf_%dx%d_xyf_%.1lf_rf_%.1lf_zf_%.1lf", (bubp.bubgeo), (bubp.bub_rad), (bubp.bub_height), (bubp.lat_width),  (bubp.lat_length), (bubp.xyfluc), (bubp.radfluc), (bubp.zfluc)); 
+		      sprintf(bub_info, "%s_bub_R_%.1lf_H_%.1lf_%dx%d_xyf_%.1lf_rf_%.1lf_zf_%.1lf_if_%.02lf", (bubp.bubgeo), (bubp.bub_rad), (bubp.bub_height), (bubp.lat_width),  (bubp.lat_length), (bubp.xyfluc), (bubp.radfluc), (bubp.zfluc), (bubp.ifluc)); 
 		    //}
 		    
 // 		    if(strcmp("rect", dotgeo) == 0 )

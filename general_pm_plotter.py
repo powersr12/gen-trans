@@ -7,7 +7,7 @@ import numpy as np
 from matplotlib.colors import LogNorm
 import scipy.interpolate
 
-filename="/home/powersr/projects/gen-trans/res/BUBBLES_RIBBON_1e-06/AC240_rect_lat_L_72_120_membrane_bub_R_40.6_H_12.2_1x1_xyf_0.0_rf_0.0_zf_0.0/POTDIS_c_0.0500_d_0.500_xi_0.3/abs_pot/Eloop_+0.01_to_+0.10_Bfixed_+0.000_abs5.conf00.disprof"
+filename="/home/powersr/projects/gen-trans/res/BUBBLES_RIBBON_1e-06/AC240_rect_lat_L_72_120_membrane_bub_R_40.6_H_12.2_1x1_xyf_0.0_rf_0.0_zf_0.0/POTDIS_c_0.0200_d_0.020_xi_10.0/abs_pot/Eloop_+0.01_to_+0.10_Bfixed_+0.000_abs5.conf00.disprof"
 outputname=filename+"_plot.png"
 
 

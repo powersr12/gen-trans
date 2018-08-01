@@ -4,12 +4,12 @@ ZZX=1.0
 ZZY=1.73206
 REDUCFACT=1
 GEO=1
-MAXPTS=10000
+MAXPTS=32000
 
 
-BASEFOLDER=/home/powersr/projects/gen-trans/res/
-PROJFOLDER=BUBBLES_RIBBON_1e-06/AC240_rect_lat_L_72_120_membrane_bub_R_40.6_H_12.2_1x1_xyf_0.0_rf_0.0_zf_0.0/POTDIS_c_0.0500_d_0.500_xi_0.3/abs_pot/
-PROJNAME=E_+0.0500_B_+0.000_abs5.conf00
+BASEFOLDER=/home/powersr/projects/
+PROJFOLDER=bubbles/
+PROJNAME=E_+0.0030_B_+0.000_abs5.conf00
 
 
 BASENAME=$BASEFOLDER$PROJFOLDER$PROJNAME

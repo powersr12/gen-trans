@@ -13,9 +13,9 @@ import scipy.interpolate
 #projfolder="ANTIDOTS_RIBBON_1e-06/ZZ288_rect_lat_L_36_64_circ_dot_R_5.0_4x8_xyf_0.0_rf_0.0/"
 #projname="E_+0.40_B_+161.000_longbuf.conf00"
  
-basefolder="/home/powersr/projects/gen-trans/res/"
-projfolder="BUBBLES_RIBBON_1e-06/AC240_rect_lat_L_72_120_membrane_bub_R_40.6_H_12.2_1x1_xyf_0.0_rf_0.0_zf_0.0/POTDIS_c_0.0500_d_0.500_xi_0.3/abs_pot/"
-projname="E_+0.0500_B_+0.000_abs5.conf00"
+basefolder="/home/powersr/projects/"
+projfolder="bubbles/"
+projname="E_+0.0030_B_+0.000_abs5.conf00"
  
  
  
@@ -35,12 +35,12 @@ runzoom = 0
 ##load coordinates and DOS
 x, y, ldos = np.loadtxt(dosname, delimiter=' ', unpack=True)
 #ldos = np.loadtxt(dosname, delimiter=' ', usecols = (2,), unpack=True)
- 
+x, y = x*0.246, y*0.246
 #print jx, ldos
 #print ldos.min()
  
 ##regular grid
-xi, yi = np.linspace(x.min(), x.max(), 500), np.linspace(y.min()+10, y.max()-10, 500 )
+xi, yi = np.linspace(x.min(), x.max(), 800), np.linspace(y.min(), y.max(), 800 )
 xi, yi = np.meshgrid(xi, yi)
  
 #arrow grid
@@ -51,11 +51,10 @@ xim, yim = np.meshgrid(xim, yim)
 plot3 = plt.figure()
 ldosi = scipy.interpolate.griddata((x, y), ldos, (xi, yi), method='linear')
  
-plt.imshow(ldosi, vmin=0.0, vmax=ldosi.max(), origin='lower', cmap=cm.inferno, aspect='auto',
-           extent=[x.min(), x.max(), y.min(), y.max()])
+plt.imshow(ldosi, vmin=0.0, vmax=0.8*ldosi.max(), origin='lower', cmap=cm.inferno, aspect='equal', extent=[xi.min(), xi.max(), yi.min(), yi.max()]            )
 ##plt.colorbar()
+plot3.savefig(odosname, dpi=300, bbox_inches='tight')
 plt.show(plot3)
-#plot3.savefig(odosname, dpi=300, bbox_inches='tight')
  
  
 #for lead in leads:

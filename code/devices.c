@@ -2815,6 +2815,7 @@ void genBubbleDevice(RectRedux *SiteArray, void *p, int struc_out, char *filenam
         double radfluc = (params->radfluc);
         double xyfluc = (params->xyfluc);
         double zfluc = (params->zfluc);
+        double ifluc = (params->ifluc);
 
         int seed = (params->seed);
         
@@ -3202,8 +3203,9 @@ void genBubbleDevice(RectRedux *SiteArray, void *p, int struc_out, char *filenam
                             
                             
                             
-                                ux = ur * cos (effth) - uth * sin (effth);
-                                uy = ur * sin (effth) + uth * cos (effth);
+                                ux = (1.0 + myRandNum(-ifluc, ifluc))*(ur * cos (effth) - uth * sin (effth));
+                                uy = (1.0 + myRandNum(-ifluc, ifluc))*(ur * sin (effth) + uth * cos (effth));
+                                //uz=(1.0 + myRandNum(-ifluc, ifluc))*uz;
                                 
                                 pert_coords[i][0] += ux;
                                 pert_coords[i][1] += uy;
