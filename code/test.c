@@ -3313,7 +3313,8 @@ main(int argc, char *argv[])
                     }
                     else
                     {
-                        (LeadCells[i]->cap_pots) = NULL;
+                        if( bandsonly == 0)
+                            (LeadCells[i]->cap_pots) = NULL;
                     }
                         
                 }				

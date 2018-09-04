@@ -14,9 +14,12 @@ import scipy.interpolate
 #projname="E_+0.40_B_+161.000_longbuf.conf00"
  
 basefolder="/home/powersr/projects/"
-projfolder="bubbles/"
-projname="E_+0.0090_B_+0.000_abs5.conf00"
+projfolder="bubbles/newlow/"
+projname="E_+0.0110_B_+0.000_actabs5.conf00"
  
+#basefolder="/home/powersr/projects/gen-trans/res/"
+#projfolder="BUBBLES_RIBBON_1e-06/AC240_rect_lat_L_72_120_membrane_bub_R_36.6_H_6.0_1x1_xyf_0.0_rf_0.0_zf_0.0_if_0.00/abs_pot/"
+#projname="E_+0.0600_B_+0.000_abs5.conf00" 
  
  
 basefilename=basefolder+projfolder+projname
@@ -40,7 +43,7 @@ x, y = x*0.246, y*0.246
 #print ldos.min()
  
 ##regular grid
-xi, yi = np.linspace(x.min(), x.max(), 800), np.linspace(y.min(), y.max(), 800 )
+xi, yi = np.linspace(x.min()+2, x.max()-2, 800), np.linspace(y.min()+10, y.max()-10, 800 )
 xi, yi = np.meshgrid(xi, yi)
  
 #arrow grid
@@ -51,7 +54,7 @@ xim, yim = np.meshgrid(xim, yim)
 plot3 = plt.figure()
 ldosi = scipy.interpolate.griddata((x, y), ldos, (xi, yi), method='linear')
  
-plt.imshow(ldosi, vmin=0.0, vmax=0.8*ldosi.max(), origin='lower', cmap=cm.inferno, aspect='equal', extent=[xi.min(), xi.max(), yi.min(), yi.max()]            )
+plt.imshow(ldosi,  origin='lower', cmap=cm.inferno, aspect='equal', extent=[xi.min(), xi.max(), yi.min(), yi.max()]            )
 ##plt.colorbar()
 plot3.savefig(odosname, dpi=300, bbox_inches='tight')
 plt.show(plot3)

@@ -4,12 +4,16 @@ ZZX=1.0
 ZZY=1.73206
 REDUCFACT=1
 GEO=1
-MAXPTS=32000
+MAXPTS=56000
 
 
 BASEFOLDER=/home/powersr/projects/
-PROJFOLDER=bubbles/
-PROJNAME=E_+0.0090_B_+0.000_abs5.conf00
+PROJFOLDER=bubbles/newlow/
+PROJNAME=E_+0.0110_B_+0.000_actabs5.conf00
+
+# BASEFOLDER=/home/powersr/projects/gen-trans/res/
+# PROJFOLDER=BUBBLES_RIBBON_1e-06/AC240_rect_lat_L_72_120_membrane_bub_R_36.6_H_6.0_1x1_xyf_0.0_rf_0.0_zf_0.0_if_0.00/abs_pot/
+# PROJNAME=E_+0.0600_B_+0.000_abs5.conf00
 
 
 BASENAME=$BASEFOLDER$PROJFOLDER$PROJNAME
