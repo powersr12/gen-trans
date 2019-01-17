@@ -359,8 +359,6 @@ void ACinf (double _Complex **g11inv, double _Complex **V01, double _Complex **V
 		g11inv[N -1][N-2] = -hopping;
 		g11inv[2*N -1][2*N-2] = -hopping;
 
-
-				
 		g11inv[0][0] = Eng;
 		g11inv[N-1][N-1] = Eng;
 
@@ -382,7 +380,7 @@ void ACinf (double _Complex **g11inv, double _Complex **V01, double _Complex **V
 			g11inv[N+i][N+i-1] = -hopping;
 
 		}
-
+		
 		for(i=1; i<N-1; i+=2)
 		{
 			

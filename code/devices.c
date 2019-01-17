@@ -2787,10 +2787,872 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 			  (SiteArray->siteinfo) = siteinfo;
                           (SiteArray->pert_pos) = NULL;
 
-
-				
-	
 }
+
+
+
+
+
+
+
+
+//A general antidot barrier-type device 
+//(circular ALs in triangular lattice for the moment - should be generalised later -- HAS BEEN DONE!)
+//Different to the routine used in the disordered antidot paper
+//Modified to work with generic ribbons devices
+//Layout based on sublattice device routine
+//The first and last buffer_rows chains of the device will not be altered from pristine graphene
+//This version requires more aligning of the graphene and antidot sheets
+//i.e. ribbon width is not automatically an integer multiple of GAL cell width
+void genSublatticeDots(RectRedux *SiteArray, void *p, int struc_out, char *filename)
+{  
+	  sldot_para *params = (sldot_para *)p;
+	  
+	  int buffer_rows = (params->buffer_rows);
+	  int AD_length = (params->SD_length);
+	  int AD_length2 = (params->SD_length2);
+	  double AD_rad = (params->SD_rad);
+	  double AD_rad2 = (params->SD_rad2);
+
+	  int lat_width = (params->lat_width);
+	  int lat_length = (params->lat_length);
+	  char *latgeo = (params->latgeo);
+	  char *dotgeo = (params->dotgeo);
+	  int isperiodic = (params->isperiodic);
+	  
+	  double radfluc = (params->radfluc);
+	  double xyfluc = (params->xyfluc);
+          
+          double a_conc = (params->a_conc);
+	  double a_pot = (params->a_pot);
+          double b_conc = (params->b_conc);
+	  double b_pot = (params->b_pot);
+
+
+	  int seed = (params->seed);
+	  int length = SiteArray->length;
+	  int length2 = SiteArray->length2;
+	  int geo = SiteArray->geo;
+	 
+	    
+	  double smalldist;
+	  FILE *out;
+	  
+	  if(struc_out != 0)
+	  {
+	    out = fopen(filename, "w");
+	    
+	  }
+	    
+	  srand(time(NULL) + seed);
+	  
+	  
+	  //atomic coordinates and the atoms that are in and out, similar to previous cases
+	  int tot_sites = 2*length*length2;
+	  double **site_coords = createNonSquareDoubleMatrix(tot_sites, 3);
+	  double *site_pots = createDoubleArray(tot_sites);
+	  int **siteinfo = createNonSquareIntMatrix(tot_sites, 2);
+	  double xstart, ystart, temprandnum;
+	  int isclean, l, m, tempint, tempint2;
+	  int *Nrem = (SiteArray->Nrem);
+	  int i, j, k;
+	  int *Ntot = (SiteArray->Ntot);
+	  
+	  *Ntot = tot_sites;
+	  
+	  if(geo==0)
+	  {
+	    for(l=0; l<length2; l++)
+	    {
+	      xstart=l*1.0;
+	      for(m=0; m<length; m++)
+	      {
+		ystart= m*sqrt(3)/2 + 1/(2*sqrt(3));
+		
+		if((m%2) == 0)
+		{
+		    site_coords[l*2*length + 2*m][0] = xstart+0.5;
+		    site_coords[l*2*length + 2*m + 1][0] = xstart;
+		}
+		
+		if((m%2) == 1)
+		{
+		    site_coords[l*2*length + 2*m][0] = xstart;
+		    site_coords[l*2*length + 2*m + 1][0] = xstart+0.5;
+		}
+		
+		    site_coords[l*2*length + 2*m][1] = ystart;
+		    site_coords[l*2*length + 2*m + 1][1] = ystart + 1/(2*sqrt(3));
+		    siteinfo[l*2*length + 2*m][1]=0;
+		    siteinfo[l*2*length + 2*m +1][1]=1;
+
+		  
+	      }
+	    }
+	  }
+	  
+	  if(geo==1)
+	  {
+	      for(l=0; l<length2; l++)
+	      {
+		xstart = l*sqrt(3);
+		for(m=0; m<length; m++)
+		{
+		  if((m%2) == 0)
+		  {
+		    site_coords[l*2*length + m][0] = xstart;
+		    site_coords[l*2*length + length + m][0] = xstart +2 / sqrt(3);
+		    siteinfo[l*2*length + m][1] = 0;
+		    siteinfo[l*2*length + length + m][1] = 1;
+		  }
+		  if((m%2) == 1)
+		  {
+		    site_coords[l*2*length + m][0] = xstart +  1/(2*sqrt(3));
+		    site_coords[l*2*length + length + m][0] = xstart + (sqrt(3))/2;
+		    siteinfo[l*2*length + m][1] = 1;
+		    siteinfo[l*2*length + length + m][1] = 0;
+		  }
+		  
+		  site_coords[l*2*length + m][1] = m*0.5;
+		  site_coords[l*2*length + length + m][1] = m*0.5;
+
+		  
+		}
+		
+		
+	      }
+		
+	  }
+	  
+	  //Antidot positions
+	  int holes_per_cell, tot_holes, rad_per_hole;
+	  double renorm_fac=1.0; //converts side length to "radius" in certain cases	
+	  
+	  if(strcmp("trig", latgeo) == 0)
+	  {
+	    holes_per_cell=2;
+	  }
+	  
+	  if(strcmp("rotrig", latgeo) == 0)
+	  {
+	    holes_per_cell=2;
+	  }
+	  
+	  if(strcmp("rect", latgeo) == 0)
+	  {
+	    holes_per_cell=1;
+	  }
+	  
+	  if(strcmp("circ", dotgeo) == 0)
+	  {
+	    rad_per_hole=1;
+	  }
+	  if(strcmp("hexAC", dotgeo) == 0)
+	  {
+	    rad_per_hole=6;
+	    renorm_fac = sqrt(3) / 2;
+	  }
+	  if(strcmp("hexZZ", dotgeo) == 0)
+	  {
+	    rad_per_hole=6;
+	    renorm_fac = sqrt(3)/2;
+	  }
+	  if(strcmp("rect", dotgeo) == 0)
+	  {
+	    rad_per_hole=4;
+	    renorm_fac = 0.5;
+	  }
+	  
+	  
+	  
+	  tot_holes = holes_per_cell*lat_width*lat_length;
+	  double holes[tot_holes][2+rad_per_hole];
+	  double unitholes[holes_per_cell][2];
+	  double xshift, yshift;
+	  
+	  double cellyshift;
+	  
+	  if(geo==0)
+	    cellyshift = length * sqrt(3) / 2;
+	  
+	  else if (geo==1)
+	    cellyshift = length * 0.5;
+	  
+	  //unit cell hole positions (centres) and shift vectors
+	  
+	  //triangular lattice
+	  if(strcmp("trig", latgeo) == 0)
+	  {
+	  
+		//zigzag ribbon
+		if(geo==0)
+		{
+		  xstart = buffer_rows*1.0;
+		  ystart = 0.0;
+		  xshift = 3.0*AD_length;
+		  yshift = sqrt(3)*AD_length;
+		  
+		  unitholes[0][0]  = (int) (AD_length*3.0/4) -0.5* ( ((int) (AD_length/2)) % 2 ); 
+		  unitholes[0][1] = (sqrt(3)/2.0) * (int) (AD_length /2.0)   ;
+		  unitholes[1][0] = unitholes[0][0] + 1.5*AD_length;
+		  unitholes[1][1] = unitholes[0][1] + sqrt(3)*AD_length/2.0;
+		}
+		
+		
+		//armchair ribbon 
+		if(geo==1)
+		{
+		  xstart = buffer_rows*sqrt(3);
+		  ystart = 0.0;
+		  xshift = sqrt(3)*AD_length;
+		  yshift = 3.0*AD_length;
+		  
+	
+		  unitholes[0][1] =3.0*AD_length - 0.5 - ((int) (AD_length*3.0/4) -0.5* ( ((int) (AD_length/2)) % 2 ));
+		  unitholes[0][0] = (sqrt(3)/2.0) * (int) (AD_length /2.0)  - 1 /(2*sqrt(3)) ;
+		  unitholes[1][1] = unitholes[0][1] - 1.5*AD_length;
+		  unitholes[1][0] = unitholes[0][0] + sqrt(3)*AD_length/2.0;
+
+		  
+		  
+		}
+	  }
+	  
+	  
+	  //rotated triangular lattice
+	  if(strcmp("rotrig", latgeo) == 0)
+	  {
+	  
+		//zigzag ribbon
+		if(geo==0)
+		{
+		  xstart = buffer_rows*1.0;
+		  ystart = 0.0;
+		  xshift = (AD_length + 1)*1.0;
+		  yshift = (AD_length+1)*sqrt(3);
+		  
+		  unitholes[0][0] = (2*AD_length+1)*0.5 - ((int)(AD_length/4))*1.0 - 0.5; 
+		  unitholes[0][1] = (((int)(AD_length/4)) +0.5)*sqrt(3) + sqrt(3)/2;
+		  unitholes[1][0] = unitholes[0][0] - (AD_length+1)*0.5  ;
+		  unitholes[1][1] = unitholes[0][1] + (AD_length+1)*sqrt(3)*0.5 ;
+		  
+		}
+		
+		
+		//armchair ribbon 
+		if(geo==1)
+		{
+		  xstart = buffer_rows*sqrt(3);
+		  ystart = 0.0;
+		  xshift = (AD_length+1)*sqrt(3);
+		  yshift = (AD_length + 1)*1.0;
+		  
+	
+		  unitholes[0][1] = ((int)(AD_length/4))*1.0 + 0.5; 
+		  unitholes[0][0] = (((int)(AD_length/4)) +0.5)*sqrt(3) + 1/(sqrt(3));;
+		  unitholes[1][1] = unitholes[0][1] + (AD_length+1)*0.5  ;
+		  unitholes[1][0] = unitholes[0][0] + (AD_length+1)*sqrt(3)*0.5 ;
+
+		  
+		  
+		}
+	  }
+	  
+	  //rectangular lattice
+	      //ADlength is armchair direction unit vector (in units of sqrt(3)a )
+	      //ADlength2 is zigzag direction unit vector  (in units of a)
+	      
+	  if(strcmp("rect", latgeo) == 0)
+	  {
+	  
+		//zigzag ribbon
+		if(geo==0)
+		{
+		  xstart = buffer_rows*1.0;
+		  ystart = 0.0;
+		  xshift = AD_length2;
+		  yshift = sqrt(3)*AD_length;
+		  
+		  unitholes[0][0]  = (int) (AD_length2/2) - 0.5* (  (AD_length % 2) ); 
+		  unitholes[0][1] = (sqrt(3)/2.0) * (int) (AD_length)   ;
+		  
+		}
+		
+		
+		//armchair ribbon 
+		if(geo==1)
+		{
+		  xstart = buffer_rows*sqrt(3);
+		  ystart = 0.0;
+		  xshift = sqrt(3)*AD_length;
+		  yshift = AD_length2;
+		  
+	
+		  unitholes[0][1]  = AD_length2 -0.5 - (int) (AD_length2/2) +0.5* (  (AD_length % 2) ); 
+		  unitholes[0][0] = (sqrt(3)/2.0) * (int) (AD_length)  - 1 /(2*sqrt(3)) ;
+		  
+		 	  
+
+		  
+		  
+		}
+	  }
+	  
+	  
+	  
+	  for(i=0; i<lat_length; i++)
+	  {
+	    for(j=0; j<lat_width; j++)
+	    {
+	      for(k=0; k <holes_per_cell; k++)
+	      {
+		holes[holes_per_cell*i*lat_width + holes_per_cell*j + k][0] = xstart + i*xshift + unitholes[k][0] + myRandNum(-xyfluc, xyfluc);
+		holes[holes_per_cell*i*lat_width + holes_per_cell*j + k][1] = ystart + j*yshift + unitholes[k][1] + myRandNum(-xyfluc, xyfluc);
+		
+		if(strcmp("rect", dotgeo) != 0)
+		{
+		  for(l=0; l<rad_per_hole; l++)
+		  {
+		    holes[holes_per_cell*i*lat_width + holes_per_cell*j + k][2+l] = AD_rad * renorm_fac + myRandNum(-radfluc, radfluc);
+		  }
+		}
+		
+		if(strcmp("rect", dotgeo) == 0)
+		{
+		  holes[holes_per_cell*i*lat_width + holes_per_cell*j + k][2] = AD_rad * renorm_fac + myRandNum(-radfluc, radfluc);
+		  holes[holes_per_cell*i*lat_width + holes_per_cell*j + k][3] = AD_rad2 * renorm_fac + myRandNum(-radfluc, radfluc);
+		  holes[holes_per_cell*i*lat_width + holes_per_cell*j + k][4] = AD_rad * renorm_fac + myRandNum(-radfluc, radfluc);
+		  holes[holes_per_cell*i*lat_width + holes_per_cell*j + k][5] = AD_rad2 * renorm_fac + myRandNum(-radfluc, radfluc);
+		}
+		
+	      }
+	    }
+	  }
+	  
+	  
+// 	  int **sites = createNonSquareIntMatrix(tot_sites, 2); //removed, num neighbours after first sweep
+	  //double **vertices = createNonSquareDoubleMatrix(rad_per_hole, 2);
+	  double *polyx = createDoubleArray(rad_per_hole);
+	  double *polyy = createDoubleArray(rad_per_hole);
+	  
+          
+
+          
+
+          
+          
+	   
+	  //atom removal (from antidot code) replaced by sublattice dependent potentials
+	      for(i=2*length; i< tot_sites - 2*length ; i++)
+	      {
+		for(j=0; j< tot_holes; j++)
+		{
+		  
+		    if(strcmp("circ", dotgeo) == 0)
+		    {
+			if(sqrt( pow( site_coords[i][0] - holes[j][0], 2) + pow( site_coords[i][1] - holes[j][1], 2)) < holes[j][2])
+			{
+                            site_pots[i] = 0.0;
+                            temprandnum = myRandNum(0.0, 1.0);
+		
+                            if(siteinfo[i][1] == 0)
+                            {
+                                if(temprandnum < a_conc)
+                                    site_pots[i] = a_pot;
+                            }
+                            
+                            if(siteinfo[i][1] == 1)
+                            {
+                                if(temprandnum < b_conc)
+                                    site_pots[i] = b_pot;
+                            }
+			}
+			
+			if(isperiodic==1)
+			{
+			  if(sqrt( pow( site_coords[i][0] - holes[j][0], 2) + pow( site_coords[i][1] - (holes[j][1]-cellyshift), 2)) < holes[j][2])
+			  {
+			    site_pots[i] = 0.0;
+                            temprandnum = myRandNum(0.0, 1.0);
+		
+                            if(siteinfo[i][1] == 0)
+                            {
+                                if(temprandnum < a_conc)
+                                    site_pots[i] = a_pot;
+                            }
+                            
+                            if(siteinfo[i][1] == 1)
+                            {
+                                if(temprandnum < b_conc)
+                                    site_pots[i] = b_pot;
+                            }
+			  }
+			  
+			  if(sqrt( pow( site_coords[i][0] - holes[j][0], 2) + pow( site_coords[i][1] - (holes[j][1]+cellyshift), 2)) < holes[j][2])
+			  {
+			    site_pots[i] = 0.0;
+                            temprandnum = myRandNum(0.0, 1.0);
+		
+                            if(siteinfo[i][1] == 0)
+                            {
+                                if(temprandnum < a_conc)
+                                    site_pots[i] = a_pot;
+                            }
+                            
+                            if(siteinfo[i][1] == 1)
+                            {
+                                if(temprandnum < b_conc)
+                                    site_pots[i] = b_pot;
+                            }
+			  }
+			  
+			}
+			
+			
+		    }
+		    
+		    if(strcmp("rect", dotgeo) == 0)
+		    {
+		      polyx[0] = holes[j][0] + holes[j][2];
+		      polyy[0] = holes[j][1] + holes[j][3];
+		      polyx[1] = holes[j][0] - holes[j][4];
+		      polyy[1] = holes[j][1] + holes[j][3];
+		      polyx[2] = holes[j][0] - holes[j][4];
+		      polyy[2] = holes[j][1] - holes[j][5];
+		      polyx[3] = holes[j][0] + holes[j][2];
+		      polyy[3] = holes[j][1] - holes[j][5];
+		      
+		      if(pnpoly(rad_per_hole, polyx, polyy, site_coords[i][0], site_coords[i][1]))
+		      {
+                            site_pots[i] = 0.0;
+                            temprandnum = myRandNum(0.0, 1.0);
+		
+                            if(siteinfo[i][1] == 0)
+                            {
+                                if(temprandnum < a_conc)
+                                    site_pots[i] = a_pot;
+                            }
+                            
+                            if(siteinfo[i][1] == 1)
+                            {
+                                if(temprandnum < b_conc)
+                                    site_pots[i] = b_pot;
+                            }
+		      }
+		      
+		      if(struc_out == 1 && i== 2*length)
+		      {
+			for(k=0; k<rad_per_hole; k++)
+			{
+			  fprintf(out, "%lf	%lf\n", polyx[k], polyy[k]);
+			}
+			fprintf(out, "%lf	%lf\n\n", polyx[0], polyy[0]);
+		      }
+			  
+		      
+		      if(isperiodic==1)
+		      {
+			for(k=0; k<rad_per_hole; k++)
+			{
+			  polyy[k] = polyy[k] - cellyshift;
+			}
+			
+			if(pnpoly(rad_per_hole, polyx, polyy, site_coords[i][0], site_coords[i][1]))
+			{
+                            site_pots[i] = 0.0;
+                            temprandnum = myRandNum(0.0, 1.0);
+		
+                            if(siteinfo[i][1] == 0)
+                            {
+                                if(temprandnum < a_conc)
+                                    site_pots[i] = a_pot;
+                            }
+                            
+                            if(siteinfo[i][1] == 1)
+                            {
+                                if(temprandnum < b_conc)
+                                    site_pots[i] = b_pot;
+                            }
+			}
+		      
+			for(k=0; k<rad_per_hole; k++)
+			{
+			  polyy[k] = polyy[k] + 2*cellyshift;
+			}
+		      
+			if(pnpoly(rad_per_hole, polyx, polyy, site_coords[i][0], site_coords[i][1]))
+			{
+                            site_pots[i] = 0.0;
+                            temprandnum = myRandNum(0.0, 1.0);
+		
+                            if(siteinfo[i][1] == 0)
+                            {
+                                if(temprandnum < a_conc)
+                                    site_pots[i] = a_pot;
+                            }
+                            
+                            if(siteinfo[i][1] == 1)
+                            {
+                                if(temprandnum < b_conc)
+                                    site_pots[i] = b_pot;
+                            }
+			}
+		      }
+		      
+		   
+			
+		      
+		    }
+		    
+		    if(strcmp("hexZZ", dotgeo) == 0)
+		    {
+		      if(geo == 0)
+		      {
+			polyx[0] = holes[j][0] + (2*holes[j][2] - holes[j][3])/sqrt(3);
+			polyy[0] = holes[j][1] + holes[j][3];
+			polyx[1] = holes[j][0] + (holes[j][3] - 2*holes[j][4])/sqrt(3);
+			polyy[1] = holes[j][1] + holes[j][3];
+			polyx[2] = holes[j][0] - (holes[j][4] + holes[j][5])/sqrt(3);
+			polyy[2] = holes[j][1] + (holes[j][4] - holes[j][5]);
+			polyx[3] = holes[j][0] + (holes[j][6] - 2*holes[j][5])/sqrt(3);
+			polyy[3] = holes[j][1] - holes[j][6];
+			polyx[4] = holes[j][0] + (2*holes[j][7] - holes[j][6])/sqrt(3);
+			polyy[4] = holes[j][1] - holes[j][6];
+			polyx[5] = holes[j][0] + (holes[j][2] + holes[j][7])/sqrt(3);
+			polyy[5] = holes[j][1] + (holes[j][2] - holes[j][7]);
+		      }
+		      
+		      if(geo == 1)
+		      {
+			polyx[0] = holes[j][0] + holes[j][3];
+			polyy[0] = holes[j][1] + (2*holes[j][2] - holes[j][3])/sqrt(3);
+			polyx[1] = holes[j][0] + holes[j][3];
+			polyy[1] = holes[j][1] + (holes[j][3] - 2*holes[j][4])/sqrt(3);
+			polyx[2] = holes[j][0] + (holes[j][4] - holes[j][5]);
+			polyy[2] = holes[j][1] - (holes[j][4] + holes[j][5])/sqrt(3);
+			polyx[3] = holes[j][0] - holes[j][6];
+			polyy[3] = holes[j][1] + (holes[j][6] - 2*holes[j][5])/sqrt(3);
+			polyx[4] = holes[j][0] - holes[j][6];
+			polyy[4] = holes[j][1] + (2*holes[j][7] - holes[j][6])/sqrt(3);
+			polyx[5] = holes[j][0] + (holes[j][2] - holes[j][7]);
+			polyy[5] = holes[j][1] + (holes[j][2] + holes[j][7])/sqrt(3);
+		      }
+		      
+		      
+		      if(pnpoly(rad_per_hole, polyx, polyy, site_coords[i][0], site_coords[i][1]))
+		      {
+                            site_pots[i] = 0.0;
+                            temprandnum = myRandNum(0.0, 1.0);
+		
+                            if(siteinfo[i][1] == 0)
+                            {
+                                if(temprandnum < a_conc)
+                                    site_pots[i] = a_pot;
+                            }
+                            
+                            if(siteinfo[i][1] == 1)
+                            {
+                                if(temprandnum < b_conc)
+                                    site_pots[i] = b_pot;
+                            }
+		      }
+		      
+		      if(struc_out == 1 && i== 2*length)
+		      {
+			for(k=0; k<rad_per_hole; k++)
+			{
+			  fprintf(out, "%lf	%lf\n", polyx[k], polyy[k]);
+			}
+			fprintf(out, "%lf	%lf\n\n", polyx[0], polyy[0]);
+		      }
+		      
+		      if(isperiodic==1)
+		      {
+			for(k=0; k<rad_per_hole; k++)
+			{
+			  polyy[k] = polyy[k] - cellyshift;
+			}
+			
+			if(pnpoly(rad_per_hole, polyx, polyy, site_coords[i][0], site_coords[i][1]))
+			{
+                            site_pots[i] = 0.0;
+                            temprandnum = myRandNum(0.0, 1.0);
+		
+                            if(siteinfo[i][1] == 0)
+                            {
+                                if(temprandnum < a_conc)
+                                    site_pots[i] = a_pot;
+                            }
+                            
+                            if(siteinfo[i][1] == 1)
+                            {
+                                if(temprandnum < b_conc)
+                                    site_pots[i] = b_pot;
+                            }
+			}
+		      
+			for(k=0; k<rad_per_hole; k++)
+			{
+			  polyy[k] = polyy[k] + 2*cellyshift;
+			}
+		      
+			if(pnpoly(rad_per_hole, polyx, polyy, site_coords[i][0], site_coords[i][1]))
+			{
+                            site_pots[i] = 0.0;
+                            temprandnum = myRandNum(0.0, 1.0);
+		
+                            if(siteinfo[i][1] == 0)
+                            {
+                                if(temprandnum < a_conc)
+                                    site_pots[i] = a_pot;
+                            }
+                            
+                            if(siteinfo[i][1] == 1)
+                            {
+                                if(temprandnum < b_conc)
+                                    site_pots[i] = b_pot;
+                            }
+			}
+		      }
+		      
+		      
+		      
+		    }
+		    
+		    
+		    if(strcmp("hexAC", dotgeo) == 0)
+		    {
+		      if(geo == 0)
+		      {
+			polyx[0] = holes[j][0] + holes[j][3];
+			polyy[0] = holes[j][1] + (2*holes[j][2] - holes[j][3])/sqrt(3);
+			polyx[1] = holes[j][0] + holes[j][3];
+			polyy[1] = holes[j][1] + (holes[j][3] - 2*holes[j][4])/sqrt(3);
+			polyx[2] = holes[j][0] + (holes[j][4] - holes[j][5]);
+			polyy[2] = holes[j][1] - (holes[j][4] + holes[j][5])/sqrt(3);
+			polyx[3] = holes[j][0] - holes[j][6];
+			polyy[3] = holes[j][1] + (holes[j][6] - 2*holes[j][5])/sqrt(3);
+			polyx[4] = holes[j][0] - holes[j][6];
+			polyy[4] = holes[j][1] + (2*holes[j][7] - holes[j][6])/sqrt(3);
+			polyx[5] = holes[j][0] + (holes[j][2] - holes[j][7]);
+			polyy[5] = holes[j][1] + (holes[j][2] + holes[j][7])/sqrt(3);
+			
+		      }
+		      
+		      if(geo == 1)
+		      {
+			polyx[0] = holes[j][0] + (2*holes[j][2] - holes[j][3])/sqrt(3);
+			polyy[0] = holes[j][1] + holes[j][3];
+			polyx[1] = holes[j][0] + (holes[j][3] - 2*holes[j][4])/sqrt(3);
+			polyy[1] = holes[j][1] + holes[j][3];
+			polyx[2] = holes[j][0] - (holes[j][4] + holes[j][5])/sqrt(3);
+			polyy[2] = holes[j][1] + (holes[j][4] - holes[j][5]);
+			polyx[3] = holes[j][0] + (holes[j][6] - 2*holes[j][5])/sqrt(3);
+			polyy[3] = holes[j][1] - holes[j][6];
+			polyx[4] = holes[j][0] + (2*holes[j][7] - holes[j][6])/sqrt(3);
+			polyy[4] = holes[j][1] - holes[j][6];
+			polyx[5] = holes[j][0] + (holes[j][2] + holes[j][7])/sqrt(3);
+			polyy[5] = holes[j][1] + (holes[j][2] - holes[j][7]);
+		      }
+		      
+		      
+		      if(pnpoly(rad_per_hole, polyx, polyy, site_coords[i][0], site_coords[i][1]))
+		      {
+                            site_pots[i] = 0.0;
+                            temprandnum = myRandNum(0.0, 1.0);
+		
+                            if(siteinfo[i][1] == 0)
+                            {
+                                if(temprandnum < a_conc)
+                                    site_pots[i] = a_pot;
+                            }
+                            
+                            if(siteinfo[i][1] == 1)
+                            {
+                                if(temprandnum < b_conc)
+                                    site_pots[i] = b_pot;
+                            }
+		      }
+		      
+		      if(struc_out == 1 && i== 2*length)
+		      {
+			for(k=0; k<rad_per_hole; k++)
+			{
+			  fprintf(out, "%lf	%lf\n", polyx[k], polyy[k]);
+			}
+			fprintf(out, "%lf	%lf\n\n", polyx[0], polyy[0]);
+		      }
+		      
+		         if(isperiodic==1)
+		      {
+			for(k=0; k<rad_per_hole; k++)
+			{
+			  polyy[k] = polyy[k] - cellyshift;
+			}
+			
+			if(pnpoly(rad_per_hole, polyx, polyy, site_coords[i][0], site_coords[i][1]))
+			{
+                            site_pots[i] = 0.0;
+                            temprandnum = myRandNum(0.0, 1.0);
+		
+                            if(siteinfo[i][1] == 0)
+                            {
+                                if(temprandnum < a_conc)
+                                    site_pots[i] = a_pot;
+                            }
+                            
+                            if(siteinfo[i][1] == 1)
+                            {
+                                if(temprandnum < b_conc)
+                                    site_pots[i] = b_pot;
+                            }
+			}
+		      
+			for(k=0; k<rad_per_hole; k++)
+			{
+			  polyy[k] = polyy[k] + 2*cellyshift;
+			}
+		      
+			if(pnpoly(rad_per_hole, polyx, polyy, site_coords[i][0], site_coords[i][1]))
+			{
+                            site_pots[i] = 0.0;
+                            temprandnum = myRandNum(0.0, 1.0);
+		
+                            if(siteinfo[i][1] == 0)
+                            {
+                                if(temprandnum < a_conc)
+                                    site_pots[i] = a_pot;
+                            }
+                            
+                            if(siteinfo[i][1] == 1)
+                            {
+                                if(temprandnum < b_conc)
+                                    site_pots[i] = b_pot;
+                            }
+			}
+		      }
+		      
+		    }
+		    
+		}
+	      }
+	      
+	      free(polyx); free(polyy);
+	  
+
+
+		    
+	      //chaininfo needed for conductance calcs (if atoms are missing)
+		      (SiteArray->chaininfo) = createNonSquareIntMatrix(length2, 4);
+		      
+		      tempint=0, tempint2=0;
+	 
+		     
+			for(l=0; l<length2; l++)
+			{
+			  tempint=0;
+			  for(m=0; m<2*length; m++)
+			  {
+			    if(siteinfo[l*2*length +m][0] == 0)
+			    {
+			      tempint ++;
+			      tempint2++;
+			    }
+			  }
+			  (SiteArray->chaininfo)[l][0] = tempint;
+			}
+			*Nrem = tempint2;
+			
+			
+			(SiteArray->chaininfo)[0][1] = 0;
+			for(l=1; l<length2; l++)
+			{
+			  (SiteArray->chaininfo)[l][1] = (SiteArray->chaininfo)[l-1][1] + (SiteArray->chaininfo)[l-1][0];
+			}
+
+
+			//are first and last atoms in each chain present?
+			for(l=1; l<length2; l++)
+			{
+			  if(siteinfo[l*2*length][0] == 1)
+			    (SiteArray->chaininfo)[l][2] = 1;
+			  
+			  if(siteinfo[(l+1)*2*length -1][0] == 1)
+			    (SiteArray->chaininfo)[l][3] = 1;
+			}
+	  
+	  
+	  
+		      
+			if(struc_out == 1)
+			{
+			  for(l=0; l<2*length*length2; l++)
+			  {
+			    if(siteinfo[l][0] == 0 && siteinfo[l][1] == 0 && site_pots[l] == 0.0)
+			    {  
+			      fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			    }
+			  }
+			  fprintf(out, "\n");
+			  
+			  for(l=0; l<2*length*length2; l++)
+			  {
+			    if(siteinfo[l][0] == 0 && siteinfo[l][1] == 1 && site_pots[l] == 0.0)
+			    {  
+			      fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			    }
+			  }
+			  fprintf(out, "\n");
+			  
+			  if(a_pot!=0.0)
+			  {
+			    for(l=0; l<2*length*length2; l++)
+			    {
+			      if(siteinfo[l][0] == 0  && site_pots[l] == a_pot)
+			      {  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			      }
+			    }
+			  }
+			  fprintf(out, "\n");
+			  
+			  if(b_pot!=0.0)
+			  {
+			    for(l=0; l<2*length*length2; l++)
+			    {
+			      if(siteinfo[l][0] == 0  && site_pots[l] == b_pot)
+			      {  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			      }
+			    }
+			  }
+			  fprintf(out, "\n");
+			  
+			  
+			}
+			  
+				    
+			    
+			
+			  
+			  //Fill the array of data structures describing the system
+			
+			  
+			  if(struc_out != 0)
+			  {
+			    fclose(out);
+			    
+			  }
+			  
+			  
+			  (SiteArray->pos) = site_coords;
+			  (SiteArray->site_pots) = site_pots;
+			  (SiteArray->siteinfo) = siteinfo;
+                          (SiteArray->pert_pos) = NULL;
+
+}
+
+
 
 
 
