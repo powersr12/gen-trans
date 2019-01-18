@@ -4509,6 +4509,11 @@ main(int argc, char *argv[])
 			fclose(tsoutput);
 		}
 	      
+                time = clock() - time;
+		printf("#iteration %d complete in %f seconds\n", en, ((float)time)/CLOCKS_PER_SEC);
+		time = clock();
+	      
+	      
 	  }
 			
 
