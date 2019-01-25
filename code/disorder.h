@@ -5,6 +5,7 @@
 void potentialDisorder (RectRedux *DeviceCell, void *p, int disprof_out, char *filename );
 void customEdgePots (RectRedux *DeviceCell, void *p);
 void cap_potential(RectRedux *DeviceCell, double width);
+void cap_potential2(RectRedux *DeviceCell, double width);
 
 
 

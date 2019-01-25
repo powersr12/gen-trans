@@ -14,19 +14,19 @@ void cap_potential(RectRedux *DeviceCell, double width)
     double topedge, bottomedge, topdist, botdist, xi, xf, x;
     (DeviceCell->cap_pots) = createDoubleArray(Ntot);
     double magn = (0.23 / width) * (4*M_PI*M_PI) * (4 / (2.62*2.62)); //0.23 = hbar^2 / 2 m renormalised for del x in a
-    
+
     int i, j, k;
     
     //top and bottom of ribbon (offset)
-        if(geo==0)
+         if(geo==0)
         {
-            topedge=length1*sqrt(3)/2;
-            bottomedge=0.0;
+            topedge=length1*sqrt(3)/2 - 1 / (2*sqrt(3)) +0.001;
+            bottomedge=1 / (2*sqrt(3)) - 0.001;
         }
         if(geo==1 )
         {
-            topedge=(length1)*0.5;
-            bottomedge = -0.5;
+            topedge=(length1-1)*0.5 +0.001;
+            bottomedge = -0.001;
         }
     
     
@@ -61,6 +61,101 @@ void cap_potential(RectRedux *DeviceCell, double width)
     
     
 }
+
+//absorbing potential on all 4 sides -- be VERY CAREFUL HERE!
+void cap_potential2(RectRedux *DeviceCell, double width)
+{
+    int Ntot = *(DeviceCell->Ntot);
+    int Nrem = *(DeviceCell->Nrem);
+    int length1 = (DeviceCell->length);
+    int length2 = (DeviceCell->length2);
+    int geo = (DeviceCell->geo);
+    double topedge, bottomedge, leftedge, rightedge, topdist, bottomdist, leftdist, rightdist, xi, xf, x;
+    (DeviceCell->cap_pots) = createDoubleArray(Ntot);
+    double magn = (0.23 / width) * (4*M_PI*M_PI) * (4 / (2.62*2.62)); //0.23 = hbar^2 / 2 m renormalised for del x in a
+    
+    
+    int i, j, k;
+    
+    //top, bottom, left, right of ribbon (offset)
+        if(geo==0)
+        {
+            topedge=length1*sqrt(3)/2 - 1 / (2*sqrt(3)) +0.001;
+            bottomedge=1 / (2*sqrt(3)) - 0.001;
+            leftedge= -0.001;
+            rightedge=length2*1.0 -0.5 +0.001 ;
+        }
+        if(geo==1 )
+        {
+            topedge=(length1-1)*0.5 +0.001;
+            bottomedge = -0.001;
+            leftedge = - 0.001;
+            rightedge = length2*sqrt(3) - 1 / (sqrt(3)) +0.001;
+        }
+    
+    
+    
+    for(j=0; j<Ntot; j++)
+    {
+        if( (DeviceCell->siteinfo[j][0]) == 0)
+        {
+            topdist = topedge - (DeviceCell->pos)[j][1];
+            bottomdist = (DeviceCell->pos)[j][1] - bottomedge;
+            rightdist = rightedge - (DeviceCell->pos)[j][0];
+            leftdist = (DeviceCell->pos)[j][0] - leftedge; 
+            
+            //top edge
+            if( (topdist < width) && (topdist <= leftdist) && (topdist <= rightdist) )
+            //if( (DeviceCell->pos)[j][1] > (topedge - width) )
+            {
+                x = (DeviceCell->pos)[j][1];
+                xi = (topedge - width);
+                xf = topedge;
+                
+                (DeviceCell->cap_pots)[j] = magn * ( pow(( width / (xf - 2*xi + x) ),2) + pow(( width / (xf - x) ),2) -2 );
+            }
+            
+            //bottom edge
+            //if( (DeviceCell->pos)[j][1] < (bottomedge + width) )
+            if( (bottomdist < width) && (bottomdist <= leftdist) && (bottomdist <= rightdist) )
+            {
+                x = (DeviceCell->pos)[j][1];
+                xi = bottomedge + width;
+                xf = bottomedge;
+                
+                (DeviceCell->cap_pots)[j] = magn * ( pow(( width / (xf - 2*xi + x) ),2) + pow(( width / (xf - x) ),2) -2 );
+            }
+            
+            
+            //left edge
+            if( (leftdist < width) && (leftdist < topdist) && (leftdist < bottomdist) )
+            {
+                x = (DeviceCell->pos)[j][0];
+                xi = leftedge + width;
+                xf = leftedge;
+                
+                (DeviceCell->cap_pots)[j] = magn * ( pow(( width / (xf - 2*xi + x) ),2) + pow(( width / (xf - x) ),2) -2 );
+            }
+            
+            //right edge
+            if( (rightdist < width) && (rightdist < topdist) && (rightdist < bottomdist) )
+            {
+                x = (DeviceCell->pos)[j][0];
+                xi = rightedge - width;
+                xf = rightedge;
+                
+                (DeviceCell->cap_pots)[j] = magn * ( pow(( width / (xf - 2*xi + x) ),2) + pow(( width / (xf - x) ),2) -2 );
+            }
+            
+            
+        }
+        //printf("%lf %lf %lf\n", (DeviceCell->pos)[j][0], (DeviceCell->pos)[j][1], (DeviceCell->cap_pots)[j]);
+    }
+            
+    
+    
+}
+
 
 
 

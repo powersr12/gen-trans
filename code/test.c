@@ -77,7 +77,10 @@ main(int argc, char *argv[])
 	      
               int take_first_chain_pots = 0;          
               
-              int abs_pots = 0;         //use absorbing potentials on top and bottom of nanoribbons
+              int abs_pots = 0;         // = 1 use absorbing potentials on top and bottom of nanoribbons
+                                        // = 2 use absorbing potentials on all four sides of device
+                                        // BE VERY CAREFUL WITH LEAD PLACEMENT!! (suggested to use METALXY, far from edges only)
+                                        
               double abs_pots_width = 2.0; //width of absorbing region
                                         
                                         
@@ -3104,7 +3107,10 @@ main(int argc, char *argv[])
             {
                 sprintf(direcname, "%s/%s", direcname, "abs_pot");
             }
-	    
+            if(abs_pots == 2)
+            {
+                sprintf(direcname, "%s/%s", direcname, "abs_pot2");
+            }
 	    
 	    
 	    sprintf(command, "mkdir -p %s", direcname);
@@ -3306,6 +3312,10 @@ main(int argc, char *argv[])
             {
                 cap_potential(&System, abs_pots_width);
             }
+            if(abs_pots == 2)
+            {
+                cap_potential2(&System, abs_pots_width);
+            }
             else
             {
                 System.cap_pots = NULL;
@@ -3451,14 +3461,14 @@ main(int argc, char *argv[])
 		}
 		
 		
-		if(abs_pots == 1)
-                {
-                    cap_potential(&System, abs_pots_width);
-                }
-                else
-                {
-                    System.cap_pots = NULL;
-                }
+// 		if(abs_pots == 1)
+//                 {
+//                     cap_potential(&System, abs_pots_width);
+//                 }
+//                 else
+//                 {
+//                     System.cap_pots = NULL;
+//                 }
 		
 		
         //lead edge absorbing potentials
