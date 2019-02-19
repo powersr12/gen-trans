@@ -1,6 +1,5 @@
 #pragma once
-#include "devices.h"
-#include "connect.h"
+
 
 
 typedef double _Complex (hoppingfunc) (RectRedux *,  RectRedux *, int, int, double *, void *p);
@@ -39,6 +38,7 @@ typedef struct {
 	int num_leads;
 	int TRsym;
 	double **transmissions;
+        char *filename;
 }trans_params;
 
 

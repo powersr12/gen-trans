@@ -11,8 +11,8 @@ import scipy.interpolate
 
  
 basefolder="/home/stpower/projects/gen-trans/res/"
-projfolder="CLEAN_CUSTOM_2_LEADS_1_to_0__1e-06/AC100_clean_l2_50/abs_pot2/"
-projname="E_-0.0800_B_+0.000_hopmap.conf00"
+projfolder="SUBLDOTS_2STM_2_LEADS_1_to_0__1e-06/ZZ200_rect_lat_L_100_300_SUBA_1.00x0.100_SUBB_1.00x-0.100_circ_dot_R_41.0_1x1_xyf_0.0_rf_0.0/abs_pot2/"
+projname="E_+0.0400_B_+0.000_run.conf00"
  
  
 basefilename=basefolder+projfolder+projname
@@ -35,11 +35,11 @@ x, y, ldos = np.loadtxt(dosname, delimiter=' ', unpack=True)
 #x, y = x*0.246, y*0.246
  
 ##regular grid
-xi, yi = np.linspace(x.min()+10, x.max()-10, 800), np.linspace(y.min()+10, y.max()-10, 800 )
+xi, yi = np.linspace(x.min()+5, x.max()-5, 800), np.linspace(y.min()+5, y.max()-5, 800 )
 xi, yi = np.meshgrid(xi, yi)
  
 #arrow grid
-xim, yim = np.linspace(x.min()+10, x.max()-10, 50), np.linspace(y.min()+10, y.max()-10, 15)
+xim, yim = np.linspace(x.min()+5, x.max()-5, 50), np.linspace(y.min()+5, y.max()-5, 15)
 xim, yim = np.meshgrid(xim, yim)
  
 ## Interpolate DOS and map, output
@@ -59,7 +59,7 @@ for lead in leads:
   maxcur = max(curmag)
   plot2 = plt.figure()
   zi = scipy.interpolate.griddata((x, y), curmag, (xi, yi), method='linear')
-  plt.imshow(zi, vmin=curmag.min(), vmax=0.9*curmag.max(), origin='lower', cmap=cm.hot, extent=[xi.min(), xi.max(), yi.min(), yi.max()])
+  plt.imshow(zi, vmin=curmag.min(), vmax=0.03*curmag.max(), origin='lower', cmap=cm.hot, extent=[xi.min(), xi.max(), yi.min(), yi.max()])
   plt.show(plot2)
   outputname=filename+".png"
   plot2.savefig(outputname, dpi=300)
@@ -101,7 +101,7 @@ for lead in leads:
    
    
   plot6=plt.figure()
-  plt.imshow(zi, vmin=curmag.min(), vmax=0.9*curmag.max(), origin='lower', cmap=cm.coolwarm,
+  plt.imshow(zi, vmin=curmag.min(), vmax=0.1*curmag.max(), origin='lower', cmap=cm.coolwarm,
            extent=[xi.min(), xi.max(), yi.min(), yi.max()])
   jxim = scipy.interpolate.griddata((x, y), jx, (xim, yim), method='linear')
   jyim = scipy.interpolate.griddata((x, y), jy, (xim, yim), method='linear')

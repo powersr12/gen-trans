@@ -1,4 +1,6 @@
 #include "useful.h"
+#include <stdlib.h>
+#include "../libs/matrices.h"
 
 int max(int num1, int num2)
 {

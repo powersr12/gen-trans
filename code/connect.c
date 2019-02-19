@@ -1,4 +1,6 @@
+#include "devices.h"
 #include "connect.h"
+#include "../libs/matrices.h"
 
 void device_connectivity (RectRedux *DeviceCell, cnxRulesFn *rule, void *rule_params, cnxProfile *cnxp)
 {

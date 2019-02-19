@@ -1,9 +1,15 @@
+#include "devices.h"
+#include "connect.h"
 #include "transport.h"
-#include "test.h"
+#include <stddef.h>
+#include "../libs/matrices.h"
+#include "../libs/greenfns.h"
+
 
 
 //mode=0 - just transmissions!
 //mode=1 - transmissions and ldos/current maps - can be generalised further later
+//mode=2 - also spit out the full Gi1 and Sigma matrices for exploitation elsewhere
 void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Leads, cnxProfile *cnxp, 
 		      cellDivision *cellinfo, hoppingfunc *hoppingfn, void *hoppingparams,
 		      lead_para *leadsparams, trans_params *tpara, int mode, double *ldoses, double ***currents)
@@ -12,7 +18,7 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 //     int length1 = (DeviceCell->length);
 //     int length2 = (DeviceCell->length2);
 
-//     printf("#started transmission calc\n");
+    //printf("#started transmission calc - %s \n", tpara->filename);
     int geo = (DeviceCell->geo);
     
     int cell1dim = (cellinfo->cell1dim);
@@ -36,14 +42,14 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
       devicemode2 = 0;
     }
     
-    if(mode==1)
+    if(mode==1 || mode ==2)
     {
      devicemode = 1;
      devicemode2 = 1;
     }
     
     gii=NULL; gi1=NULL; g1i=NULL;
-    if(mode ==1)
+    if(mode ==1 || mode == 2)
     {
       gii = createCompArray(Ntot);
       gi1 = createNonSquareMatrix(Ntot, cell1dim);
@@ -81,7 +87,7 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 	     }
 	   }
 	   
-	   if(mode==1)
+	   if(mode==1 || mode==2)
 	   {
 	      for(i=0; i<cell1dim; i++)
 	      {
@@ -168,7 +174,7 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 	
 
 
-      if(mode==1)
+      if(mode==1 || mode ==2)
       {
 	
 	// a way to bulk print out all the bond currents.
@@ -234,6 +240,54 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 	
       }
       
+      char fulloutname[400];
+      FILE *output;
+      
+      //full output of Sigmas and Gi1s for analysis elsewhere...
+      if(mode ==2)
+      {
+            s1=0; d1=0;
+            
+            for(k=0; k<num_leads; k++)
+            {
+                
+                d1=(cellinfo->lead_dims)[k];
+                sprintf(fulloutname, "%s.%s%d", tpara->filename, "gi", k);
+                output = fopen(fulloutname, "w");
+                for(i=0; i<Ntot; i++)
+                {
+                    
+                    for(m=0; m<d1; m++)
+                    {
+                       
+                            fprintf(output, "%e\t%e\n", creal(gi1[i][s1+m]), cimag(gi1[i][s1+m]));
+                       
+                        
+                    }
+                    
+                }
+                fclose(output);
+                
+                sprintf(fulloutname, "%s.%s%d", tpara->filename, "sig_", k);
+                output = fopen(fulloutname, "w");
+                
+                for(m=0; m<d1; m++)
+		{
+                    for(n=0; n<d1; n++)
+                    {
+                        fprintf(output, "%e\t%e\n", creal(Gamma[s1+m][s1+n]), cimag(Gamma[s1+m][s1+n]));   
+                    }
+		}
+                fclose(output);
+                
+                
+                
+                s1+=d1;
+            }
+            
+            
+      }
+      
       
       
 //       for(i=0; i<Ntot; i++)
@@ -242,7 +296,7 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
 //       }
        
 	
-       if(mode ==1)
+       if(mode ==1 || mode ==2)
 	{
 	  free(gii); 
 	  FreeMatrix(g1i); 

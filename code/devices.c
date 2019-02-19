@@ -1,6 +1,13 @@
 
-
 #include "devices.h"
+#include "connect.h"
+#include <stdio.h>
+#include "../libs/matrices.h"
+#include "useful.h"
+#include "time.h"
+#include <string.h>
+#include <stdio.h>
+
 
 
 //Routines for generating various devices (RectRedux form)
@@ -4836,6 +4843,17 @@ int HallPositioning(int length2, int num_side_probes, int this_probe, int buffer
 	return hall_start + this_probe*hall_jump;
 		
 }
+
+
+void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, int struc_out, char *filename)
+{
+    
+    printf("##patching begins!\n");
+    
+    
+}
+
+
 
 
 void HallBarify (RectRedux *System, RectRedux **Leads, hallbpara *hall_para, lead_para *params, int struc_out, char *filename)
