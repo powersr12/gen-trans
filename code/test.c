@@ -3373,7 +3373,7 @@ main(int argc, char *argv[])
             cellDivision cellinfo; // definition moved to here so that 'group' sites can be set in Patchify
 
             patch_para patchp = {};
-            
+            patchp.numpatches = numpatches;
             //PATCH SETTINGS -default is no additional patches, and main System region patched
             if (ispatched != 0)
             {
@@ -3393,39 +3393,49 @@ main(int argc, char *argv[])
                 patchp.pl2 = createIntArray(numpatches);
                 
                 
+                
 //sscanf(argv[i+1], "%d", &((rib_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord);
                 
                 for (j=0; j<numpatches; j++)
                 {
-                    sprintf(temp_in_string, "-patch%da1", j);
-                    if(strcmp(temp_in_string, argv[i]) == 0)
-                    {
-                        sscanf(argv[i+1], "%d", &patchp.pcoords[j][0]);
-                    }
-                    sprintf(temp_in_string, "-patch%da2", j);
-                    if(strcmp(temp_in_string, argv[i]) == 0)
-                    {
-                        sscanf(argv[i+1], "%d", &patchp.pcoords[j][1]);
-                    }
-                    sprintf(temp_in_string, "-patch%dl1", j);
-                    if(strcmp(temp_in_string, argv[i]) == 0)
-                    {
-                        sscanf(argv[i+1], "%d", &patchp.pl1[j]);
-                    }
-                    sprintf(temp_in_string, "-patch%dl2", j);
-                    if(strcmp(temp_in_string, argv[i]) == 0)
-                    {
-                        sscanf(argv[i+1], "%d", &patchp.pl2[j]);
-                    }
+                    patchp.pl1[j] = 10;
+                    patchp.pl2[j] = 10;
+                    patchp.pcoords[j][0] = (length2+length1)*(j+1);
+                    patchp.pcoords[j][1] = (length2+length1)*(j+1);
                     
-                    if(strcmp("-usePGFlib" , argv[i]) == 0)
+                    for(i=1; i<argc-1; i++)
                     {
-                        sscanf(argv[i+1], "%d", &patchp.usePGFlib);
-                    }
                     
-                    if(strcmp("-PGFlibloc" , argv[i]) == 0)
-                    {
-                        sscanf(argv[i+1], "%s", patchp.PGFlibloc);
+                        sprintf(temp_in_string, "-patch%da1", j);
+                        if(strcmp(temp_in_string, argv[i]) == 0)
+                        {
+                            sscanf(argv[i+1], "%d", &patchp.pcoords[j][0]);
+                        }
+                        sprintf(temp_in_string, "-patch%da2", j);
+                        if(strcmp(temp_in_string, argv[i]) == 0)
+                        {
+                            sscanf(argv[i+1], "%d", &patchp.pcoords[j][1]);
+                        }
+                        sprintf(temp_in_string, "-patch%dl1", j);
+                        if(strcmp(temp_in_string, argv[i]) == 0)
+                        {
+                            sscanf(argv[i+1], "%d", &patchp.pl1[j]);
+                        }
+                        sprintf(temp_in_string, "-patch%dl2", j);
+                        if(strcmp(temp_in_string, argv[i]) == 0)
+                        {
+                            sscanf(argv[i+1], "%d", &patchp.pl2[j]);
+                        }
+                        
+                        if(strcmp("-usePGFlib" , argv[i]) == 0)
+                        {
+                            sscanf(argv[i+1], "%d", &patchp.usePGFlib);
+                        }
+                        
+                        if(strcmp("-PGFlibloc" , argv[i]) == 0)
+                        {
+                            sscanf(argv[i+1], "%s", patchp.PGFlibloc);
+                        }
                     }
                     
                 }

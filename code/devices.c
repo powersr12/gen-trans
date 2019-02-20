@@ -4850,6 +4850,68 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
     
     printf("##patching begins!\n");
     
+    int geo = (System->geo);
+    int length = (System->length);
+    int length2 = (System->length2);
+    int **siteinfo = (System->siteinfo);		
+    double **pos = (System->pos);
+    double *site_pots = (System->site_pots);
+    int *Nrem = (System->Nrem);
+    int *Ntot = (System->Ntot);
+    
+    int numpatches = (ppara->numpatches);
+    int i, j;
+    
+    ppara->pNrem = createIntArray(numpatches);
+    
+    double a1[2], a2[2];
+    if(geo == 0)
+    {
+        a1[0] = -0.5; a1[1] = sqrt(3)/2;
+        a2[0] = 0.5; a2[1] = sqrt(3)/2;
+    }
+    
+    if(geo == 1)
+    {
+        a1[1] = 0.5; a1[0] = sqrt(3)/2;
+        a2[1] = -0.5; a2[0] = sqrt(3)/2;
+    }
+    
+    
+    RectRedux *Patches[numpatches];
+    for(i=0; i < numpatches; i++)
+    {
+        Patches[i] = (RectRedux *)malloc(sizeof(RectRedux));
+        (Patches[i]->geo) = geo;
+        (Patches[i]->length) = ppara->pl1[i];
+        (Patches[i]->length2) = ppara->pl2[i];
+        (Patches[i]->Nrem) = (int *)malloc(sizeof(int));
+        (Patches[i]->Ntot) = (int *)malloc(sizeof(int));
+        simpleRibbonGeo (Patches[i], NULL, 0, NULL);
+        
+        
+        
+        
+        
+//         //shift probe positions
+        for(j=0; j< *(Patches[i]->Ntot); j++)
+        {
+            (Patches[i]->pos)[j][0] += ppara->pcoords[i][0] * a1[0] + ppara->pcoords[i][1] * a2[0] ;
+            (Patches[i]->pos)[j][1] += ppara->pcoords[i][0] * a1[1] + ppara->pcoords[i][1] * a2[1] ;
+            //printf("%lf	%lf\n", (Patches[i]->pos)[j][0], (Patches[i]->pos)[j][1]);
+        }
+        
+        
+        ppara->pNrem[i] = *(Patches[i]->Nrem);
+        
+        printf("# patch %d, %d sites\n", i, ppara->pNrem[i]);
+    
+    }
+    
+    
+    
+    
+    
     
 }
 
