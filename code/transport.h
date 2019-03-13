@@ -39,6 +39,8 @@ typedef struct {
 	int TRsym;
 	double **transmissions;
         char *filename;
+        int ispatched;
+        void *patchpara;
 }trans_params;
 
 

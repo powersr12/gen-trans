@@ -3075,7 +3075,7 @@ main(int argc, char *argv[])
 	
 	    FILE *output, *fulloutput, *tsoutput;
 	    char filename[300], filename3[300], filename_temp[300], fullfilename[300], tsfilename[300];
-	    char checkname[300], direcname[300], conffile[350], strucfile[300], lstrucfile[350], disorderfile[300];
+	    char checkname[300], direcname[300], conffile[350], strucfile[300], lstrucfile[350], disorderfile[300], pstrucfile[350];
 	    char bandname1[300], bandname2[300], bandname3[300], mapname[400], maindirec[100], gsname[300];
             char command[600], inputlist[300];
 	    char altconffile[100];
@@ -3219,6 +3219,7 @@ main(int argc, char *argv[])
 	    System.length2=length2;
 	    System.Nrem=&Nrem;
 	    System.Ntot=&Ntot;
+            System.patched=0;
             
             //printf("HERE! %d\n", Nrem);
 	    
@@ -3371,6 +3372,7 @@ main(int argc, char *argv[])
 
             char PGFlib[100];
             cellDivision cellinfo; // definition moved to here so that 'group' sites can be set in Patchify
+            cellinfo.group_dim = 0;
 
             patch_para patchp = {};
             patchp.numpatches = numpatches;
@@ -3440,10 +3442,18 @@ main(int argc, char *argv[])
                     
                 }
                 
+            if(output_type == 1)
+            {
+                    sprintf(pstrucfile, "%s.patch", strucfile);
+                    
+            }
                 
             //call Patchify...
-            Patchify (&System, &patchp, &cellinfo, output_type, "patch.temp");
-            exit(1);
+            Patchify (&System, &patchp, &cellinfo, output_type, pstrucfile);
+            System.patched=1;
+            System.patch_params = &patchp;
+            pos = System.pos;
+            //exit(1);
 
                 
             }
@@ -3620,12 +3630,12 @@ main(int argc, char *argv[])
 	 
  	    cnxp.max_neigh=max_neigh;
 	    device_connectivity (&System, connectrules, default_connection_params, &cnxp);
-	    
+
 		  time = clock() - time;
 		  printf("#made connection profile in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		  time = clock();
-//   	   printConnectivity (&System, &cnxp);
-	  
+   	   //printConnectivity (&System, &cnxp);
+	
 		
 	  gen_start_params start_p ={};
 	 
@@ -3636,6 +3646,8 @@ main(int argc, char *argv[])
 	  
 	  void *starting_ps;
           starting_ps = &start_p;
+          
+          
           
 	if(metal_leads ==1)
               starting_ps = &mxsp;
@@ -3651,12 +3663,12 @@ main(int argc, char *argv[])
 	}
 		
 	 // genStartingCell(&System, &cellinfo, 2, NULL);
-	  
+ 
 	 if(bandsonly == 0)
 		genStartingCell(&System, &cellinfo, starting_cell_mode, starting_ps);
 	 
-// 	exit(0);
-	  
+ 	//exit(1);
+
 
 		if(output_type == 1)
 		{
@@ -3674,10 +3686,12 @@ main(int argc, char *argv[])
 	if(bandsonly == 0)
 	  cellSplitter(&System, &cnxp, &cellinfo);
 	  
+        
 		time = clock() - time;
 		printf("#split cells in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		time = clock();
 
+        //exit(1);
 
 		
 		
@@ -3833,7 +3847,11 @@ main(int argc, char *argv[])
 	  
 
 	  tpara.transmissions = transmissions;
-
+          tpara.ispatched = ispatched;
+          if(ispatched != 0)
+          {
+              tpara.patchpara = &patchp;
+          }
 	  double kavg;
 	  
 	  double kxl;

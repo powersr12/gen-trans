@@ -33,6 +33,8 @@ typedef struct {
 	int **chaininfo;
 	int *Nrem;
 	int *Ntot;
+        int patched;
+        void *patch_params;
 }RectRedux;
 
 typedef struct {
@@ -43,6 +45,9 @@ typedef struct {
         int *pl2;
         int usePGFlib;
         char *PGFlibloc;
+        int num_boundary_sites;
+        double **boundary_pos;
+        int *boundary_subl;
 }patch_para;
 
 typedef struct {
@@ -265,6 +270,7 @@ typedef void (leadgenfn) (RectRedux *, RectRedux *, int, void *);
 
 void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, int struc_out, char *filename);
 
+void simplifyIndices(double **input,  int *output, double *origin, double *a1, double *a2 );
 
 
 void genLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, int mode, lead_para *params);

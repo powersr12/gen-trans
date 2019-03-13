@@ -108,7 +108,7 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
 	(cellinfo->sites_by_cell)[i] = -1;
     }
     
-    
+
 	
 	int *leadtype;
 
@@ -531,7 +531,7 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
     else if(config==5)
     {
 	custom_start_params *sps = (custom_start_params *) start_params;
-      
+
 	j=0, m=0;
 	cellinfo->num_leads=sps->num_leads;
 	cellinfo->lead_dims=createIntArray(cellinfo->num_leads);
@@ -607,7 +607,7 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
 		
 	}
 	cellinfo->cell1dim = j;
-	cellinfo->group_dim = 0;
+	//cellinfo->group_dim = 0;
 	cellinfo->lead_sites = createIntArray( cellinfo->cell1dim );
 	for(l=0; l<cellinfo->cell1dim ; l++)
 	{
@@ -649,6 +649,7 @@ void cellSplitter (RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellin
       num_sites_left++;
     }
   }
+  
   
   cellindex=0; last_cell_start=0; last_cell_size=(cellinfo->cell1dim); sites_to_date=(cellinfo->cell1dim);
   
