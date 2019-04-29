@@ -316,9 +316,9 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
   {
 	this_cell = cell_start + it_count*cell_iter;
   
-//    	printf("########\n#cell %d\n", this_cell);
+// #rintf("########\n#cell %d\n", this_cell);
 	
-// 	printf("### backwards sweep, cell %3d of %3d\n", this_cell, (cellinfo->num_cells));
+//  	printf("### backwards sweep, cell %3d of %3d\n", this_cell, (cellinfo->num_cells));
     //generate disconnected cell GF
 	dim = (cellinfo->cell_dims)[this_cell];
 	g00inv = createSquareMatrix(dim);
@@ -332,7 +332,7 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 	  V12 = createNonSquareMatrix(dim_old, dim);
 	}
 	
-	
+// 	printf("#sites....\n");
 	//onsites
 	for(i=0; i<dim; i++)
 	{
@@ -350,16 +350,18 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 	  
 	  
 	}
+// 	printf("\n");
 
 	//internal (& external?) hoppings
 	for(i=0; i<dim; i++)
 	{
 	  
 	  index1 = (cellinfo->cells_site_order)[this0 +i];
+//           printf("# %d neighbours: ", index1);
 	  for(j=0; j<(cnxp->site_cnxnum)[index1]; j++)
 	  {
 	    index2 = (cnxp->site_cnx)[index1][j];
-	    
+// 	    printf("%d,", index2);
 	    //is this neighbour in the same cell?
 	    if( (cellinfo->sites_by_cell)[index2] == this_cell)
 	    {
@@ -397,6 +399,9 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 	    
 	    
 	  }
+//         printf("\n");
+
+	  
 	}
 
 	  	//check non-zero elements at the cell stage
@@ -1693,7 +1698,6 @@ double _Complex graphenePeierlsPhase(double x1, double y1, double x2, double y2,
 //gauge = 4 -> no fields in leads
 double _Complex grapheneHallPhase(double x1, double y1, double x2, double y2, int gauge, double BTesla, int *res, double **limits)
 {
- 
   double xb, yb, delx, dely, midx, midy;
   double beta = BTesla * 1.46262E-5;
   double phase, weight;
@@ -1792,7 +1796,8 @@ double _Complex grapheneHallPhase(double x1, double y1, double x2, double y2, in
 //generalised lead Sigmas (based on simple2leads)
 void multipleLeads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadCells, cellDivision *cellinfo, lead_para *params, double _Complex **Sigma)
 {
-  
+//    printf("#multiple leads called!\n");
+
     int leadloop, dim1, dim1a,  dimcounta=0, lcount;
     double _Complex **ginv, **V12, **V21, **g00, **SL, **SR, **VLD, **VDL, **smallSigma, **temp1;
     double elemerr=1.0e-15;
@@ -1824,13 +1829,13 @@ void multipleLeads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadC
 	  RubioSGF(SL, g00, V12, V21, dim1, &lcount, elemerr*dim1*dim1);
 	  
 	  
-	    if(leadloop==0)
-	  {
+// 	    if(leadloop==0)
+// 	  {
 // 	    printf("DIM %d\n", dim1);
 // 	    listNonZero(ginv, dim1, dim1);
 // 	    listNonZero(V12, dim1, dim1);
 // 	    listNonZero(V21, dim1, dim1);
-	  }
+// 	  }
 	  FreeMatrix(ginv); FreeMatrix(V12); FreeMatrix(V21); FreeMatrix (g00);
 	
 
@@ -2078,6 +2083,7 @@ void simple2leads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadCe
 //returns unit cell ginv, V12 and V21
 void lead_prep(double _Complex En, RectRedux *LeadCell, int leadindex, lead_para *params, double _Complex **ginv, double _Complex **V12, double _Complex **V21)
 {
+
     int i, j, k;
     
     int dim = *(LeadCell->Nrem);
@@ -2132,6 +2138,8 @@ void lead_prep(double _Complex En, RectRedux *LeadCell, int leadindex, lead_para
 	}
 	      
       }
+           // printf("V12\n");
+           //listNonZero(V12, dim, dim);
 
       
     for(i=0; i<3; i++)
@@ -2159,6 +2167,7 @@ void lead_prep(double _Complex En, RectRedux *LeadCell, int leadindex, lead_para
 //returns unit cell ginv, V12 and V21
 void lead_prep2(double _Complex En, RectRedux *LeadCell, int leadindex, rib_lead_para *params, double _Complex **ginv, double _Complex **V12, double _Complex **V21)
 {
+
     int i, j, k;
     
     int dim = *(LeadCell->Nrem);

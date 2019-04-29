@@ -1507,6 +1507,7 @@ main(int argc, char *argv[])
 		blg_conn_para blg_cnxpara;
 		double *subpots = createDoubleArray(4);
 		double blgbias=0.0;
+                int blg_ind_pots = 0;  //whether individual lattice potentials are set
 		
 		if(strcmp("BLG", systemtype) == 0)
 		{	
@@ -1569,13 +1570,36 @@ main(int argc, char *argv[])
 					subpots[2] = blgbias;
 					subpots[3] = blgbias;
 				}
-		
+				if(strcmp("-blgA1", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &subpots[0]);
+					blg_ind_pots = 1;
+				}
+                                if(strcmp("-blgB1", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &subpots[1]);
+					blg_ind_pots = 1;
+				}
+                                if(strcmp("-blgA2", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &subpots[2]);
+					blg_ind_pots = 1;
+				}
+                                if(strcmp("-blgB2", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &subpots[3]);
+					blg_ind_pots = 1;
+				}
 			}
 			
 			
 			if(bilp.type_shift ==1)
 			{
 				sprintf(blgtype, "AB");
+			}
+			else if(bilp.type_shift ==12)
+			{
+				sprintf(blgtype, "ABal");
 			}
 			else if (bilp.type_shift ==0)
 			{
@@ -1599,7 +1623,7 @@ main(int argc, char *argv[])
 			//basic BLG connection stuff
 				blg_cnxpara.intra_thresh_min = BLG_NNTB_hop_params.NN_lowdis[0];
 				blg_cnxpara.intra_thresh_max = BLG_NNTB_hop_params.NN_highdis[0];
-				blg_cnxpara.inter_thresh_min = 0.0;
+				blg_cnxpara.inter_thresh_min = 0.000;
 				blg_cnxpara.inter_thresh_max = BLG_NNTB_hop_params.NN_highdis[num_neigh-1];
 				blg_cnxpara.zthresh1 = 0.1;
 				blg_cnxpara.zthresh2 = bilp.zsep + 0.1;
@@ -1630,6 +1654,11 @@ main(int argc, char *argv[])
 				sprintf(sysinfo, "%s_b%.2lf_L2_%d", blgtype, blgbias, length2);
 			}
 			
+			if(blg_ind_pots != 0)
+			{
+				sprintf(sysinfo, "%s_A1_%.3lf_B1_%.3lf_A1_%.3lf_B1_%.3lf_L2_%d", blgtype, subpots[0], subpots[1], subpots[2], subpots[3], length2);
+			}
+			
 			if(bilp.skews == 1)
 			{
 				sprintf(sysinfo, "%s.s_L2_%d", blgtype, length2); 
@@ -1644,6 +1673,176 @@ main(int argc, char *argv[])
 		}
 
 	  
+	  
+                //Create a bilayer device with random distributions of (sublattice dependent) potentials
+                blgpots_para blgp = {};
+                int use_av_pots=0;  //use average potentials in the leads / buffer regions, otherwise zero
+                double *subpotsc = createDoubleArray(4);
+                double *subconcs = createDoubleArray(4);
+                for(i=0;i<4;i++)
+                {
+                    subconcs[i]=1.0;
+                    subpotsc[i]=0.0;
+                }
+
+                if(strcmp("BLGPOTS", systemtype) == 0)
+		{	
+			//this system uses the bilayer graphene hopping parameters
+			//these are defined in 'useful_hops.c'
+			hop_to_load = &BLG_NNTB_hop_params;
+			
+			//default values
+			nngm=1; //mode 1 includes NN intra layer and direct inter layer.
+				//mode 2 adds skew hopping terms to and from nondimer sites
+				//mode 0 (never called), would decouple the two layers completely
+				//(would it??)
+				
+			bilp.type_shift=1;	//default is AB
+			bilp.shift_angle=0;
+			char blgtype[6];
+			double blg_shift[2];
+			bilp.shift_vec = blg_shift;
+			bilp.zsep = 13.4;
+			
+			//default is to not include skew hopping terms between layers
+			bilp.skews = 0;
+			bilp.subpots = subpotsc;
+                        blgp.subpots = subpots;
+                        blgp.subconcs = subconcs;
+                        
+			
+			//check for command line arguments which vary these
+			for(i=1; i<argc-1; i++)
+			{
+				if(strcmp("-blgtype", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &(bilp.type_shift));
+					//0=AA, 1=AB, 2=CUSTOM, 12 for alpha-aligned AGNRs
+				}
+				if(strcmp("-blgshiftx", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &(bilp.shift_vec)[0]);
+				}
+				if(strcmp("-blgshifty", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &(bilp.shift_vec)[1]);
+				}
+				//note shift angle not yet implemented
+				if(strcmp("-blgshiftangle", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &(bilp.shift_angle));
+				}
+				if(strcmp("-blgskews", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &(bilp.skews));
+				}
+				if(strcmp("-blgA1", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &subpots[0]);
+				}
+                                if(strcmp("-blgB1", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &subpots[1]);
+				}
+                                if(strcmp("-blgA2", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &subpots[2]);
+				}
+                                if(strcmp("-blgB2", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &subpots[3]);
+				}
+				if(strcmp("-blgA1c", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &subconcs[0]);
+				}
+                                if(strcmp("-blgB1c", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &subconcs[1]);
+				}
+                                if(strcmp("-blgA2c", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &subconcs[2]);
+				}
+                                if(strcmp("-blgB2c", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &subconcs[3]);
+				}
+				if(strcmp("-useavpots", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &use_av_pots);
+				}
+			}
+			
+			if(use_av_pots == 1)
+                        {
+                            for(i=0; i<4;i++)
+                            {
+                                subpotsc[i] = subpots[i] *subconcs[i];
+                            }
+                        }
+			
+			
+			if(bilp.type_shift ==1)
+			{
+				sprintf(blgtype, "AB");
+			}
+			else if(bilp.type_shift ==12)
+			{
+				sprintf(blgtype, "ABal");
+			}
+			else if (bilp.type_shift ==0)
+			{
+				sprintf(blgtype, "AA");
+			}
+			else if (bilp.type_shift ==2)
+			{
+				sprintf(blgtype, "CUST");
+			}
+
+			//"blgskews" from command line turns on skew hopping terms if 1NN is being used
+			//else nngm in command line takes precedence.
+			if(bilp.skews == 1)
+			{
+				nngm = 2;
+			}
+			num_neigh=nngm+1;
+			max_neigh=(hop_to_load->max_neigh)[num_neigh-1];
+			
+			
+			//basic BLG connection stuff
+				blg_cnxpara.intra_thresh_min = BLG_NNTB_hop_params.NN_lowdis[0];
+				blg_cnxpara.intra_thresh_max = BLG_NNTB_hop_params.NN_highdis[0];
+				blg_cnxpara.inter_thresh_min = 0.000;
+				blg_cnxpara.inter_thresh_max = BLG_NNTB_hop_params.NN_highdis[num_neigh-1];
+				blg_cnxpara.zthresh1 = 0.1;
+				blg_cnxpara.zthresh2 = bilp.zsep + 0.1;
+		
+			blg_cnxpara.periodic = cnxpara.periodic;
+			
+
+                        blgp.BLGpara = &bilp;
+						
+			//set functions and params for use below
+			SysFunction = &BLGPotentials;
+			SysPara = &blgp;
+			leadp.additional_params = &bilp;
+			gen_leads_mode=1;
+			
+			default_connect_rule = &blg_conn_sep;
+			defdouble_connect_rule = &blg_conn_sep2;
+			default_connection_params = &blg_cnxpara;
+			
+			
+			
+			//set filename info - what to put in filename from these params
+                        sprintf(sysinfo, "%s_A1_%.3lf_%.3lf_B1_%.3lf_%.3lf_A2_%.3lf_%.3lf_B2_%.3lf_%.3lf_L2_%d", blgtype, subpots[0], subconcs[0], subpots[1], subconcs[1], subpots[2], subconcs[2], subpots[3], subconcs[3], length2);
+			
+			if(use_av_pots ==1)
+                            sprintf(sysinfo, "%s_avlp_A1_%.3lf_%.3lf_B1_%.3lf_%.3lf_A2_%.3lf_%.3lf_B2_%.3lf_%.3lf_L2_%d", blgtype, subpots[0], subconcs[0], subpots[1], subconcs[1], subpots[2], subconcs[2], subpots[3], subconcs[3], length2);
+			
+			
+		}
 	  
 	  
 	  
@@ -3510,7 +3709,7 @@ main(int argc, char *argv[])
 		  time = clock() - time;
 		  printf("#made connection profile in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		  time = clock();
-//   	   printConnectivity (&System, &cnxp);
+   	   //printConnectivity (&System, &cnxp);
 	  
 		
 	  gen_start_params start_p ={};

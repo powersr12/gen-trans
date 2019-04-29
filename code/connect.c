@@ -1385,30 +1385,35 @@ int blg_conn_sep2 (RectRedux *DeviceCell, RectRedux *LeadCell, void *rule_params
     
     double dist= sqrt( pow(lpos[b][0] - pos[a][0], 2) + pow(lpos[b][1] - pos[a][1], 2));
     double zsep = fabs(lpos[b][2] - pos[a][2]);
-    
+//     printf("blg_conn_sep2 called! for %d, %d (%.2e, %.2e) :\t", a, b, dist, zsep );
+
     //within the same layer
     if(dist <= thresh_max && dist >= thresh_min && zsep <= zthresh1)
     {
 	ans = 0;
+        
     }
-    
+//     printf("%d\t", ans);
     
     //on a neighbouring layer
     if(dist <= thresh_max2 && dist >= thresh_min2 && zsep > zthresh1 && zsep <= zthresh2)
     {
 	ans = 0;
+        
+
     }
-    
+//     printf("%d\t", ans);
     
     //remove the smaller, additional skew hopping terms between dimers and NN sites from other layers
-    if(zsep > zthresh1 && dist > thresh_min2)
+    if(zsep > zthresh1 && dist > thresh_min2+0.1)
     {
 	    if ((DeviceCell->siteinfo[a][1]) ==1 || (DeviceCell->siteinfo[a][1]) ==2 ||(DeviceCell->siteinfo[b][1]) ==1 || (DeviceCell->siteinfo[b][1]) ==2)
 	    {
 		    ans=1;
 	    }
     }
-    
+//     printf("%d\n", ans);
+
     
     
      if(geo==0)

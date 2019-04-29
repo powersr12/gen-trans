@@ -1607,7 +1607,7 @@ void genSublatticeDevice(RectRedux *SiteArray, void *p, int struc_out, char *fil
 			  {
 			    for(l=0; l<2*length*length2; l++)
 			    {
-			      if(siteinfo[l][0] == 0  && site_pots[l] == a_pot)
+			      if(siteinfo[l][0] == 0  && siteinfo[l][1] == 0 && site_pots[l] == a_pot)
 			      {  
 				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
 			      }
@@ -1619,7 +1619,7 @@ void genSublatticeDevice(RectRedux *SiteArray, void *p, int struc_out, char *fil
 			  {
 			    for(l=0; l<2*length*length2; l++)
 			    {
-			      if(siteinfo[l][0] == 0  && site_pots[l] == b_pot)
+			      if(siteinfo[l][0] == 0   && siteinfo[l][1] == 1 && site_pots[l] == b_pot)
 			      {  
 				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
 			      }
@@ -5194,6 +5194,7 @@ void HallBarify (RectRedux *System, RectRedux **Leads, hallbpara *hall_para, lea
 
 void simpleBilayerGeo (RectRedux *SiteArray, void *p, int struc_out, char *filename)
 {
+            
 	  int length = SiteArray->length;
 	  int length2 = SiteArray->length2;
 	  int geo = SiteArray->geo;
@@ -5218,11 +5219,16 @@ void simpleBilayerGeo (RectRedux *SiteArray, void *p, int struc_out, char *filen
 	  int **siteinfo = createNonSquareIntMatrix(tot_sites, 2);
 	  double *subpots = params->subpots;
 	  
+         
+
+          
 	  double xstart, ystart;
-	  int isclean, l, m;
+	  int isclean, l, m, i;
 	  int *Nrem = (SiteArray->Nrem);
 	  int *Ntot = (SiteArray->Ntot);
 	  
+
+          
 	  //in AB stackd, (type_shift=2), dimers are siteinfo[1] = 1, 2 (L1-B, L2-A)
 	  
 	  *Ntot = tot_sites;
@@ -5313,6 +5319,11 @@ void simpleBilayerGeo (RectRedux *SiteArray, void *p, int struc_out, char *filen
 			{
 				params->shift_vec[1]=0.5;
 				params->shift_vec[0]=1/(2*sqrt(3));
+			}
+			if(params->type_shift==12)
+			{
+                                params->shift_vec[1]=0.0;
+				params->shift_vec[0]=-1/(sqrt(3));
 			}
 		
 	  }
@@ -5414,6 +5425,284 @@ void simpleBilayerGeo (RectRedux *SiteArray, void *p, int struc_out, char *filen
 
 
 
+void BLGPotentials (RectRedux *SiteArray, void *p, int struc_out, char *filename)
+{
+	  int length = SiteArray->length;
+	  int length2 = SiteArray->length2;
+	  int geo = SiteArray->geo;
+	    
+	  double smalldist;
+	  FILE *out;
+	  
+	  if(struc_out != 0)
+	  {
+	    out = fopen(filename, "w");
+	    
+	  }
+
+
+            
+            blgpots_para *params = (blgpots_para *)p;
+            bilayer_para *blgparams = (bilayer_para *)(params->BLGpara) ;
+            int seed = (params->seed);
+            
+            srand(time(NULL) + seed);
+	  
+	  //atomic coordinates and the atoms that are in and out, similar to previous cases
+	  int tot_sites = 4*length*length2;
+	  double **site_coords = createNonSquareDoubleMatrix(tot_sites, 3);
+	  double *site_pots = createDoubleArray(tot_sites);
+	  int **siteinfo = createNonSquareIntMatrix(tot_sites, 2);
+	  double *subpots = params->subpots;
+          double *subconcs = params->subconcs;
+          int buffer_rows = params->buffer_rows;
+
+          double *nosubpots = blgparams->subpots;
+	  
+	  double xstart, ystart;
+	  int isclean, l, m, i;
+	  int *Nrem = (SiteArray->Nrem);
+	  int *Ntot = (SiteArray->Ntot);
+	  
+	  //in AB stackd, (type_shift=2), dimers are siteinfo[1] = 1, 2 (L1-B, L2-A)
+	  
+	  *Ntot = tot_sites;
+          
+          
+
+
+	  if(geo==0)
+	  {
+	    //layer 1
+	    for(l=0; l<length2; l++)
+	    {
+	      xstart=l*1.0;
+	      for(m=0; m<length; m++)
+	      {
+		ystart= m*sqrt(3)/2 + 1/(2*sqrt(3));
+		
+		if((m%2) == 0)
+		{
+		    site_coords[l*2*length + 2*m][0] = xstart+0.5;
+		    site_coords[l*2*length + 2*m + 1][0] = xstart;
+		}
+		
+		if((m%2) == 1)
+		{
+		    site_coords[l*2*length + 2*m][0] = xstart;
+		    site_coords[l*2*length + 2*m + 1][0] = xstart+0.5;
+		}
+		
+		    site_coords[l*2*length + 2*m][1] = ystart;
+		    site_coords[l*2*length + 2*m + 1][1] = ystart + 1/(2*sqrt(3));
+		    siteinfo[l*2*length + 2*m][1]=0;
+		    siteinfo[l*2*length + 2*m +1][1]=1;
+		  
+	      }
+	    }
+	    
+		//layer 2
+		if(blgparams->type_shift==0)
+		{
+			blgparams->shift_vec[0]=0.0;
+			blgparams->shift_vec[1]=0.0;
+		}
+		
+		if(blgparams->type_shift==1)
+		{
+			blgparams->shift_vec[0]=0.5;
+			blgparams->shift_vec[1]=1/(2*sqrt(3));
+		}
+	    
+	  }
+	  
+	  if(geo==1)
+	  {
+	      for(l=0; l<length2; l++)
+	      {
+		xstart = l*sqrt(3);
+		for(m=0; m<length; m++)
+		{
+		  if((m%2) == 0)
+		  {
+		    site_coords[l*2*length + m][0] = xstart;
+		    site_coords[l*2*length + length + m][0] = xstart +2 / sqrt(3);
+		    siteinfo[l*2*length + m][1] = 0;
+		    siteinfo[l*2*length + length + m][1] = 1;
+		  }
+		  if((m%2) == 1)
+		  {
+		    site_coords[l*2*length + m][0] = xstart +  1/(2*sqrt(3));
+		    site_coords[l*2*length + length + m][0] = xstart + (sqrt(3))/2;
+		    siteinfo[l*2*length + m][1] = 1;
+		    siteinfo[l*2*length + length + m][1] = 0;
+		  }
+		  
+		  site_coords[l*2*length + m][1] = m*0.5;
+		  site_coords[l*2*length + length + m][1] = m*0.5;
+
+		  
+		}
+		
+		
+	      }
+			//layer 2
+			if(blgparams->type_shift==0)
+			{
+				blgparams->shift_vec[0]=0.0;
+				blgparams->shift_vec[1]=0.0;
+			}
+			
+			if(blgparams->type_shift==1)
+			{
+				blgparams->shift_vec[1]=0.5;
+				blgparams->shift_vec[0]=1/(2*sqrt(3));
+			}
+			
+			if(blgparams->type_shift==12)
+			{
+                                blgparams->shift_vec[1]=0.0;
+				blgparams->shift_vec[0]=-1/(sqrt(3));
+			}
+		
+	  }
+	  
+	  
+	//layer 2
+		     
+	    for(m=0; m<2*length*length2; m++)
+	    {      
+		    site_coords[2*length*length2 + m][0] = site_coords[m][0] + blgparams->shift_vec[0];
+		    site_coords[2*length*length2 + m][1] = site_coords[m][1] + blgparams->shift_vec[1] ;
+		    site_coords[2*length*length2 + m][2] = blgparams->zsep;
+		    siteinfo[2*length*length2 + m][1] = siteinfo[m][1] + 2;
+	     
+	    }
+	     
+	     
+	      	      
+	int tempint=0, tempint2=0;
+
+	
+	for(m=0; m<*Ntot; m++)
+	{
+		if(siteinfo[m][0] == 0)
+		{
+			tempint2++;
+		}
+	}
+	
+	*Nrem = tempint2;
+	
+        
+        double temprandnum;
+        for(l=0; l<buffer_rows*2*length; l++)
+        {
+            if(siteinfo[l][1] >=0 && siteinfo[l][1] < 4)
+            {
+                    site_pots[l] = nosubpots[siteinfo[l][1]];
+            }
+        }
+        for(l=2*length*length2; l< 2*length*length2 + buffer_rows*2*length; l++)
+        {
+            if(siteinfo[l][1] >=0 && siteinfo[l][1] < 4)
+            {
+                    site_pots[l] = nosubpots[siteinfo[l][1]];
+            }
+        }
+        
+        for(l=buffer_rows*2*length; l<2*length*length2 - 2*buffer_rows*length; l++)
+        {
+            site_pots[l] = 0.0;
+            temprandnum = myRandNum(0.0, 1.0);
+            if(temprandnum < subconcs[ siteinfo[l][1]])
+		    site_pots[l] = subpots[ siteinfo[l][1]];
+            temprandnum = myRandNum(0.0, 1.0);
+            if(temprandnum < subconcs[ siteinfo[l][1]])
+		    site_pots[l] = subpots[ siteinfo[l][1]];
+            
+        }
+        for(l=2*length*length2 + buffer_rows*2*length; l< 4*length*length2 - 2*buffer_rows*length; l++)
+        {
+            site_pots[l] = 0.0;
+            temprandnum = myRandNum(0.0, 1.0);
+            if(temprandnum < subconcs[ siteinfo[l][1]])
+		    site_pots[l] = subpots[ siteinfo[l][1]];
+        }
+        
+        for(l=2*length*length2 - 2*buffer_rows*length; l<2*length*length2 ; l++)
+        {
+            if(siteinfo[l][1] >=0 && siteinfo[l][1] < 4)
+            {
+                    site_pots[l] = nosubpots[siteinfo[l][1]];
+            }
+        }
+        for(l=4*length*length2 - 2*buffer_rows*length; l<4*length*length2; l++)
+        {
+            if(siteinfo[l][1] >=0 && siteinfo[l][1] < 4)
+            {
+                    site_pots[l] = nosubpots[siteinfo[l][1]];
+            }
+        }
+        
+        
+
+
+	
+	if(struc_out == 1)
+	{
+		for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+		for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 1)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+		for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 2)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+		for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 3)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+		
+		
+
+		
+	}
+			
+	if(struc_out != 0)
+	{
+		fclose(out);
+	}
+			    
+			
+			  
+	//Fill the array of data structures describing the system
+	(SiteArray->pos) = site_coords;
+	(SiteArray->site_pots) = site_pots;
+	(SiteArray->siteinfo) = siteinfo;
+
+  
+}
 
 
 

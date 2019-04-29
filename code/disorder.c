@@ -169,6 +169,7 @@ void cap_potential2(RectRedux *DeviceCell, double width)
 // 'conc'   - concentration of scattering centres
 // 'delta'  - range of scatterer strength between - and + delta, in units of t0
 // 'xi'     - range parameter determining gaussial falloff of parameter, in units of a
+//(uses delta everywhere if xi<0)
 
 
 void potentialDisorder (RectRedux *DeviceCell, void *p, int disprof_out, char *filename )
@@ -213,16 +214,33 @@ void potentialDisorder (RectRedux *DeviceCell, void *p, int disprof_out, char *f
   double kappa=0, mfp;
   for(i=0; i<Nimp; i++)
   {
-    for(j=0; j<Ntot; j++)
+    if ((params->xi) > 0.0) 
     {
-      if( (DeviceCell->siteinfo[j][0]) == 0)
-      {
-	dispots[j] += Uns[i] * exp( -  ( pow((DeviceCell->pos[j][0]) - (DeviceCell->pos[possible_sites[i]][0]), 2) + pow((DeviceCell->pos[j][1]) - (DeviceCell->pos[possible_sites[i]][1]), 2)) / (2*(params->xi)*(params->xi)));
-	kappa += (1.0/Nimp) * exp( -  ( pow((DeviceCell->pos[j][0]) - (DeviceCell->pos[possible_sites[i]][0]), 2) + pow((DeviceCell->pos[j][1]) - (DeviceCell->pos[possible_sites[i]][1]), 2)) / (2*(params->xi)*(params->xi)));
-// 	 printf("#s: %e\n", kappa);
-      }
+        for(j=0; j<Ntot; j++)
+        {
+            if( (DeviceCell->siteinfo[j][0]) == 0)
+            {
+                dispots[j] += Uns[i] * exp( -  ( pow((DeviceCell->pos[j][0]) - (DeviceCell->pos[possible_sites[i]][0]), 2) + pow((DeviceCell->pos[j][1]) - (DeviceCell->pos[possible_sites[i]][1]), 2)) / (2*(params->xi)*(params->xi)));
+                kappa += (1.0/Nimp) * exp( -  ( pow((DeviceCell->pos[j][0]) - (DeviceCell->pos[possible_sites[i]][0]), 2) + pow((DeviceCell->pos[j][1]) - (DeviceCell->pos[possible_sites[i]][1]), 2)) / (2*(params->xi)*(params->xi)));
+        // 	 printf("#s: %e\n", kappa);
+            }
+        }
     }
+    
+    if ((params->xi) == 0.0)
+    {
+        dispots[possible_sites[i]] = Uns[i];
+    }
+    
+    //uses delta exactly if xi<0
+     if ((params->xi) <0.0)
+    {
+        dispots[possible_sites[i]] = (params->delta);
+    }
+    
+        
   }
+    
     
   
   for(i=0; i<Ntot; i++)
