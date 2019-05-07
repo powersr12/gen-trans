@@ -433,6 +433,7 @@ void customEdgePots (RectRedux *DeviceCell, void *p)
       
       
       //basic efefov: AT1=VG, AT2=edge_cut, AT3=subs_thick, subs_eps=3.9 (SiO2)
+        //AT4 = 0.0 : efetov, AT4 !=0 constant!
 	if(type==4)
 	{
 		//allow non-default values of edge_cut and subs_thick
@@ -456,6 +457,9 @@ void customEdgePots (RectRedux *DeviceCell, void *p)
 	
 		if(ny>nmax)
 			ny=nmax;
+                
+                if( (params->AT4) != 0.0)
+                    ny = n0;
 		
 		
 		if(gate_voltage != 0.0)
