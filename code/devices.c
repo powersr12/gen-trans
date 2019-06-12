@@ -5360,7 +5360,7 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
     
         
         
-        printf("# (%d, %d, %d) ## %d instances %lf sep\n", max_sep_indices[k][0], max_sep_indices[k][1], max_sep_indices[k][2], max_sep_indices[k][3], sqrt(dx2*dx2+dy2*dy2));
+//         printf("# (%d, %d, %d) ## %d instances %lf sep\n", max_sep_indices[k][0], max_sep_indices[k][1], max_sep_indices[k][2], max_sep_indices[k][3], sqrt(dx2*dx2+dy2*dy2));
     }
     
     

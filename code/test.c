@@ -3442,18 +3442,17 @@ main(int argc, char *argv[])
                     
                 }
                 
-            if(output_type == 1)
-            {
-                    sprintf(pstrucfile, "%s.patch", strucfile);
+                if(output_type == 1)
+                {
+                        sprintf(pstrucfile, "%s.patch", strucfile);
+                }
                     
-            }
-                
-            //call Patchify...
-            Patchify (&System, &patchp, &cellinfo, output_type, pstrucfile);
-            System.patched=1;
-            System.patch_params = &patchp;
-            pos = System.pos;
-            //exit(1);
+                //call Patchify...
+                Patchify (&System, &patchp, &cellinfo, output_type, pstrucfile);
+                System.patched=1;
+                System.patch_params = &patchp;
+                pos = System.pos;
+                //exit(1);
 
                 
             }
