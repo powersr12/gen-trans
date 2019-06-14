@@ -639,6 +639,7 @@ void cellSplitter (RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellin
   
   num_sites_left=0;
   cellinfo->group_cell=-1;
+  cellinfo->group_start=-1;
   
 
   for(i=0; i<alldim; i++)
@@ -688,11 +689,13 @@ void cellSplitter (RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellin
 	      {
 		added_with_group=1;
 		group_added=1;
+                
 	      }
 	    }
 	    
 	    if(group_added == 1)
 	    {
+              (cellinfo->group_start)=cell_size;
 	      cellinfo->group_cell = cellindex;
 	      for(m=0; m<(cellinfo->group_dim); m++)
 	      {
@@ -766,7 +769,7 @@ void cellSplitter (RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellin
 //       }
 //       printf("\n");
 //     }
-    
+//     
   
 }
 

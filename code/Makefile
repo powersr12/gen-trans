@@ -4,7 +4,7 @@ CFLAGSDEBUG=-lm -lgsl -lgslcblas -Wall -g
 MYLIBDIR=../libs
 
 test: test.o connect.o useful_hops.o transport.o devices.o disorder.o analytic.o useful.o mapping.o matrices.o hubbard.o graphene_gf.o suscept.o static.o greenfns.o cubature.o 
-	$(CC)  test.o connect.o useful_hops.o transport.o devices.o disorder.o useful.o mapping.o matrices.o hubbard.o graphene_gf.o suscept.o static.o greenfns.o cubature.o  $(CFLAGS) -o test
+	$(CC)  test.o connect.o useful_hops.o transport.o devices.o disorder.o analytic.o useful.o mapping.o matrices.o hubbard.o graphene_gf.o suscept.o static.o greenfns.o cubature.o  $(CFLAGS) -o test
 
 test.o: test.c test.h
 	$(CC) -c -g -O3 test.c

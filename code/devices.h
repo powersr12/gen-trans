@@ -13,6 +13,7 @@ typedef struct {
 	int group_dim;		//a group has sites that should be in the same cell
 	int group_cell;
 	int *group_sites;		//i.e. due to self energy terms
+	int group_start;       //the index in group_cell at which the group_sites start
 	
 	int num_leads;
 	int *lead_dims;
@@ -45,9 +46,10 @@ typedef struct {
         int *pl2;
         int usePGFlib;
         char *PGFlibloc;
-        int num_boundary_sites;
-        double **boundary_pos;
-        int *boundary_subl;
+        int **sep_indices;
+        int conn_count;
+        int **boundary_device;
+        RectRedux *boundary;
 }patch_para;
 
 typedef struct {

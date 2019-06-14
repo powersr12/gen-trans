@@ -3374,6 +3374,7 @@ main(int argc, char *argv[])
             cellDivision cellinfo; // definition moved to here so that 'group' sites can be set in Patchify
             cellinfo.group_dim = 0;
 
+            int patchcenter=0, pct=0, pct2=0;     // tries to align patches by their centre (use similar odd/even lengths as device for best results)
             patch_para patchp = {};
             patchp.numpatches = numpatches;
             //PATCH SETTINGS -default is no additional patches, and main System region patched
@@ -3390,6 +3391,12 @@ main(int argc, char *argv[])
                     exit(1);
                 }
                 
+                 if (geo != 0 )
+                {
+                    printf("Patched mode only works for ZZ-edged devices at present!");
+                    exit(1);
+                }
+                
                 patchp.pcoords = createNonSquareIntMatrix(numpatches, 2);
                 patchp.pl1 = createIntArray(numpatches);
                 patchp.pl2 = createIntArray(numpatches);
@@ -3402,8 +3409,8 @@ main(int argc, char *argv[])
                 {
                     patchp.pl1[j] = 10;
                     patchp.pl2[j] = 10;
-                    patchp.pcoords[j][0] = (length2+length1)*(j+1);
-                    patchp.pcoords[j][1] = (length2+length1)*(j+1);
+                    patchp.pcoords[j][0] = - 4*(j+1);
+                    patchp.pcoords[j][1] = 4*(j+1);
                     
                     for(i=1; i<argc-1; i++)
                     {
@@ -3438,7 +3445,22 @@ main(int argc, char *argv[])
                         {
                             sscanf(argv[i+1], "%s", patchp.PGFlibloc);
                         }
+                        
+                        if(strcmp("-patchcenter" , argv[i]) == 0 || strcmp("-patchcentre" , argv[i]) == 0)
+                        {
+                            sscanf(argv[i+1], "%d", &patchcenter);
+                            
+                            pct = (int)  ((length1 - patchp.pl1[j])/4);
+                            pct2 = (int)  ((length1 - patchp.pl1[j])/2 -  (length1 - patchp.pl1[j])/4) ;
+                            
+                            patchp.pcoords[j][0] -=  pct;
+                            patchp.pcoords[j][1] -= pct2;
+                            
+                        }
+                        
+                        
                     }
+                    
                     
                 }
                 
@@ -3454,6 +3476,10 @@ main(int argc, char *argv[])
                 pos = System.pos;
                 //exit(1);
 
+                //filename -- change leadconf from CUSTOM to PGF (this can be overridden by cmd line using -leadconfname
+                sprintf(leadconf, "PGF");
+
+                
                 
             }
 	  

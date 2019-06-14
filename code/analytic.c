@@ -135,6 +135,7 @@ double _Complex *graphenegfac(double _Complex En, int *a1, int *a2, int *diagt, 
             out[i] = gfn[2*i] + I*gfn[2*i+1] ;
         }
 
+        free(para.x); free(para.y); free(para.diagt); free(kxmins); free(kxmaxs);
         return out;
 
 

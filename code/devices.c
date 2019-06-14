@@ -4848,7 +4848,7 @@ int HallPositioning(int length2, int num_side_probes, int this_probe, int buffer
 void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, int struc_out, char *filename)
 {
     
-    printf("##patching begins!\n");
+    
     
     int geo = (System->geo);
     int length = (System->length);
@@ -4910,7 +4910,7 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
         
         ppara->pNrem[i] = *(Patches[i]->Nrem);
         
-        printf("# patch %d, %d sites\n", i, ppara->pNrem[i]);
+        printf("#Patch %d, %d sites\n", i, ppara->pNrem[i]);
         
         
     }
@@ -4972,6 +4972,13 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
                     newpos[tempcount][2] = (Patches[i]->pos)[k][2];
                     
                     newpots[tempcount] = (Patches[i]->site_pots)[k];
+                    
+                    if( Patches[i]->pert_pos != NULL )
+                    {
+                        newpertpos[i][0] = (System->pert_pos)[i][0];
+                        newpertpos[i][1] = (System->pert_pos)[i][1];
+                        newpertpos[i][2] = (System->pert_pos)[i][2];
+                    }
 
                     tempcount++;
                 }
@@ -4994,14 +5001,9 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
                 (System->pert_pos ) = newpertpos;
             }
     
-    
-    
-    
-    
-    
     //find "edge" sites to add to "group" - assumes perfect rectangular ribbon patch geometries
     //find "boundary" sites (e.g. edge of frame) site locations and save
-    
+ 
     int edge_count=0;
     int boundary_count=0;
     int temp2=0, temp3=0, bigcount=0;
@@ -5009,6 +5011,17 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
     
     //this is based on NNTB patches, with well-behaved and complete edges
     //be careful when generating devices, or this might not work
+    
+        (ppara->boundary)= (RectRedux *)malloc(sizeof(RectRedux));
+        ((ppara->boundary)->Nrem) = (int *)malloc(sizeof(int));
+        ((ppara->boundary)->Ntot) = (int *)malloc(sizeof(int));
+        
+//         (Patches[i]->geo) = geo;
+//         (Patches[i]->length) = ppara->pl1[i];
+//         (Patches[i]->length2) = ppara->pl2[i];
+//         (Patches[i]->Nrem) = (int *)malloc(sizeof(int));
+//         (Patches[i]->Ntot) = (int *)malloc(sizeof(int));
+    
     
     if (geo == 0)
     {
@@ -5021,13 +5034,18 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
             edge_count += (Patches[i]->length2)*2 + (Patches[i]->length *2) -2;
             boundary_count += 2*( (Patches[i]->length) + (Patches[i]->length2));
         }
+//         printf("#edgecount %d\n", edge_count);
         
         //temp2 for edge counting, temp3 for boundary counting, tempcount for device counting
         //edge sites index; boundary sites given by coordinates
         tempcount=0, temp2=0, temp3=0, bigcount=0;
-        ppara->num_boundary_sites = boundary_count;
-        ppara->boundary_pos = createNonSquareDoubleMatrix(boundary_count, 3);
-        ppara->boundary_subl = createIntArray(boundary_count);
+        //ppara->num_boundary_sites = boundary_count;
+        *((ppara->boundary)->Ntot) = boundary_count;
+        //ppara->boundary_pos = createNonSquareDoubleMatrix(boundary_count, 3);
+        ((ppara->boundary)->pos) = createNonSquareDoubleMatrix(boundary_count, 3);
+        //ppara->boundary_subl = createIntArray(boundary_count);
+        ((ppara->boundary)->siteinfo) = createNonSquareIntMatrix(boundary_count, 2);
+        
         cellinfo->group_dim = edge_count;
         cellinfo->group_sites= createIntArray(edge_count);
         
@@ -5036,9 +5054,9 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
             //bottom left (always an edge!)
             tempcount=bigcount + 0;
             (cellinfo->group_sites)[temp2] = tempcount;
-            (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0];
-            (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/sqrt(3));
-            (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+            ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+            ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/sqrt(3));
+            ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
             temp2++; temp3++;
             
             //left-most chain  (the -2 in the loop takes care of odd-integer lengths)
@@ -5046,30 +5064,36 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
             {
                 tempcount = bigcount +j+1;
                 (cellinfo->group_sites)[temp2] = tempcount;
-                (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0] - 0.5;
-                (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
-                (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] - 0.5;
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
                 temp2++; temp3++;
                 
                 tempcount = bigcount +j+2;
                 (cellinfo->group_sites)[temp2] = tempcount;
-                (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0] - 0.5;
-                (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/(2*sqrt(3)));
-                (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] - 0.5;
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/(2*sqrt(3)));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
                 temp2++; temp3++;
             }
             
             //top left - different edge for odd and even lengths
             tempcount = bigcount + 2*length -1;
-            if( (length % 2) == 0)
-            {
-                (cellinfo->group_sites)[temp2] = tempcount;
-                temp2++;
-            }
-            (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0];
-            (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/sqrt(3));
-            (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+            (cellinfo->group_sites)[temp2] = tempcount;
+            temp2++;
+           
+            ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+            ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/sqrt(3));
+            ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
             temp3++;
+            if( (length % 2) == 1)
+            {
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] - 0.5;;
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                temp3++;
+            }
+            
             
             
             //loop over intermediate chains)
@@ -5077,16 +5101,16 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
             {
                 tempcount = bigcount + 2*length*(k) ;
                 (cellinfo->group_sites)[temp2] = tempcount;
-                (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0];
-                (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/sqrt(3));
-                (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/sqrt(3));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
                 temp2++; temp3++;
                 
                 tempcount = bigcount + 2*length*(k+1) - 1 ;
                 (cellinfo->group_sites)[temp2] = tempcount;
-                (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0];
-                (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/sqrt(3));
-                (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/sqrt(3));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
                 temp2++; temp3++;
             }
             
@@ -5095,13 +5119,13 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
             tempcount = bigcount + 2*length*(length2-1) ;
             (cellinfo->group_sites)[temp2] = tempcount;
             temp2++; 
-            (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0];
-            (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/sqrt(3));
-            (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+            ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+            ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/sqrt(3));
+            ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
             temp3++;
-            (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
-            (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/(2*sqrt(3)));
-            (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+            ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
+            ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/(2*sqrt(3)));
+            ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
             temp3++;
             
             //right-most chain
@@ -5109,16 +5133,16 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
             {
                 tempcount = bigcount + 2*length*(length2-1) +j;
                 (cellinfo->group_sites)[temp2] = tempcount;
-                (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
-                (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
-                (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
                 temp2++; temp3++;
                 
                 tempcount = bigcount + 2*length*(length2-1) +j+1;
                 (cellinfo->group_sites)[temp2] = tempcount;
-                (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
-                (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/(2*sqrt(3)));
-                (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/(2*sqrt(3)));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
                 temp2++; temp3++;
             }
             
@@ -5128,14 +5152,14 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
             temp2++; 
             if( (length % 2) == 0)
             {            
-                (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
-                (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
-                (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
                 temp3++;
             }
-            (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0];
-            (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/sqrt(3));
-            (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+            ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+            ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/sqrt(3));
+            ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
             temp3++;
             
             
@@ -5149,9 +5173,9 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
                 //bottom left (always an edge!)
                 tempcount=bigcount + 0;
                 (cellinfo->group_sites)[temp2] = tempcount;
-                (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0];
-                (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/sqrt(3));
-                (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/sqrt(3));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
                 temp2++; temp3++;
                 
                 //left-most chain  (the -2 in the loop takes care of odd-integer lengths)
@@ -5159,30 +5183,41 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
                 {
                     tempcount = bigcount +j+1;
                     (cellinfo->group_sites)[temp2] = tempcount;
-                    (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0] - 0.5;
-                    (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
-                    (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+                    ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] - 0.5;
+                    ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
+                    ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
                     temp2++; temp3++;
                     
                     tempcount = bigcount +j+2;
                     (cellinfo->group_sites)[temp2] = tempcount;
-                    (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0] - 0.5;
-                    (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/(2*sqrt(3)));
-                    (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+                    ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] - 0.5;
+                    ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/(2*sqrt(3)));
+                    ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
                     temp2++; temp3++;
                 }
                 
                 //top left - different edge for odd and even lengths
                 tempcount = bigcount + 2*(Patches[i]->length) -1;
-                if( ((Patches[i]->length) % 2) == 0)
-                {
+                //if( ((Patches[i]->length) % 2) == 0)
+                //{
                     (cellinfo->group_sites)[temp2] = tempcount;
                     temp2++;
-                }
-                (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0];
-                (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/sqrt(3));
-                (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+                //}
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/sqrt(3));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
                 temp3++;
+                
+                if( ((Patches[i]->length) % 2) == 1)
+                {
+                    ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] - 0.5;;
+                    ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
+                    ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                    temp3++;
+                }
+            
+                
+                
                 
                 
                 //loop over intermediate chains)
@@ -5190,16 +5225,16 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
                 {
                     tempcount = bigcount + 2*(Patches[i]->length)*(k) ;
                     (cellinfo->group_sites)[temp2] = tempcount;
-                    (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0];
-                    (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/sqrt(3));
-                    (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+                    ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+                    ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/sqrt(3));
+                    ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
                     temp2++; temp3++;
                     
                     tempcount = bigcount + 2*(Patches[i]->length)*(k+1) - 1 ;
                     (cellinfo->group_sites)[temp2] = tempcount;
-                    (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0];
-                    (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/sqrt(3));
-                    (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+                    ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+                    ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/sqrt(3));
+                    ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
                     temp2++; temp3++;
                 }
                 
@@ -5208,13 +5243,13 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
                 tempcount = bigcount + 2*(Patches[i]->length)*((Patches[i]->length2)  -1) ;
                 (cellinfo->group_sites)[temp2] = tempcount;
                 temp2++; 
-                (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0];
-                (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/sqrt(3));
-                (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/sqrt(3));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
                 temp3++;
-                (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
-                (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/(2*sqrt(3)));
-                (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/(2*sqrt(3)));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
                 temp3++;
                 
                 //right-most chain
@@ -5222,16 +5257,16 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
                 {
                     tempcount = bigcount + 2*(Patches[i]->length)*( (Patches[i]->length2)-1) +j;
                     (cellinfo->group_sites)[temp2] = tempcount;
-                    (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
-                    (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
-                    (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+                    ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
+                    ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
+                    ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
                     temp2++; temp3++;
                     
                     tempcount = bigcount + 2*(Patches[i]->length)*((Patches[i]->length2)-1) +j+1;
                     (cellinfo->group_sites)[temp2] = tempcount;
-                    (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
-                    (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/(2*sqrt(3)));
-                    (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+                    ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
+                    ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/(2*sqrt(3)));
+                    ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
                     temp2++; temp3++;
                 }
                 
@@ -5241,14 +5276,14 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
                 temp2++; 
                 if( ((Patches[i]->length) % 2) == 0)
                 {            
-                    (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
-                    (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
-                    (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+                    ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
+                    ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
+                    ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
                     temp3++;
                 }
-                (ppara->boundary_pos)[temp3][0] = (System->pos)[tempcount][0];
-                (ppara->boundary_pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/sqrt(3));
-                (ppara->boundary_subl)[temp3] = 1 - (System->siteinfo)[tempcount][1];
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/sqrt(3));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
                 temp3++;
             
                 
@@ -5262,7 +5297,8 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
 
             
     }
-    
+//                     printf("#edgecount %d\n", cellinfo->group_dim);
+
     
     // calculate number of unique GF matrix elements required
     int max_conn = (boundary_count + edge_count)*boundary_count; 
@@ -5278,17 +5314,28 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
 
     for(i=0; i<boundary_count; i++)
     {
-        testpos[0][0] = (ppara->boundary_pos)[i][0];
-        testpos[0][1] = (ppara->boundary_pos)[i][1];
-        testpos[0][2] = (ppara->boundary_subl[i]) * 1.0;
+        testpos[0][0] = ((ppara->boundary)->pos)[i][0];
+        testpos[0][1] = ((ppara->boundary)->pos)[i][1];
+        testpos[0][2] = ((ppara->boundary)->siteinfo)[i][1] * 1.0;
         
         for(j=0; j< boundary_count; j++)
         {
-            testpos[1][0] = (ppara->boundary_pos)[j][0];
-            testpos[1][1] = (ppara->boundary_pos)[j][1];
-            testpos[1][2] = (ppara->boundary_subl[j]) * 1.0;
+            testpos[1][0] = ((ppara->boundary)->pos)[j][0];
+            testpos[1][1] = ((ppara->boundary)->pos)[j][1];
+            testpos[1][2] = ((ppara->boundary)->siteinfo)[j][1] * 1.0;
             
             simplifyIndices(testpos, testout, origin, a1, a2 );
+            
+//             if(testout[0]==1 && testout[1] == 1 && testout[2] ==2)
+//             {
+//                 printf("#%d, %d SUBL check %lf, %lf\n", i, j, testpos[0][1], testpos[1][1]);
+//             }
+            
+//             if(i==0 && j==10)
+//             {
+//                 printf("%d, %d, %d\n", testout[0], testout[1], testout[2]);
+//             }
+            
             already_calc=0;
             for(k=0; k<conn_count; k++)
             {
@@ -5311,8 +5358,20 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
                 boundary_device_mat[i][j] = conn_count;
                 conn_count++;
             }
-                
             
+//             if(i==0 && j==10)
+//             {
+//                 printf("bdm: %d\n", boundary_device_mat[i][j] );
+//                 
+//                 printf("%d, %d, %d\n", max_sep_indices[10][0], max_sep_indices[10][1], max_sep_indices[10][2]);
+//                 
+//             }
+            
+                
+//             if(i==10 && j==0)
+//             {
+//                 printf("#10,0 test: %d  %d  %d\n", testout[0], testout[1], testout[2]);
+//             }
         }
         
         for(j=0; j< edge_count; j++)
@@ -5342,17 +5401,23 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
                 max_sep_indices[conn_count][1] = testout[1];
                 max_sep_indices[conn_count][2] = testout[2];
                 max_sep_indices[conn_count][3] = 1;
-                boundary_device_mat[i][j] = conn_count;
+                boundary_device_mat[i][boundary_count+j] = conn_count;
                 conn_count++;
             }
             
         }
     }
+    
+//     printf("bdm: %d\n", boundary_device_mat[0][10] );
+//                 
+//     printf("%d, %d, %d\n", max_sep_indices[10][0], max_sep_indices[10][1], max_sep_indices[10][2]);
+    
+
     double dx2, dy2;
     double ABvec[2];
     ABvec[0] = (a1[0] + a2[0])/3;
     ABvec[1] = (a1[1] + a2[1])/3;
-     printf("#max conn: %d, # unique conn: %d\n", max_conn, conn_count);
+    printf("# unique GFs: %d\n", conn_count);
     for(k=0; k<conn_count; k++)
     {
         dx2 = max_sep_indices[k][0]*a1[0] + max_sep_indices[k][1]*a2[0] - (1.5*max_sep_indices[k][2]*max_sep_indices[k][2] - 2.5*max_sep_indices[k][2])*ABvec[0];
@@ -5364,6 +5429,18 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
     }
     
     
+    (ppara->sep_indices) = createNonSquareIntMatrix(max_conn, 3); //m, n, diagt,
+    
+    for(i=0; i<conn_count; i++)
+    {
+        (ppara->sep_indices)[i][0] = max_sep_indices[i][0];
+        (ppara->sep_indices)[i][1] = max_sep_indices[i][1];
+        (ppara->sep_indices)[i][2] = max_sep_indices[i][2];
+    }
+    free(max_sep_indices[0]); free(max_sep_indices);
+    free(testpos[0]); free(testpos);
+    (ppara->conn_count) = conn_count;
+    (ppara->boundary_device) = boundary_device_mat;
     
     
     
@@ -5403,31 +5480,31 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
 	  }
               
          fprintf(out, "\n");   
-         for(i=0; i<ppara->num_boundary_sites; i++)
+         for(i=0; i<*((ppara->boundary)->Ntot); i++)
          {
-             if(ppara->boundary_subl[i] == 0)
+             if( ((ppara->boundary)->siteinfo)[i][1] == 0)
              {
-                 fprintf(out, "%lf	%lf\n", (ppara->boundary_pos)[i][0], (ppara->boundary_pos)[i][1]  );
+                 fprintf(out, "%lf	%lf\n", ((ppara->boundary)->pos)[i][0], ((ppara->boundary)->pos)[i][1]  );
              }
          }
          fprintf(out, "\n");   
-         for(i=0; i<ppara->num_boundary_sites; i++)
+         for(i=0; i<*((ppara->boundary)->Ntot); i++)
          {
-             if(ppara->boundary_subl[i] == 1)
+             if( ((ppara->boundary)->siteinfo)[i][1] == 1)
              {
-                 fprintf(out, "%lf	%lf\n", (ppara->boundary_pos)[i][0], (ppara->boundary_pos)[i][1]  );
+                 fprintf(out, "%lf	%lf\n", ((ppara->boundary)->pos)[i][0], ((ppara->boundary)->pos)[i][1]  );
              }
          }     
 
 	  
 	  
 	}
-    
+
         if(struc_out != 0)
         {
             fclose(out);
         }
-        exit(1);
+        //exit(1);
 
 }
 
@@ -5453,6 +5530,8 @@ void simplifyIndices(double **input, int *output, double *origin, double *a1, do
     double delx = delxi, dely=delyi;
     double dx2, dy2;
     int dorig= diagt_in;
+//     printf("#input:  %lf, %lf     %lf, %lf\n", input[0][0], input[0][1], input[1][0], input[1][1]);
+//     printf("#dell: %lf, %lf\n", delx, dely);
     
     if(diagt_in ==1)
     {
@@ -5466,7 +5545,7 @@ void simplifyIndices(double **input, int *output, double *origin, double *a1, do
         dely += ABvec[1];
     }   
     
-     
+    
     
     m1 = (int) round ( (delx/a2[0] - dely/a2[1]) / (a1[0]/a2[0] - a1[1]/a2[1]) ) ;
     n1 = (int) round ( (delx/a1[0] - dely/a1[1]) / (a2[0]/a1[0] - a2[1]/a1[1]) ) ;
@@ -5475,6 +5554,11 @@ void simplifyIndices(double **input, int *output, double *origin, double *a1, do
     m=m1; n=n1;
     //reduce and simplify!
     int loopcount=0;
+    
+//     if(m==-1 && n == 2 && dorig ==2)
+//     {
+//         printf("this iteration... %lf, %lf (%lf) \n", delxi, delyi, sqrt(delxi*delxi+delyi*delyi));
+//     }
     
     double init_sep, final_sep;
     init_sep = sqrt(delxi*delxi +delyi*delyi);
@@ -5704,6 +5788,7 @@ void simplifyIndices(double **input, int *output, double *origin, double *a1, do
     final_sep = sqrt(dx2*dx2 + dy2*dy2);
 //     printf("\t \n", m1 , n1, diagt, init_sep, final_sep );
 
+    //will print out if something is dodgy!
     if(init_sep - final_sep > 0.0001)
             printf("orig (%d, %d, %d)\t->final (%d, %d, %d)  %lf %lf\n", m , n, dorig, m1 , n1, diagt, init_sep, final_sep  );
 
@@ -5712,13 +5797,18 @@ void simplifyIndices(double **input, int *output, double *origin, double *a1, do
           printf("orig (%d, %d, %d)\t->final (%d, %d, %d)  %lf %lf\n", m , n, dorig, m1 , n1, diagt, init_sep, final_sep  );
      }
      
-     
+//      if(m==-1 && n == 2 && dorig ==2)
+//     {
+//         printf("orig (%d, %d, %d)\t->final (%d, %d, %d)  %lf %lf\n", m , n, dorig, m1 , n1, diagt, init_sep, final_sep  );
+//     }
 
     
     //printf ("%d %d %d\n", m1, n1, diagt);
     //printf("## (%d %d %d) del %lf %lf    %lf %lf\n", m1, n1, diagt_in, input[1][0] - input[0][0], input[1][1] - input[0][1], (m1*a1[0] + n1*a2[0]), (m1*a1[1] + n1*a2[1]));
     
     output[0] = m1; output[1] = n1; output[2] = diagt;
+    
+//     exit(1);
     
 }
 

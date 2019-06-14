@@ -1,6 +1,7 @@
 #include "devices.h"
 #include "connect.h"
 #include "transport.h"
+#include "analytic.h"
 #include <stddef.h>
 #include "../libs/matrices.h"
 #include "../libs/greenfns.h"
@@ -340,6 +341,11 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
   
   double _Complex ***allgs, **gtemp, **off_old, **off_new, **t1, **t2, **gprev;
   
+  if(DeviceCell->patched == 1)
+  {
+        patch_para *ppara = (patch_para *)(DeviceCell->patch_params); 
+  }
+  
   
   if(mode == 0 || mode == 1)
   {
@@ -483,6 +489,27 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 	  
 	}
       
+      
+    //accounts for a patched GF self energy if this is group_cell
+    //(celldim is bigger than group dim --> need mapping between indices!) - taken care of in genPatchedSE using cellinfo->group_start (all group sites are together, in order, in group cell)
+    if(DeviceCell->patched == 1)
+    {
+        if(this_cell == (cellinfo->group_cell) )
+        {
+//             printf("#Adding the patched self energy to %d sites in cell %d! starting with %d\n", (cellinfo->group_dim), (cellinfo->group_cell), (cellinfo->group_start) );
+            temp1 = createSquareMatrix(dim);
+            genPatchedSE(temp1, En, DeviceCell, cellinfo, hoppingfn, hoppingparams);
+            
+            temp2 = createSquareMatrix(dim);
+            MatrixAdd(smallSigma, temp1, temp2, dim);
+            MatrixCopy(temp2, smallSigma, dim);
+            
+            FreeMatrix(temp1); FreeMatrix(temp2);
+        }
+            
+        
+        
+    }
 	
 	
 	
@@ -2553,15 +2580,103 @@ void singleSimplestMetalLead (int leadnum, double _Complex En, RectRedux *Device
                     
                 }
             }
-            
-            
-            
-	  
-    
-	    
-
 }
 
+
+
+void genPatchedSE(double _Complex **SE, double _Complex En, RectRedux *DeviceCell, cellDivision *cellinfo, hoppingfunc *hoppingfn, void *hoppingparams)
+{
+    patch_para *ppara = (patch_para *)(DeviceCell->patch_params); 
+    RectRedux *BoundaryCell = (RectRedux *)(ppara->boundary);
+
+    int bdim = *(BoundaryCell->Ntot);
+    int edim = (cellinfo->group_dim);
+    int gdim = (ppara -> conn_count);
+    int i, j, k;
+    
+    //printf("#bdim %d    edim %d gdim %d\n", bdim, edim, gdim);
+    
+    int *a1 = createIntArray(gdim), *a2 = createIntArray(gdim), *diagt = createIntArray(gdim);
+    
+    for (i=0; i< gdim; i++)
+    {
+        a1[i] = (ppara->sep_indices)[i][0];
+        a2[i] = (ppara->sep_indices)[i][1];
+        diagt[i] = (ppara->sep_indices)[i][2];
+    }
+    
+    
+    int **bd = (ppara->boundary_device);
+    double _Complex *GFs = createCompArray(gdim);
+    int index1, index2;
+    
+    //generate all the required analytic Green's functions
+        //generalise this later to allow loading from library!
+//printf("# calculating %d required analytic GFs...\n", gdim);
+    GFs = graphenegfac(En, a1, a2, diagt, gdim);
+    
+    
+    //create the required GF and V matrices:
+    double _Complex **GBB = createSquareMatrix(bdim);
+    double _Complex **GBD = createNonSquareMatrix(bdim, edim);
+    double _Complex **VBD = createNonSquareMatrix(bdim, edim);    
+    double _Complex **VDB = createNonSquareMatrix(edim, bdim);
+    double _Complex **unit = createSquareMatrix(bdim);
+    double _Complex **temp1, **temp2;
+    for(i=0;i<bdim;i++)
+        unit[i][i]=1.0;
+
+    double *bshifts = createDoubleArray(3);
+
+    
+    for(i=0; i<bdim; i++)
+    {
+        index1 = i;
+        for(j=0; j<bdim; j++)
+        {
+            GBB[i][j] = GFs[ bd[i][j] ];
+        }
+        
+        for(j=0; j<edim; j++)
+        {
+            index2 = (cellinfo->group_sites)[j];
+            GBD[i][j] = GFs[ bd[i][bdim+j] ];
+            
+            VBD[i][j] = hoppingfn(BoundaryCell, DeviceCell, index1, index2, bshifts, hoppingparams);
+            VDB[j][i] = hoppingfn(DeviceCell, BoundaryCell, index2, index1, bshifts, hoppingparams);
+            
+        }
+    }
+//      printf("#GBB test: %lf  %lf     %lf %lf\n", creal(GBB[0][10]), cimag(GBB[0][10]), creal(GBB[10][0]), cimag(GBB[10][0]));
+//      printf("#bd test: %d, %d\n", bd[0][10], bd[10][0]);
+//     printf("#sep_indices test: %d, %d, %d   %d, %d, %d\n", a1[178], a2[178], diagt[178], a1[1655], a2[1655], diagt[1655] );
+  
+    temp1=createSquareMatrix(bdim);
+    MatrixMultNS(GBD, VDB, temp1, bdim, edim, bdim);
+    temp2 = createSquareMatrix(bdim);
+    MatrixAdd(unit, temp1, temp2, bdim);
+    InvertMatrixGSL(temp2, temp1, bdim);
+    MatrixMult(temp1, GBB, temp2, bdim);   //temp2 is GBB disconnected
+    
+    FreeMatrix(temp1);
+    temp1 = createNonSquareMatrix(edim, bdim);
+    MatrixMultNS(VDB, temp2, temp1, edim, bdim, bdim);
+    FreeMatrix(temp2);
+    temp2=createSquareMatrix(edim);
+    MatrixMultNS(temp1, VBD, temp2, edim, bdim, edim);
+    FreeMatrix(temp1);
+    
+    //group -> cell index mapping
+    MatrixCopyPart(temp2, SE, 0, 0, cellinfo->group_start, cellinfo->group_start, edim, edim);
+    FreeMatrix(temp2);
+    
+    
+    
+    free(a1); free(a2); free(diagt); free(GFs); free(bshifts);
+    FreeMatrix(GBB); FreeMatrix(GBD);
+    FreeMatrix(VBD); FreeMatrix(VDB);
+    FreeMatrix(unit);
+}
 
 
 
