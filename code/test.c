@@ -2540,6 +2540,12 @@ main(int argc, char *argv[])
 		custom_start_params cstart_p ={};
 		cstart_p.leadtype = createIntArray(num_leads);
 		sprintf(leadconf, "CUSTOM");
+                
+                if(ispatched !=0)
+                {
+                    sprintf(leadconf, "PGF");
+                }
+
 		sprintf(additional_lead_info, "");
 
 		int nleft, nright, nfull;
@@ -3409,8 +3415,8 @@ main(int argc, char *argv[])
                 {
                     patchp.pl1[j] = 10;
                     patchp.pl2[j] = 10;
-                    patchp.pcoords[j][0] = - 4*(j+1);
-                    patchp.pcoords[j][1] = 4*(j+1);
+                    patchp.pcoords[j][0] = - (length1+length2)*(j+1);
+                    patchp.pcoords[j][1] = (length1+length2)*(j+1);
                     
                     for(i=1; i<argc-1; i++)
                     {
@@ -3477,7 +3483,6 @@ main(int argc, char *argv[])
                 //exit(1);
 
                 //filename -- change leadconf from CUSTOM to PGF (this can be overridden by cmd line using -leadconfname
-                sprintf(leadconf, "PGF");
 
                 
                 

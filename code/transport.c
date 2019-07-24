@@ -2636,7 +2636,6 @@ void genPatchedSE(double _Complex **SE, double _Complex En, RectRedux *DeviceCel
         {
             GBB[i][j] = GFs[ bd[i][j] ];
         }
-        
         for(j=0; j<edim; j++)
         {
             index2 = (cellinfo->group_sites)[j];
@@ -2647,6 +2646,8 @@ void genPatchedSE(double _Complex **SE, double _Complex En, RectRedux *DeviceCel
             
         }
     }
+   // listNonZero(VBD, bdim, edim);
+    
 //      printf("#GBB test: %lf  %lf     %lf %lf\n", creal(GBB[0][10]), cimag(GBB[0][10]), creal(GBB[10][0]), cimag(GBB[10][0]));
 //      printf("#bd test: %d, %d\n", bd[0][10], bd[10][0]);
 //     printf("#sep_indices test: %d, %d, %d   %d, %d, %d\n", a1[178], a2[178], diagt[178], a1[1655], a2[1655], diagt[1655] );
