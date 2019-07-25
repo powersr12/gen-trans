@@ -1226,7 +1226,6 @@ double _Complex strainedTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a
         x1r=x1;
         y1r=y1;
         z1r=0.0;
-        //printf("aNULL!\n");
     }
     if(bDeviceCell->pert_pos != NULL)
     {
@@ -1239,7 +1238,6 @@ double _Complex strainedTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a
         x2r=x2;
         y2r=y2;
         z2r=0.0;
-        //printf("bNULL!\n");
     }
     distr = sqrt(pow(x2r-x1r, 2.0) + pow(y2r-y1r, 2.0) + pow(z2r-z1r, 2.0));
   
@@ -1345,7 +1343,7 @@ double _Complex strainedTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a
     
   }
   
-  
+  return ans;
  
   
 }
@@ -2651,7 +2649,7 @@ void genPatchedSE(double _Complex **SE, double _Complex En, RectRedux *DeviceCel
             
         }
     }
-listNonZero(VDB, edim, bdim);
+//listNonZero(VDB, edim, bdim);
     
 //      printf("#GBB test: %lf  %lf     %lf %lf\n", creal(GBB[0][10]), cimag(GBB[0][10]), creal(GBB[10][0]), cimag(GBB[10][0]));
 //      printf("#bd test: %d, %d\n", bd[0][10], bd[10][0]);

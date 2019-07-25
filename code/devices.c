@@ -4982,17 +4982,20 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
                     
                     if(Patches[i]->pert_pos == NULL && System->pert_pos != NULL)
                     {
-                        printf("#null patches boo hoo!\n");
+                        //printf("#null patches boo hoo!\n");
                         newpertpos[tempcount][0] = (Patches[i]->pos)[k][0];
                         newpertpos[tempcount][1] = (Patches[i]->pos)[k][1];
                         newpertpos[tempcount][2] = 0.0;
                         
-                        printf("#pp %lf %lf %lf %lf %lf %lf\n", newpos[tempcount][0], newpos[tempcount][1], newpos[tempcount][2], newpertpos[tempcount][0], newpertpos[tempcount][1], newpertpos[tempcount][2]);
+                        //printf("#pp %lf %lf %lf %lf %lf %lf\n", newpos[tempcount][0], newpos[tempcount][1], newpos[tempcount][2], newpertpos[tempcount][0], newpertpos[tempcount][1], newpertpos[tempcount][2]);
                     }
 
                     tempcount++;
                 }
             }
+            
+            
+  
             
             
             free(siteinfo[0]); free(siteinfo);
