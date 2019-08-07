@@ -3383,6 +3383,11 @@ main(int argc, char *argv[])
             int patchcenter=0, pct=0, pct2=0;     // tries to align patches by their centre (use similar odd/even lengths as device for best results)
             patch_para patchp = {};
             patchp.numpatches = numpatches;
+            char PGFdir[100];
+            
+            sprintf(PGFdir, "%s/PGF/graphene/", maindirec);
+            
+            
             //PATCH SETTINGS -default is no additional patches, and main System region patched
             if (ispatched != 0)
             {
@@ -3447,6 +3452,7 @@ main(int argc, char *argv[])
                             sscanf(argv[i+1], "%d", &patchp.usePGFlib);
                         }
                         
+                        patchp.PGFlibloc = PGFdir;
                         if(strcmp("-PGFlibloc" , argv[i]) == 0)
                         {
                             sscanf(argv[i+1], "%s", patchp.PGFlibloc);
@@ -3463,6 +3469,17 @@ main(int argc, char *argv[])
                             patchp.pcoords[j][1] -= pct2;
                             
                         }
+                        
+                        
+                    }
+                    
+                    
+                    if(patchp.usePGFlib == 1)
+                    {
+                        sprintf(command, "mkdir -p %s", PGFdir);
+                        system(command);
+                        printf("# PGF directory: %s\n", patchp.PGFlibloc);
+                        
                         
                         
                     }

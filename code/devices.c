@@ -4152,6 +4152,12 @@ void genBubbleDevice(RectRedux *SiteArray, void *p, int struc_out, char *filenam
 		      
 			if(struc_out == 1)
 			{
+                            for(j=0; j< tot_holes; j++)
+                            {
+                                fprintf(out, "# BUB %d : %lf	%lf  %lf   %lf %lf\n", j, holes[j][0], holes[j][1], holes[j][2], holes[j][3] );
+                            }
+                            
+                            
 			  for(l=0; l<2*length*length2; l++)
 			  {
 			    if(siteinfo[l][0] == 0)

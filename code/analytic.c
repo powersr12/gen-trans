@@ -1,6 +1,7 @@
 #include <math.h>
 #include <complex.h>
 #include <stdio.h>
+#include <unistd.h>
 #include <gsl/gsl_math.h>
 #include <gsl/gsl_complex.h>
 #include <gsl/gsl_integration.h>
@@ -140,6 +141,109 @@ double _Complex *graphenegfac(double _Complex En, int *a1, int *a2, int *diagt, 
 
 
 }
+
+
+//checks existing library for GFs, calculates and adds if not already there
+double _Complex *graphenegfac_lib(double _Complex En, int *a1, int *a2, int *diagt, int dim, char *PGFlibloc)
+{
+        int i;
+        
+        char fullname[200], direcname[300];
+        int *indices_to_run = createIntArray(dim);
+        int num_to_run = 0;
+        double retemp, imtemp;
+        double _Complex *out = createCompArray(dim);
+        double _Complex *outs;
+        char command[400];
+        
+        int *a1s, *a2s, *ds;
+        
+        FILE *file;
+        
+        for (i=0; i < dim; i++)
+        {
+            sprintf(direcname, "%s%.0e", PGFlibloc, cimag(En));
+            sprintf(fullname, "%s/%d_%d_%d_E_%+.8lf.dat", direcname, a1[i], a2[i], diagt[i], creal(En));
+            
+            if( access( fullname, F_OK ) != -1 ) 
+            {
+                //printf("##file exists!\n");
+                file = fopen(fullname, "r");
+                if (fscanf(file, "%lf   %lf", &retemp, &imtemp) < 1)
+                {
+                    printf("##file not read properly!\n");
+                    indices_to_run[num_to_run] = i;
+                    num_to_run ++;
+                }
+                else
+                {
+                    out[i] = retemp + imtemp*I;
+                }
+                fclose(file);
+
+            } 
+            else 
+            {
+                //printf("## does not exist!\n");
+                indices_to_run[num_to_run] = i;
+                num_to_run ++;
+            }
+        }
+        //end of loading saved GFs?
+        
+        if (num_to_run > 0)
+        {
+            printf("## new GFs to calculate: %d\n", num_to_run);
+            a1s = createIntArray(num_to_run);
+            a2s = createIntArray(num_to_run);
+            ds = createIntArray(num_to_run);
+            outs = createCompArray(num_to_run);
+            
+            for (i=0; i<num_to_run; i++)
+            {
+                a1s[i] = a1[indices_to_run[i]];
+                a2s[i] = a2[indices_to_run[i]];
+                ds[i] = diagt[indices_to_run[i]];
+            }
+            
+            outs = graphenegfac(En, a1s, a2s, ds, num_to_run);
+            
+            for (i=0; i<num_to_run; i++)
+            {
+                out[indices_to_run[i]] = outs[i];
+            }
+            
+            //printf("GFs made!\n");
+            //save GFS to library
+            for (i=0; i<num_to_run; i++)
+            {
+                sprintf(direcname, "%s%.0e", PGFlibloc, cimag(En));
+                sprintf(command, "mkdir -p %s", direcname);
+                //printf("%s\n", command);
+                
+                system(command);
+                
+                sprintf(fullname, "%s/%d_%d_%d_E_%+.8lf.dat", direcname, a1s[i], a2s[i], ds[i], creal(En));
+                
+                file = fopen(fullname, "w");
+                fprintf(file, "%.10e    %.10e\n", creal(outs[i]), cimag(outs[i]));
+                fclose(file);
+                
+                
+                //out[indices_to_run[i]] = outs[i];
+            }
+            
+            free(a1s); free(a2s); free(ds); free(outs);
+        }
+        
+
+        free(indices_to_run); 
+        return out;
+
+
+}
+
+
     
     
 //returns the vectorised integrand for the calculation of the graphene GF.

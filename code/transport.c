@@ -2615,9 +2615,12 @@ void genPatchedSE(double _Complex **SE, double _Complex En, RectRedux *DeviceCel
     //generate all the required analytic Green's functions
         //generalise this later to allow loading from library!
 //printf("# calculating %d required analytic GFs...\n", gdim);
-    GFs = graphenegfac(En, a1, a2, diagt, gdim);
+    if(ppara->usePGFlib ==0)
+        GFs = graphenegfac(En, a1, a2, diagt, gdim);
     
-    
+    if(ppara->usePGFlib ==1)
+        GFs = graphenegfac_lib(En, a1, a2, diagt, gdim, ppara->PGFlibloc);
+
     //create the required GF and V matrices:
     double _Complex **GBB = createSquareMatrix(bdim);
     double _Complex **GBD = createNonSquareMatrix(bdim, edim);

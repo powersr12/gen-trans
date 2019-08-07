@@ -27,3 +27,4 @@ void getS1S2a (double _Complex *S1, double _Complex *S2, double x, double y, dou
 double _Complex *graphenegfac(double _Complex En, int *a1, int *a2, int *diagt, int dim);
 void intgac(unsigned ndim, const double *kx, void *p, unsigned fdim, double *fval);
 
+double _Complex *graphenegfac_lib(double _Complex En, int *a1, int *a2, int *diagt, int dim, char *PGFlibloc);
