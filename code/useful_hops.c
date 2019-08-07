@@ -1,4 +1,9 @@
+#include "devices.h"
+#include "connect.h"
+#include "transport.h"
 #include "useful_hops.h"
+#include <stddef.h>
+
 
 //Graphene TB - stores 1st, 2nd and 3rd NNTB hopping params for graphene
 

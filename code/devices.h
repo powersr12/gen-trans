@@ -1,9 +1,24 @@
 #pragma once
 
-#include <stdio.h>
-#include "../libs/matrices.h"
 
-#include "useful.h"
+//moved here for compilation reasons...
+typedef struct {
+	int num_cells;		//number of cells the system has been partitioned into
+	int cell1dim;
+	int *cells_site_order;  //ordering of the sites in new cell structure
+	int *starting_index;	//index of first site in each cell within cells_site_order
+	int *cell_dims;	//dimension of each cell in cells_site_order
+	int *sites_by_cell;	//what cell each site is in
+	
+	int group_dim;		//a group has sites that should be in the same cell
+	int group_cell;
+	int *group_sites;		//i.e. due to self energy terms
+	int group_start;       //the index in group_cell at which the group_sites start
+	
+	int num_leads;
+	int *lead_dims;
+	int *lead_sites;
+}cellDivision;
 
 
 
@@ -19,7 +34,23 @@ typedef struct {
 	int **chaininfo;
 	int *Nrem;
 	int *Ntot;
+        int patched;
+        void *patch_params;
 }RectRedux;
+
+typedef struct {
+        int numpatches;
+        int *pNrem;
+        int **pcoords;
+        int *pl1;
+        int *pl2;
+        int usePGFlib;
+        char *PGFlibloc;
+        int **sep_indices;
+        int conn_count;
+        int **boundary_device;
+        RectRedux *boundary;
+}patch_para;
 
 typedef struct {
 	char *name;
@@ -245,6 +276,11 @@ typedef struct {
 
 typedef void (generatefn) (RectRedux *, void *, int , char *);
 typedef void (leadgenfn) (RectRedux *, RectRedux *, int, void *);
+
+
+void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, int struc_out, char *filename);
+
+void simplifyIndices(double **input,  int *output, double *origin, double *a1, double *a2 );
 
 
 void genLeads (RectRedux *SiteArray, RectRedux **Leads, int numleads, int mode, lead_para *params);

@@ -1,6 +1,5 @@
 #pragma once
-#include "devices.h"
-#include "connect.h"
+
 
 
 typedef double _Complex (hoppingfunc) (RectRedux *,  RectRedux *, int, int, double *, void *p);
@@ -39,6 +38,9 @@ typedef struct {
 	int num_leads;
 	int TRsym;
 	double **transmissions;
+        char *filename;
+        int ispatched;
+        void *patchpara;
 }trans_params;
 
 
@@ -83,3 +85,5 @@ void multipleCustomLeads (double _Complex En, RectRedux *DeviceCell, RectRedux *
 void singleRibbonLead (int leadnum, double _Complex En, RectRedux *DeviceCell, RectRedux **LeadCells, cellDivision *cellinfo, void *params, double _Complex **Sigma);
 
 void singleSimplestMetalLead (int leadnum, double _Complex En, RectRedux *DeviceCell, RectRedux **LeadCells, cellDivision *cellinfo, void *params, double _Complex **Sigma);
+
+void genPatchedSE(double _Complex **SE, double _Complex En, RectRedux *DeviceCell, cellDivision *cellinfo, hoppingfunc *hoppingfn, void *hoppingparams);

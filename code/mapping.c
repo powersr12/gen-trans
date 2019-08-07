@@ -1,4 +1,7 @@
+#include "devices.h"
 #include "mapping.h"
+#include <stdio.h>
+
 
 //LDOS out, can be split by sublattice and impurity sites
 void LDOSMapOut(RectRedux *DeviceCell, double *ldoses, char *out)

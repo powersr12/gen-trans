@@ -1,6 +1,13 @@
 
-
 #include "devices.h"
+#include "connect.h"
+#include <stdio.h>
+#include "../libs/matrices.h"
+#include "useful.h"
+#include "time.h"
+#include <string.h>
+#include <stdio.h>
+
 
 
 //Routines for generating various devices (RectRedux form)
@@ -4145,6 +4152,12 @@ void genBubbleDevice(RectRedux *SiteArray, void *p, int struc_out, char *filenam
 		      
 			if(struc_out == 1)
 			{
+                            for(j=0; j< tot_holes; j++)
+                            {
+                                fprintf(out, "# BUB %d : %lf	%lf  %lf   %lf %lf\n", j, holes[j][0], holes[j][1], holes[j][2], holes[j][3] );
+                            }
+                            
+                            
 			  for(l=0; l<2*length*length2; l++)
 			  {
 			    if(siteinfo[l][0] == 0)
@@ -4836,6 +4849,988 @@ int HallPositioning(int length2, int num_side_probes, int this_probe, int buffer
 	return hall_start + this_probe*hall_jump;
 		
 }
+
+
+void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, int struc_out, char *filename)
+{
+    
+    
+    
+    int geo = (System->geo);
+    int length = (System->length);
+    int length2 = (System->length2);
+    int **siteinfo = (System->siteinfo);		
+    double **pos = (System->pos);
+    double *site_pots = (System->site_pots);
+    int *Nrem = (System->Nrem);
+    int *Ntot = (System->Ntot);
+    
+    int numpatches = (ppara->numpatches);
+    int i, j, k;
+    
+    ppara->pNrem = createIntArray(numpatches);
+    
+    double a1[2], a2[2], origin[2];
+    if(geo == 0)
+    {
+        a1[0] = 0.5; a1[1] = -sqrt(3)/2;
+        a2[0] = -0.5; a2[1] = -sqrt(3)/2;
+        origin[0] = 0.5; origin[1] = 1/(2*sqrt(3));
+    }
+    
+    if(geo == 1)
+    {
+        a1[1] = 0.5; a1[0] = sqrt(3)/2;
+        a2[1] = -0.5; a2[0] = sqrt(3)/2;
+        origin[1] = 0.5; origin[0] = 1/(2*sqrt(3));
+    }
+    
+    FILE *out;
+	  
+    if(struc_out != 0)
+    {
+        out = fopen(filename, "w");
+    }
+    
+    
+    RectRedux *Patches[numpatches];
+    for(i=0; i < numpatches; i++)
+    {
+        Patches[i] = (RectRedux *)malloc(sizeof(RectRedux));
+        (Patches[i]->geo) = geo;
+        (Patches[i]->length) = ppara->pl1[i];
+        (Patches[i]->length2) = ppara->pl2[i];
+        (Patches[i]->Nrem) = (int *)malloc(sizeof(int));
+        (Patches[i]->Ntot) = (int *)malloc(sizeof(int));
+        simpleRibbonGeo (Patches[i], NULL, 0, NULL);
+        
+        
+//         //shift probe positions
+        for(j=0; j< *(Patches[i]->Ntot); j++)
+        {
+            (Patches[i]->pos)[j][0] += ppara->pcoords[i][0] * a1[0] + ppara->pcoords[i][1] * a2[0] ;
+            (Patches[i]->pos)[j][1] += ppara->pcoords[i][0] * a1[1] + ppara->pcoords[i][1] * a2[1] ;
+            //printf("%lf	%lf\n", (Patches[i]->pos)[j][0], (Patches[i]->pos)[j][1]);
+        }
+        
+        
+        ppara->pNrem[i] = *(Patches[i]->Nrem);
+        
+        printf("#Patch %d, %d sites\n", i, ppara->pNrem[i]);
+        
+        
+    }
+    
+    //combine into single device
+    
+            int *cell_dims = createIntArray(numpatches);
+            int tot_new_dim=0;
+            int rem_new_dim=0;
+            
+            for(i=0; i<numpatches; i++)
+            {
+                tot_new_dim += (*(Patches[i]->Ntot));
+                rem_new_dim += (*(Patches[i]->Nrem));
+            }
+            int Nremnew = *Nrem + tot_new_dim;
+            int Ntotnew = *Ntot + tot_new_dim;
+            
+            int **newsiteinfo = createNonSquareIntMatrix(Ntotnew, 2);
+            double **newpos = createNonSquareDoubleMatrix(Ntotnew, 3);
+            double *newpots = createDoubleArray(Ntotnew);
+            double **newpertpos;
+            
+            if( System->pert_pos != NULL )
+            {
+                newpertpos = createNonSquareDoubleMatrix(Ntotnew, 3);
+            }
+            
+            int tempcount=0;
+            
+            for(i=0; i<*Ntot; i++)
+            {
+                newsiteinfo[i][0] = siteinfo[i][0];
+                newsiteinfo[i][1] = siteinfo[i][1];
+                newpos[i][0] = pos[i][0];
+                newpos[i][1] = pos[i][1];
+                newpos[i][2] = pos[i][2];
+                newpots[i] = site_pots[i];
+                
+                if( System->pert_pos != NULL )
+                {
+                    newpertpos[i][0] = (System->pert_pos)[i][0];
+                    newpertpos[i][1] = (System->pert_pos)[i][1];
+                    newpertpos[i][2] = (System->pert_pos)[i][2];
+                }
+            }
+            tempcount=*Ntot;
+            
+            
+            for(i=0; i<numpatches; i++)
+            {
+                for(k=0; k<*(Patches[i]->Ntot); k++)
+                {
+                    newsiteinfo[tempcount][0] = (Patches[i]->siteinfo)[k][0];
+                    newsiteinfo[tempcount][1] = (Patches[i]->siteinfo)[k][1];
+                    
+                    newpos[tempcount][0] = (Patches[i]->pos)[k][0];
+                    newpos[tempcount][1] = (Patches[i]->pos)[k][1];
+                    newpos[tempcount][2] = (Patches[i]->pos)[k][2];
+                    
+                    newpots[tempcount] = (Patches[i]->site_pots)[k];
+                    
+                    if( Patches[i]->pert_pos != NULL )
+                    {
+                        newpertpos[tempcount][0] = (Patches[i]->pert_pos)[k][0];
+                        newpertpos[tempcount][1] = (Patches[i]->pert_pos)[k][1];
+                        newpertpos[tempcount][2] = (Patches[i]->pert_pos)[k][2];
+                    }
+                    
+                    if(Patches[i]->pert_pos == NULL && System->pert_pos != NULL)
+                    {
+                        //printf("#null patches boo hoo!\n");
+                        newpertpos[tempcount][0] = (Patches[i]->pos)[k][0];
+                        newpertpos[tempcount][1] = (Patches[i]->pos)[k][1];
+                        newpertpos[tempcount][2] = 0.0;
+                        
+                        //printf("#pp %lf %lf %lf %lf %lf %lf\n", newpos[tempcount][0], newpos[tempcount][1], newpos[tempcount][2], newpertpos[tempcount][0], newpertpos[tempcount][1], newpertpos[tempcount][2]);
+                    }
+
+                    tempcount++;
+                }
+            }
+            
+            
+  
+            
+            
+            free(siteinfo[0]); free(siteinfo);
+            free(pos[0]); free(pos);
+            free(site_pots);
+            
+            *Nrem = Nremnew;
+            *Ntot = Ntotnew;
+            
+            (System->pos) = newpos;
+            (System->site_pots) = newpots;
+            (System->siteinfo) = newsiteinfo;
+            if( System->pert_pos != NULL )
+            {
+                free( System->pert_pos[0]); free( System->pert_pos);
+                (System->pert_pos ) = newpertpos;
+            }
+    
+    //find "edge" sites to add to "group" - assumes perfect rectangular ribbon patch geometries
+    //find "boundary" sites (e.g. edge of frame) site locations and save
+ 
+    int edge_count=0;
+    int boundary_count=0;
+    int temp2=0, temp3=0, bigcount=0;
+    
+    
+    //this is based on NNTB patches, with well-behaved and complete edges
+    //be careful when generating devices, or this might not work
+    
+        (ppara->boundary)= (RectRedux *)malloc(sizeof(RectRedux));
+        ((ppara->boundary)->Nrem) = (int *)malloc(sizeof(int));
+        ((ppara->boundary)->Ntot) = (int *)malloc(sizeof(int));
+        
+//         (Patches[i]->geo) = geo;
+//         (Patches[i]->length) = ppara->pl1[i];
+//         (Patches[i]->length2) = ppara->pl2[i];
+//         (Patches[i]->Nrem) = (int *)malloc(sizeof(int));
+//         (Patches[i]->Ntot) = (int *)malloc(sizeof(int));
+    
+    
+    if (geo == 0)
+    {
+        
+        //site counting!
+        edge_count = length2*2 + (length *2) -2;
+        boundary_count = 2*(length + length2);
+        for(i=0; i< numpatches; i++)
+        {
+            edge_count += (Patches[i]->length2)*2 + (Patches[i]->length *2) -2;
+            boundary_count += 2*( (Patches[i]->length) + (Patches[i]->length2));
+        }
+//         printf("#edgecount %d\n", edge_count);
+        
+        //temp2 for edge counting, temp3 for boundary counting, tempcount for device counting
+        //edge sites index; boundary sites given by coordinates
+        tempcount=0, temp2=0, temp3=0, bigcount=0;
+        //ppara->num_boundary_sites = boundary_count;
+        *((ppara->boundary)->Ntot) = boundary_count;
+        //ppara->boundary_pos = createNonSquareDoubleMatrix(boundary_count, 3);
+        ((ppara->boundary)->pos) = createNonSquareDoubleMatrix(boundary_count, 3);
+        //ppara->boundary_subl = createIntArray(boundary_count);
+        ((ppara->boundary)->siteinfo) = createNonSquareIntMatrix(boundary_count, 2);
+        
+        cellinfo->group_dim = edge_count;
+        cellinfo->group_sites= createIntArray(edge_count);
+        
+        //Main device edge and boundary sites
+        
+            //bottom left (always an edge!)
+            tempcount=bigcount + 0;
+            (cellinfo->group_sites)[temp2] = tempcount;
+            ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+            ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/sqrt(3));
+            ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+            temp2++; temp3++;
+            
+            //left-most chain  (the -2 in the loop takes care of odd-integer lengths)
+            for(j=0; j<2*length-2; j+=4)
+            {
+                tempcount = bigcount +j+1;
+                (cellinfo->group_sites)[temp2] = tempcount;
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] - 0.5;
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                temp2++; temp3++;
+                
+                tempcount = bigcount +j+2;
+                (cellinfo->group_sites)[temp2] = tempcount;
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] - 0.5;
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/(2*sqrt(3)));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                temp2++; temp3++;
+            }
+            
+            //top left - different edge for odd and even lengths
+            tempcount = bigcount + 2*length -1;
+            (cellinfo->group_sites)[temp2] = tempcount;
+            temp2++;
+           
+            ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+            ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/sqrt(3));
+            ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+            temp3++;
+            if( (length % 2) == 1)
+            {
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] - 0.5;;
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                temp3++;
+            }
+            
+            
+            
+            //loop over intermediate chains)
+            for(k=1; k<length2-1; k++)
+            {
+                tempcount = bigcount + 2*length*(k) ;
+                (cellinfo->group_sites)[temp2] = tempcount;
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/sqrt(3));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                temp2++; temp3++;
+                
+                tempcount = bigcount + 2*length*(k+1) - 1 ;
+                (cellinfo->group_sites)[temp2] = tempcount;
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/sqrt(3));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                temp2++; temp3++;
+            }
+            
+            
+            //bottom right - edge always connects to two boundary sites
+            tempcount = bigcount + 2*length*(length2-1) ;
+            (cellinfo->group_sites)[temp2] = tempcount;
+            temp2++; 
+            ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+            ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/sqrt(3));
+            ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+            temp3++;
+            ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
+            ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/(2*sqrt(3)));
+            ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+            temp3++;
+            
+            //right-most chain
+            for(j=3; j<2*length-1; j+=4)
+            {
+                tempcount = bigcount + 2*length*(length2-1) +j;
+                (cellinfo->group_sites)[temp2] = tempcount;
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                temp2++; temp3++;
+                
+                tempcount = bigcount + 2*length*(length2-1) +j+1;
+                (cellinfo->group_sites)[temp2] = tempcount;
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/(2*sqrt(3)));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                temp2++; temp3++;
+            }
+            
+            //top right -- different for odd and even
+            tempcount = bigcount + 2*length*length2-1 ;
+            (cellinfo->group_sites)[temp2] = tempcount;
+            temp2++; 
+            if( (length % 2) == 0)
+            {            
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                temp3++;
+            }
+            ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+            ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/sqrt(3));
+            ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+            temp3++;
+            
+            
+            
+            bigcount = 2*length*length2;
+        //Boundaries and edges of the other patches
+            for(i=0; i<numpatches; i++)
+            {
+                
+                
+                //bottom left (always an edge!)
+                tempcount=bigcount + 0;
+                (cellinfo->group_sites)[temp2] = tempcount;
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/sqrt(3));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                temp2++; temp3++;
+                
+                //left-most chain  (the -2 in the loop takes care of odd-integer lengths)
+                for(j=0; j<2*(Patches[i]->length)-2; j+=4)
+                {
+                    tempcount = bigcount +j+1;
+                    (cellinfo->group_sites)[temp2] = tempcount;
+                    ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] - 0.5;
+                    ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
+                    ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                    temp2++; temp3++;
+                    
+                    tempcount = bigcount +j+2;
+                    (cellinfo->group_sites)[temp2] = tempcount;
+                    ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] - 0.5;
+                    ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/(2*sqrt(3)));
+                    ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                    temp2++; temp3++;
+                }
+                
+                //top left - different edge for odd and even lengths
+                tempcount = bigcount + 2*(Patches[i]->length) -1;
+                //if( ((Patches[i]->length) % 2) == 0)
+                //{
+                    (cellinfo->group_sites)[temp2] = tempcount;
+                    temp2++;
+                //}
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/sqrt(3));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                temp3++;
+                
+                if( ((Patches[i]->length) % 2) == 1)
+                {
+                    ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] - 0.5;;
+                    ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
+                    ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                    temp3++;
+                }
+            
+                
+                
+                
+                
+                //loop over intermediate chains)
+                for(k=1; k<(Patches[i]->length2)-1; k++)
+                {
+                    tempcount = bigcount + 2*(Patches[i]->length)*(k) ;
+                    (cellinfo->group_sites)[temp2] = tempcount;
+                    ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+                    ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/sqrt(3));
+                    ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                    temp2++; temp3++;
+                    
+                    tempcount = bigcount + 2*(Patches[i]->length)*(k+1) - 1 ;
+                    (cellinfo->group_sites)[temp2] = tempcount;
+                    ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+                    ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/sqrt(3));
+                    ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                    temp2++; temp3++;
+                }
+                
+                
+                //bottom right - edge always connects to two boundary sites
+                tempcount = bigcount + 2*(Patches[i]->length)*((Patches[i]->length2)  -1) ;
+                (cellinfo->group_sites)[temp2] = tempcount;
+                temp2++; 
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/sqrt(3));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                temp3++;
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/(2*sqrt(3)));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                temp3++;
+                
+                //right-most chain
+                for(j=3; j<2*(Patches[i]->length)-1; j+=4)
+                {
+                    tempcount = bigcount + 2*(Patches[i]->length)*( (Patches[i]->length2)-1) +j;
+                    (cellinfo->group_sites)[temp2] = tempcount;
+                    ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
+                    ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
+                    ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                    temp2++; temp3++;
+                    
+                    tempcount = bigcount + 2*(Patches[i]->length)*((Patches[i]->length2)-1) +j+1;
+                    (cellinfo->group_sites)[temp2] = tempcount;
+                    ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
+                    ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/(2*sqrt(3)));
+                    ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                    temp2++; temp3++;
+                }
+                
+                //top right -- different for odd and even
+                tempcount = bigcount + 2*(Patches[i]->length)*(Patches[i]->length2)-1 ;
+                (cellinfo->group_sites)[temp2] = tempcount;
+                temp2++; 
+                if( ((Patches[i]->length) % 2) == 0)
+                {            
+                    ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0] + 0.5;
+                    ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] - (1.0/(2*sqrt(3)));
+                    ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                    temp3++;
+                }
+                ((ppara->boundary)->pos)[temp3][0] = (System->pos)[tempcount][0];
+                ((ppara->boundary)->pos)[temp3][1] = (System->pos)[tempcount][1] + (1.0/sqrt(3));
+                ((ppara->boundary)->siteinfo)[temp3][1] = 1 - (System->siteinfo)[tempcount][1];
+                temp3++;
+            
+                
+                
+                bigcount += 2*(Patches[i]->length)*(Patches[i]->length2);
+                
+                
+                
+            }
+            (cellinfo->group_dim) = temp2;
+
+            
+    }
+//                     printf("#edgecount %d\n", cellinfo->group_dim);
+
+    
+    // calculate number of unique GF matrix elements required
+    int max_conn = (boundary_count + edge_count)*boundary_count; 
+    int **max_sep_indices = createNonSquareIntMatrix(max_conn, 4); //m, n, diagt, num_instances
+    //indexes the connections between boundary, device sites in terms of unique GF indices
+    int **boundary_device_mat = createNonSquareIntMatrix(boundary_count, boundary_count+edge_count);
+    int conn_count=0; //counts the unique GF elements so far
+    int already_calc=0;
+    
+    double **testpos = createNonSquareDoubleMatrix(2, 3);
+    int testout[3];
+    
+
+    for(i=0; i<boundary_count; i++)
+    {
+        testpos[0][0] = ((ppara->boundary)->pos)[i][0];
+        testpos[0][1] = ((ppara->boundary)->pos)[i][1];
+        testpos[0][2] = ((ppara->boundary)->siteinfo)[i][1] * 1.0;
+        
+        for(j=0; j< boundary_count; j++)
+        {
+            testpos[1][0] = ((ppara->boundary)->pos)[j][0];
+            testpos[1][1] = ((ppara->boundary)->pos)[j][1];
+            testpos[1][2] = ((ppara->boundary)->siteinfo)[j][1] * 1.0;
+            
+            simplifyIndices(testpos, testout, origin, a1, a2 );
+            
+//             if(testout[0]==1 && testout[1] == 1 && testout[2] ==2)
+//             {
+//                 printf("#%d, %d SUBL check %lf, %lf\n", i, j, testpos[0][1], testpos[1][1]);
+//             }
+            
+//             if(i==0 && j==10)
+//             {
+//                 printf("%d, %d, %d\n", testout[0], testout[1], testout[2]);
+//             }
+            
+            already_calc=0;
+            for(k=0; k<conn_count; k++)
+            {
+                //print("start\n");
+                if(testout[0] == max_sep_indices[k][0]
+                    && testout[1] == max_sep_indices[k][1]
+                    && testout[2] == max_sep_indices[k][2]) 
+                    {
+                        already_calc = 1;
+                        boundary_device_mat[i][j] = k;
+                        max_sep_indices[k][3] ++;
+                    }
+            }
+            if (already_calc == 0)
+            {
+                max_sep_indices[conn_count][0] = testout[0];
+                max_sep_indices[conn_count][1] = testout[1];
+                max_sep_indices[conn_count][2] = testout[2];
+                max_sep_indices[conn_count][3] = 1;
+                boundary_device_mat[i][j] = conn_count;
+                conn_count++;
+            }
+            
+//             if(i==0 && j==10)
+//             {
+//                 printf("bdm: %d\n", boundary_device_mat[i][j] );
+//                 
+//                 printf("%d, %d, %d\n", max_sep_indices[10][0], max_sep_indices[10][1], max_sep_indices[10][2]);
+//                 
+//             }
+            
+                
+//             if(i==10 && j==0)
+//             {
+//                 printf("#10,0 test: %d  %d  %d\n", testout[0], testout[1], testout[2]);
+//             }
+        }
+        
+        for(j=0; j< edge_count; j++)
+        {
+            testpos[1][0] = newpos[(cellinfo->group_sites)[j]][0];
+            testpos[1][1] = newpos[(cellinfo->group_sites)[j]][1];
+            testpos[1][2] = newsiteinfo[(cellinfo->group_sites)[j]][1]*1.0;
+            
+            simplifyIndices(testpos, testout, origin, a1, a2 );
+            
+            already_calc=0;
+            for(k=0; k<conn_count; k++)
+            {
+                //print("start\n");
+                if(testout[0] == max_sep_indices[k][0]
+                    && testout[1] == max_sep_indices[k][1]
+                    && testout[2] == max_sep_indices[k][2]) 
+                    {
+                        already_calc = 1;
+                        boundary_device_mat[i][boundary_count+j] = k;
+                        max_sep_indices[k][3] ++;
+                    }
+            }
+            if (already_calc == 0)
+            {
+                max_sep_indices[conn_count][0] = testout[0];
+                max_sep_indices[conn_count][1] = testout[1];
+                max_sep_indices[conn_count][2] = testout[2];
+                max_sep_indices[conn_count][3] = 1;
+                boundary_device_mat[i][boundary_count+j] = conn_count;
+                conn_count++;
+            }
+            
+        }
+    }
+    
+//     printf("bdm: %d\n", boundary_device_mat[0][10] );
+//                 
+//     printf("%d, %d, %d\n", max_sep_indices[10][0], max_sep_indices[10][1], max_sep_indices[10][2]);
+    
+
+    double dx2, dy2;
+    double ABvec[2];
+    ABvec[0] = (a1[0] + a2[0])/3;
+    ABvec[1] = (a1[1] + a2[1])/3;
+    printf("# unique GFs: %d\n", conn_count);
+    for(k=0; k<conn_count; k++)
+    {
+        dx2 = max_sep_indices[k][0]*a1[0] + max_sep_indices[k][1]*a2[0] - (1.5*max_sep_indices[k][2]*max_sep_indices[k][2] - 2.5*max_sep_indices[k][2])*ABvec[0];
+        dy2 = max_sep_indices[k][0]*a1[1] + max_sep_indices[k][1]*a2[1] - (1.5*max_sep_indices[k][2]*max_sep_indices[k][2] - 2.5*max_sep_indices[k][2])*ABvec[1];
+    
+        
+        
+//         printf("# (%d, %d, %d) ## %d instances %lf sep\n", max_sep_indices[k][0], max_sep_indices[k][1], max_sep_indices[k][2], max_sep_indices[k][3], sqrt(dx2*dx2+dy2*dy2));
+    }
+    
+    
+    (ppara->sep_indices) = createNonSquareIntMatrix(max_conn, 3); //m, n, diagt,
+    
+    for(i=0; i<conn_count; i++)
+    {
+        (ppara->sep_indices)[i][0] = max_sep_indices[i][0];
+        (ppara->sep_indices)[i][1] = max_sep_indices[i][1];
+        (ppara->sep_indices)[i][2] = max_sep_indices[i][2];
+    }
+    free(max_sep_indices[0]); free(max_sep_indices);
+    free(testpos[0]); free(testpos);
+    (ppara->conn_count) = conn_count;
+    (ppara->boundary_device) = boundary_device_mat;
+    
+    
+    
+    	if(struc_out != 0)
+	{
+	  for(i=0; i<Ntotnew; i++)
+	  {
+	    if(newsiteinfo[i][0] == 0 && newsiteinfo[i][1] == 0)
+	    {
+	      fprintf(out, "%lf	%lf\n", newpos[i][0], newpos[i][1]);
+	    }
+	  }
+	  fprintf(out, "\n");
+	  for(i=0; i<Ntotnew; i++)
+	  {
+	    if(newsiteinfo[i][0] == 0 && newsiteinfo[i][1] == 1)
+	    {
+	      fprintf(out, "%lf	%lf\n", newpos[i][0], newpos[i][1]);
+	    }
+	  }
+	  fprintf(out, "\n");
+	  
+          for(i=0; i<cellinfo->group_dim; i++)
+	  {
+            if(newsiteinfo[(cellinfo->group_sites)[i]][0] == 0 && newsiteinfo[(cellinfo->group_sites)[i]][1] == 0)
+	    {
+	      fprintf(out, "%lf	%lf\n", newpos[(cellinfo->group_sites)[i]][0], newpos[(cellinfo->group_sites)[i]][1]);
+	    }
+	  }
+	  fprintf(out, "\n");
+          for(i=0; i<cellinfo->group_dim; i++)
+	  {
+            if(newsiteinfo[(cellinfo->group_sites)[i]][0] == 0 && newsiteinfo[(cellinfo->group_sites)[i]][1] == 1)
+	    {
+	      fprintf(out, "%lf	%lf\n", newpos[(cellinfo->group_sites)[i]][0], newpos[(cellinfo->group_sites)[i]][1]);
+	    }
+	  }
+              
+         fprintf(out, "\n");   
+         for(i=0; i<*((ppara->boundary)->Ntot); i++)
+         {
+             if( ((ppara->boundary)->siteinfo)[i][1] == 0)
+             {
+                 fprintf(out, "%lf	%lf\n", ((ppara->boundary)->pos)[i][0], ((ppara->boundary)->pos)[i][1]  );
+             }
+         }
+         fprintf(out, "\n");   
+         for(i=0; i<*((ppara->boundary)->Ntot); i++)
+         {
+             if( ((ppara->boundary)->siteinfo)[i][1] == 1)
+             {
+                 fprintf(out, "%lf	%lf\n", ((ppara->boundary)->pos)[i][0], ((ppara->boundary)->pos)[i][1]  );
+             }
+         }     
+
+	  
+	  
+	}
+
+        if(struc_out != 0)
+        {
+            fclose(out);
+        }
+        //exit(1);
+
+}
+
+
+//Returns the simplest unique indices for lattice separations in graphene
+void simplifyIndices(double **input, int *output, double *origin, double *a1, double *a2 )
+{
+    int m, n, diagt;
+    int m1, n1;
+    
+    int a = (int)round(input[0][2]), b = (int)round(input[1][2]);
+    int diagt_in = b*(3*b -3*a -2) +2*a;   //0 for AA,BB, 1 for AB, 2 for BA
+//    printf("#SUBs: %d, %d, %d\n", a, b, diagt_in);
+
+    //separation vector between A and B atoms within sublattice
+    double ABvec[2];
+    ABvec[0] = (a1[0] + a2[0])/3;
+    ABvec[1] = (a1[1] + a2[1])/3;
+//     printf("#AB %lf %lf\n", ABvec[0], ABvec[1]);
+    
+    double delxi = input[1][0] - input[0][0], delyi = input[1][1] - input[0][1];
+    double alpha1[2], alpha2[2], angle=0;
+    double delx = delxi, dely=delyi;
+    double dx2, dy2;
+    int dorig= diagt_in;
+//     printf("#input:  %lf, %lf     %lf, %lf\n", input[0][0], input[0][1], input[1][0], input[1][1]);
+//     printf("#dell: %lf, %lf\n", delx, dely);
+    
+    if(diagt_in ==1)
+    {
+        delx -= ABvec[0];
+        dely -= ABvec[1];
+    }
+    
+    if(diagt_in ==2)
+    {
+        delx += ABvec[0];
+        dely += ABvec[1];
+    }   
+    
+    
+    
+    m1 = (int) round ( (delx/a2[0] - dely/a2[1]) / (a1[0]/a2[0] - a1[1]/a2[1]) ) ;
+    n1 = (int) round ( (delx/a1[0] - dely/a1[1]) / (a2[0]/a1[0] - a2[1]/a1[1]) ) ;
+    diagt = diagt_in;
+    
+    m=m1; n=n1;
+    //reduce and simplify!
+    int loopcount=0;
+    
+//     if(m==-1 && n == 2 && dorig ==2)
+//     {
+//         printf("this iteration... %lf, %lf (%lf) \n", delxi, delyi, sqrt(delxi*delxi+delyi*delyi));
+//     }
+    
+    double init_sep, final_sep;
+    init_sep = sqrt(delxi*delxi +delyi*delyi);
+
+    if( m1!=0 || n1!=0 || diagt !=0)
+    {
+//         printf("orig (%d, %d, %d) (%lf, %lf) %lf \n", m1 , n1, diagt, delxi, delyi, sqrt(delxi*delxi +delyi*delyi));
+//         printf("#del %lf %lf\n", delx, dely);
+        //diagt=2 -> diagt=1
+        if (diagt_in == 2)
+        {
+            m1 = -m1; n1 = -n1; diagt=1;
+            diagt_in = diagt;
+//             printf("->inversion: (%d, %d, %d)\t", m1 , n1 , diagt );
+            delx=-delx;
+            dely=-dely;
+        }
+        
+        //Bring everything to Z0
+        while( (m1 <= 0 || n1 < 0 || diagt > 1) && loopcount < 4 )
+        {
+         
+            if (diagt_in == 2)
+            {
+                m1 = -m1; n1 = -n1; diagt=1;
+                diagt_in = diagt;
+    //             printf("->inversion: (%d, %d, %d)\t", m1 , n1 , diagt );
+                delx=-delx;
+                dely=-dely;
+            }
+            
+            //rotate from zone 1 back to zone 0
+            if( (m1<=0) && (n1>0) && (abs(m1) < n1))
+            {
+                angle=-M_PI/3;
+                alpha1[0] = a1[0] * cos(angle) - a1[1] * sin (angle);
+                alpha1[1] = a1[0] * sin(angle) + a1[1] * cos (angle);
+                alpha2[0] = a2[0] * cos(angle) - a2[1] * sin (angle);
+                alpha2[1] = a2[0] * sin(angle) + a2[1] * cos (angle);
+                ABvec[0] = (alpha1[0] + alpha2[0])/3;
+                ABvec[1] = (alpha1[1] + alpha2[1])/3;
+                
+                
+                //delx = delxi; 
+                //dely = delyi;
+                   
+                 if(diagt_in ==1)
+                {
+                     delx += alpha1[0];
+                     dely += alpha1[1];
+                     diagt = 2;
+                }
+                if(diagt_in ==2)
+                {
+                    delx -= alpha1[0];
+                    dely -= alpha1[0];
+                    diagt = 1;
+                }
+                
+                
+                
+                m1 = (int) round ( (delx/alpha2[0] - dely/alpha2[1]) / (alpha1[0]/alpha2[0] - alpha1[1]/alpha2[1]) ) ;
+                n1 = (int) round ( (delx/alpha1[0] - dely/alpha1[1]) / (alpha2[0]/alpha1[0] - alpha2[1]/alpha1[1]) ) ;
+//                 printf("->Z1\t (%d, %d, %d)\t", m1 , n1 , diagt );
+                diagt_in = diagt;
+                delx = m1*a1[0] + n1*a2[0] ;
+                dely = m1*a1[1] + n1*a2[1] ;
+            }
+            
+            //rotate from zone 2 back to zone 0
+            if( (m1<0) && (n1>0) && (abs(m1) >= n1))
+            {
+                angle=-2*M_PI/3;
+                alpha1[0] = a1[0] * cos(angle) - a1[1] * sin (angle);
+                alpha1[1] = a1[0] * sin(angle) + a1[1] * cos (angle);
+                alpha2[0] = a2[0] * cos(angle) - a2[1] * sin (angle);
+                alpha2[1] = a2[0] * sin(angle) + a2[1] * cos (angle);
+                ABvec[0] = (alpha1[0] + alpha2[0])/3;
+                ABvec[1] = (alpha1[1] + alpha2[1])/3;
+                
+                                
+                if(diagt_in ==1)
+                {
+                     delx -= alpha2[0];
+                     dely -= alpha2[1];
+                }
+                if(diagt_in ==2)
+                {
+                    delx += alpha2[0];
+                    dely += alpha2[0];
+                }
+                
+                m1 = (int) round ( (delx/alpha2[0] - dely/alpha2[1]) / (alpha1[0]/alpha2[0] - alpha1[1]/alpha2[1]) ) ;
+                n1 = (int) round ( (delx/alpha1[0] - dely/alpha1[1]) / (alpha2[0]/alpha1[0] - alpha2[1]/alpha1[1]) ) ;
+//                 printf("->Z2\t (%d, %d, %d)\t", m1 , n1 , diagt );
+                diagt_in = diagt;
+                delx = m1*a1[0] + n1*a2[0] ;
+                dely = m1*a1[1] + n1*a2[1] ;
+//                 printf("delx: %lf, dely: %lf\n", delx, dely);
+
+            }
+            
+            
+            //rotate from zone 3 back to zone 0
+            if( (m1<0) && (n1<=0))
+            {
+
+                m1 = -m1;
+                n1=-n1;
+                if(diagt_in==1)
+                    diagt=2;
+                if(diagt_in==2)
+                    diagt=1;
+                
+//                 printf("->Z3\t (%d, %d, %d)\t", m1 , n1 , diagt );
+                diagt_in = diagt;
+                delx = m1*a1[0] + n1*a2[0] ;
+                dely = m1*a1[1] + n1*a2[1] ;
+            }
+            
+            //rotate from zone 4 back to zone 0
+            if( (m1>=0) && (n1<0) && (abs(n1) > m1))
+            {
+                angle=-4*M_PI/3;
+                alpha1[0] = a1[0] * cos(angle) - a1[1] * sin (angle);
+                alpha1[1] = a1[0] * sin(angle) + a1[1] * cos (angle);
+                alpha2[0] = a2[0] * cos(angle) - a2[1] * sin (angle);
+                alpha2[1] = a2[0] * sin(angle) + a2[1] * cos (angle);
+                ABvec[0] = (alpha1[0] + alpha2[0])/3;
+                ABvec[1] = (alpha1[1] + alpha2[1])/3;
+                
+                                
+                if(diagt_in ==1)
+                {
+                     delx -= alpha1[0];
+                     dely -= alpha1[1];
+                }
+                if(diagt_in ==2)
+                {
+                    delx += alpha1[0];
+                    dely += alpha1[0];
+                }
+                
+                m1 = (int) round ( (delx/alpha2[0] - dely/alpha2[1]) / (alpha1[0]/alpha2[0] - alpha1[1]/alpha2[1]) ) ;
+                n1 = (int) round ( (delx/alpha1[0] - dely/alpha1[1]) / (alpha2[0]/alpha1[0] - alpha2[1]/alpha1[1]) ) ;
+//                 printf("->Z4\t (%d, %d, %d)\t", m1 , n1 , diagt );
+                diagt_in = diagt;
+                delx = m1*a1[0] + n1*a2[0] ;
+                dely = m1*a1[1] + n1*a2[1] ;
+            }
+            
+            
+             //rotate from zone 5 back to zone 0
+            if( (m1>0) && (n1<0) && (abs(n1) <= m1))
+            {
+                angle=-5*M_PI/3;
+                alpha1[0] = a1[0] * cos(angle) - a1[1] * sin (angle);
+                alpha1[1] = a1[0] * sin(angle) + a1[1] * cos (angle);
+                alpha2[0] = a2[0] * cos(angle) - a2[1] * sin (angle);
+                alpha2[1] = a2[0] * sin(angle) + a2[1] * cos (angle);
+                ABvec[0] = (alpha1[0] + alpha2[0])/3;
+                ABvec[1] = (alpha1[1] + alpha2[1])/3;
+                
+//                 printf("delx: %lf, dely: %lf\n", delx, dely);
+                if(diagt_in ==1)
+                {
+                     diagt=2;
+                     delx += alpha2[0];
+                     dely += alpha2[1];
+                }
+                if(diagt_in ==2)
+                {
+                    diagt=1;
+                    delx -= alpha2[0];
+                    dely -= alpha2[0];
+                }
+//                 printf("delx: %lf, dely: %lf\n", delx, dely);
+
+                
+               /* 
+                if(diagt_in ==1)
+                {
+                    diagt = 2;
+                    delx += ABvec[0];
+                    dely += ABvec[1];
+                }
+                if(diagt_in ==2)
+                {
+                    delx -= ABvec[0];
+                    dely -= ABvec[1];
+                    diagt = 1;
+                }*/
+                
+                m1 = (int) round ( (delx/alpha2[0] - dely/alpha2[1]) / (alpha1[0]/alpha2[0] - alpha1[1]/alpha2[1]) ) ;
+                n1 = (int) round ( (delx/alpha1[0] - dely/alpha1[1]) / (alpha2[0]/alpha1[0] - alpha2[1]/alpha1[1]) ) ;
+//                 printf("->Z5\t (%d, %d, %d)\t", m1 , n1 , diagt );
+                diagt_in = diagt;
+                delx = m1*a1[0] + n1*a2[0] ;
+                dely = m1*a1[1] + n1*a2[1] ;
+// printf("delx: %lf, dely: %lf\n", delx, dely);
+
+            }
+
+//            printf("\n" );  
+            loopcount++;
+        }
+        //printf("->final \t (%d, %d, %d)\n", m1 , n1 , diagt );
+        
+        
+
+
+    }
+    ABvec[0] = (a1[0] + a2[0])/3;
+    ABvec[1] = (a1[1] + a2[1])/3;
+    
+    int swap;
+    
+     if(n1 > m1)
+     {
+         swap = n1;
+         n1 = m1;
+         m1=swap;
+     }
+    
+    dx2 = m1*a1[0] + n1*a2[0] - (1.5*diagt*diagt - 2.5*diagt)*ABvec[0];
+    dy2 = m1*a1[1] + n1*a2[1] - (1.5*diagt*diagt - 2.5*diagt)*ABvec[1];
+    final_sep = sqrt(dx2*dx2 + dy2*dy2);
+//     printf("\t \n", m1 , n1, diagt, init_sep, final_sep );
+
+    //will print out if something is dodgy!
+    if(init_sep - final_sep > 0.0001)
+            printf("orig (%d, %d, %d)\t->final (%d, %d, %d)  %lf %lf\n", m , n, dorig, m1 , n1, diagt, init_sep, final_sep  );
+
+     if (m1< 0 || n1 < 0)
+     {
+          printf("orig (%d, %d, %d)\t->final (%d, %d, %d)  %lf %lf\n", m , n, dorig, m1 , n1, diagt, init_sep, final_sep  );
+     }
+     
+//      if(m==-1 && n == 2 && dorig ==2)
+//     {
+//         printf("orig (%d, %d, %d)\t->final (%d, %d, %d)  %lf %lf\n", m , n, dorig, m1 , n1, diagt, init_sep, final_sep  );
+//     }
+
+    
+    //printf ("%d %d %d\n", m1, n1, diagt);
+    //printf("## (%d %d %d) del %lf %lf    %lf %lf\n", m1, n1, diagt_in, input[1][0] - input[0][0], input[1][1] - input[0][1], (m1*a1[0] + n1*a2[0]), (m1*a1[1] + n1*a2[1]));
+    
+    output[0] = m1; output[1] = n1; output[2] = diagt;
+    
+//     exit(1);
+    
+}
+
 
 
 void HallBarify (RectRedux *System, RectRedux **Leads, hallbpara *hall_para, lead_para *params, int struc_out, char *filename)

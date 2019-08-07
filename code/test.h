@@ -6,13 +6,13 @@
 #include <string.h>
 #include <unistd.h>
 
-
+#include "devices.h"
+#include "connect.h"
 #include "mapping.h"
 #include "transport.h"
-#include "connect.h"
 #include "disorder.h"
 #include "useful_hops.h"
-
+#include "useful.h"
 
 #include "../libs/matrices.h"
 #include "../libs/hubbard.h"

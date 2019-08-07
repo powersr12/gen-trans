@@ -3,8 +3,8 @@ CFLAGS=-lm -lgsl -lgslcblas -O3
 CFLAGSDEBUG=-lm -lgsl -lgslcblas -Wall -g
 MYLIBDIR=../libs
 
-test: test.o connect.o useful_hops.o transport.o devices.o disorder.o useful.o mapping.o matrices.o hubbard.o graphene_gf.o suscept.o static.o greenfns.o cubature.o 
-	$(CC)  test.o connect.o useful_hops.o transport.o devices.o disorder.o useful.o mapping.o matrices.o hubbard.o graphene_gf.o suscept.o static.o greenfns.o cubature.o  $(CFLAGS) -o test
+test: test.o connect.o useful_hops.o transport.o devices.o disorder.o analytic.o useful.o mapping.o matrices.o hubbard.o graphene_gf.o suscept.o static.o greenfns.o cubature.o 
+	$(CC)  test.o connect.o useful_hops.o transport.o devices.o disorder.o analytic.o useful.o mapping.o matrices.o hubbard.o graphene_gf.o suscept.o static.o greenfns.o cubature.o  $(CFLAGS) -o test
 
 test.o: test.c test.h
 	$(CC) -c -g -O3 test.c
@@ -29,6 +29,9 @@ useful_hops.o: useful_hops.c useful_hops.h
 	
 disorder.o: disorder.c disorder.h
 	$(CC) -c -g -O3 disorder.c
+	
+analytic.o: analytic.c analytic.h 
+	$(CC) -c -g -O3 analytic.c
 	
 matrices.o: $(MYLIBDIR)/matrices.c $(MYLIBDIR)/matrices.h
 	$(CC) -c -g $(MYLIBDIR)/matrices.c -o matrices.o

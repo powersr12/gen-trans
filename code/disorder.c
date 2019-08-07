@@ -1,4 +1,9 @@
+#include "devices.h"
 #include "disorder.h"
+#include "../libs/matrices.h"
+#include <math.h>
+#include <time.h>
+#include "useful.h"
 
 
 //complex absorbing potentials at the top and bottom edges of nanoribbon devices.
@@ -20,13 +25,13 @@ void cap_potential(RectRedux *DeviceCell, double width)
     //top and bottom of ribbon (offset)
          if(geo==0)
         {
-            topedge=length1*sqrt(3)/2 - 1 / (2*sqrt(3)) +0.001;
-            bottomedge=1 / (2*sqrt(3)) - 0.001;
+            topedge=length1*sqrt(3)/2 - 1 / (2*sqrt(3)) +0.00001;
+            bottomedge=1 / (2*sqrt(3)) - 0.00001;
         }
         if(geo==1 )
         {
-            topedge=(length1-1)*0.5 +0.001;
-            bottomedge = -0.001;
+            topedge=(length1-1)*0.5 +0.00001;
+            bottomedge = -0.00001;
         }
     
     
@@ -80,17 +85,17 @@ void cap_potential2(RectRedux *DeviceCell, double width)
     //top, bottom, left, right of ribbon (offset)
         if(geo==0)
         {
-            topedge=length1*sqrt(3)/2 - 1 / (2*sqrt(3)) +0.001;
-            bottomedge=1 / (2*sqrt(3)) - 0.001;
-            leftedge= -0.001;
-            rightedge=length2*1.0 -0.5 +0.001 ;
+            topedge=length1*sqrt(3)/2 - 1 / (2*sqrt(3)) +0.00001;
+            bottomedge=1 / (2*sqrt(3)) - 0.00001;
+            leftedge= -0.00001;
+            rightedge=length2*1.0 -0.5 +0.00001 ;
         }
         if(geo==1 )
         {
-            topedge=(length1-1)*0.5 +0.001;
-            bottomedge = -0.001;
-            leftedge = - 0.001;
-            rightedge = length2*sqrt(3) - 1 / (sqrt(3)) +0.001;
+            topedge=(length1-1)*0.5 +0.00001;
+            bottomedge = -0.00001;
+            leftedge = - 0.00001;
+            rightedge = length2*sqrt(3) - 1 / (sqrt(3)) +0.00001;
         }
     
     

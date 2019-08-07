@@ -1,10 +1,9 @@
 #pragma once
-#include "devices.h"
 
 typedef int (cnxRulesFn) (RectRedux *, void *, int, int);
 typedef int (cnxRulesFn2) (RectRedux *, RectRedux *, void *, int, int);
 
-
+// 
 //says whether or not two atoms are connected, NOT the hopping value
 typedef struct {
 	int max_neigh;		
@@ -12,22 +11,7 @@ typedef struct {
 	int **site_cnx;
 }cnxProfile;
 
-typedef struct {
-	int num_cells;		//number of cells the system has been partitioned into
-	int cell1dim;
-	int *cells_site_order;  //ordering of the sites in new cell structure
-	int *starting_index;	//index of first site in each cell within cells_site_order
-	int *cell_dims;	//dimension of each cell in cells_site_order
-	int *sites_by_cell;	//what cell each site is in
-	
-	int group_dim;		//a group has sites that should be in the same cell
-	int group_cell;
-	int *group_sites;		//i.e. due to self energy terms
-	
-	int num_leads;
-	int *lead_dims;
-	int *lead_sites;
-}cellDivision;
+
 
 typedef struct {
 	double conn_sep_thresh_min;

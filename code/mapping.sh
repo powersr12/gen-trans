@@ -8,8 +8,8 @@ MAXPTS=100000
 
 
 BASEFOLDER=/home/stpower/projects/gen-trans/res/
-PROJFOLDER=CLEAN_CUSTOM_2_LEADS_1_to_0__1e-06/AC100_clean_l2_50/abs_pot2/
-PROJNAME=E_-0.0800_B_+0.000_hopmap.conf00
+PROJFOLDER=SUBLDOTS_2STM_2_LEADS_1_to_0__1e-06/ZZ200_rect_lat_L_100_300_SUBA_1.00x0.100_SUBB_1.00x-0.100_circ_dot_R_41.0_1x1_xyf_0.0_rf_0.0/abs_pot2/
+PROJNAME=E_+0.0400_B_+0.000_run.conf00
 
 # BASEFOLDER=/home/powersr/projects/gen-trans/res/
 # PROJFOLDER=BUBBLES_RIBBON_1e-06/AC240_rect_lat_L_72_120_membrane_bub_R_36.6_H_6.0_1x1_xyf_0.0_rf_0.0_zf_0.0_if_0.00/abs_pot/

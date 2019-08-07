@@ -25,8 +25,9 @@ main(int argc, char *argv[])
 	      char systemtype[32];
 	      char geotype[32], peritype[40], leadtype[32], sysinfo[120], loopinfo[80], loopmininfo[80], disinfo[40], cedgeinfo[40], dedgeinfo[40], eedgeinfo[40];
 	      sprintf(systemtype, "SUBLATTICEPOT");
-	      int length1=2, length2=3*length1, geo=0, isperiodic=1, ismagnetic=0;
+	      int length1=2, length2=3*length1, geo=0, isperiodic=1, ismagnetic=0, ispatched=0;
 	      int makebands = 0, unfold=0, project=0, kxpoints=51, bandsonly=0, bandsminset=0, bandsmaxset=100000;
+              int numpatches = 0;
 	      
 	      int output_type=1;   //=0 no structure output, =1  atoms / holes
 	      double eta = 1.0E-6;
@@ -193,13 +194,22 @@ main(int argc, char *argv[])
 		    {
 			sscanf(argv[i+1], "%lf", &abs_pots_width);
 		    }
+		    if(strcmp("-patched", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &ispatched);
+		    }
+		    if(strcmp("-numpatches", argv[i]) == 0)
+		    {
+			sscanf(argv[i+1], "%d", &numpatches);
+		    }
 		    
 		  }
 			//default value of num_neigh for single layer graphene.
 			//each mode increases the num of neighbour terms by 1
 			num_neigh=nngm;
 			 
-	 
+                
+                        
 		
 		  
 	  
@@ -236,7 +246,7 @@ main(int argc, char *argv[])
 	  sprintf(loop_type, "E"); //= 'E'; //E for energy loop, B for Bfield loop
 	  
 	  //how often to map, map this particular energy/bfield/loop variable, mapping mode: ldos, currents, all
-	  int mappings=0, mapnow=0, mapmode=0;
+	  int mappings=0, mapnow=0, mapmode=1;
 	  int map_all_leads=1, map_lead=0;
 	  
 	  char job_name[64] = "";	//an addendum to folder names to 
@@ -1845,6 +1855,16 @@ main(int argc, char *argv[])
 		}
 	  
 	  
+	  //END OF DEVICE DEFINITIONS!!
+	  
+	  
+	  
+	 
+	  
+	  
+	  
+	  
+	  
 	  
 	  double kxmin=0.0, kxmax =(2*M_PI/length2);
 		for(i=1; i<argc-1; i++)
@@ -1884,6 +1904,9 @@ main(int argc, char *argv[])
 			endy = length1*1.0/2;
 		}
 		
+	  
+	   //ADDITIONAL EDGE POTENTIALS, DISORDER ETC
+	  
 	  
 	  
 	  //potential disorder settings
@@ -2710,18 +2733,24 @@ main(int argc, char *argv[])
 
 
 	  
-		//CUSTOM LEADS MODE
+		
 		char leadconf[40], temp_in_string[40], additional_lead_info[40];
 		multiple_para *mleadps[num_leads];
 		custom_start_params cstart_p ={};
 		cstart_p.leadtype = createIntArray(num_leads);
 		sprintf(leadconf, "CUSTOM");
+                
+                if(ispatched !=0)
+                {
+                    sprintf(leadconf, "PGF");
+                }
+
 		sprintf(additional_lead_info, "");
 
 		int nleft, nright, nfull;
 		int counttop, countbot, countleft, countright, countfull;
 		double metaldim2=2.0;
-		if(ishallbar==4)
+		if(ishallbar==4)  //CUSTOM LEADS MODE
 		{
 			currIn=1;
 			currOut=0;
@@ -3251,8 +3280,8 @@ main(int argc, char *argv[])
 	
 	    FILE *output, *fulloutput, *tsoutput;
 	    char filename[300], filename3[300], filename_temp[300], fullfilename[300], tsfilename[300];
-	    char checkname[300], direcname[300], conffile[350], strucfile[300], lstrucfile[350], disorderfile[300];
-	    char bandname1[300], bandname2[300], bandname3[300], mapname[400], maindirec[100];
+	    char checkname[300], direcname[300], conffile[350], strucfile[300], lstrucfile[350], disorderfile[300], pstrucfile[350];
+	    char bandname1[300], bandname2[300], bandname3[300], mapname[400], maindirec[100], gsname[300];
             char command[600], inputlist[300];
 	    char altconffile[100];
 	    int usealtconf=0;
@@ -3395,6 +3424,7 @@ main(int argc, char *argv[])
 	    System.length2=length2;
 	    System.Nrem=&Nrem;
 	    System.Ntot=&Ntot;
+            System.patched=0;
             
             //printf("HERE! %d\n", Nrem);
 	    
@@ -3478,8 +3508,7 @@ main(int argc, char *argv[])
 		}
 
 
-// 		exit(0);
-		
+
 
 		  if(this_proc > 0)
 		  {
@@ -3500,6 +3529,7 @@ main(int argc, char *argv[])
 		  printf("#generated geometry in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		  time = clock();
 		  
+                  
 	    double **pos = System.pos;
 	    int **siteinfo = System.siteinfo;
 	    double *site_pots = System.site_pots;
@@ -3519,9 +3549,15 @@ main(int argc, char *argv[])
             {
                 System.cap_pots = NULL;
             }
-                
-                
-	  
+            
+            
+            
+// 		BASE SYSTEM AND POTENTIALS FULLY GENERATED AND EXPORTED
+//              FROM NOW ON LEADS, PATCHES ETC CAN BE ADDED
+//              EVERYTHING FROM HERE ON RUNS EVERY TIME.... (is not loaded from config files)
+            
+
+
 
 	  	  int halloutput;
 		  
@@ -3535,7 +3571,142 @@ main(int argc, char *argv[])
 	  {
 	    gauge = 1;
 	  }
-		  
+	
+	
+//LEAD AND PATCH GENERATION
+
+            char PGFlib[100];
+            cellDivision cellinfo; // definition moved to here so that 'group' sites can be set in Patchify
+            cellinfo.group_dim = 0;
+
+            int patchcenter=0, pct=0, pct2=0;     // tries to align patches by their centre (use similar odd/even lengths as device for best results)
+            patch_para patchp = {};
+            patchp.numpatches = numpatches;
+            char PGFdir[100];
+            
+            sprintf(PGFdir, "%s/PGF/graphene/", maindirec);
+            
+            
+            //PATCH SETTINGS -default is no additional patches, and main System region patched
+            if (ispatched != 0)
+            {
+                if (ishallbar != 4 )
+                {
+                    printf("Patched mode only works for custom leads mode (hallbar = 4)");
+                    exit(1);
+                }
+                if (nngm != 1 )
+                {
+                    printf("Patched mode only works for NNTB model");
+                    exit(1);
+                }
+                
+                 if (geo != 0 )
+                {
+                    printf("Patched mode only works for ZZ-edged devices at present!");
+                    exit(1);
+                }
+                
+                patchp.pcoords = createNonSquareIntMatrix(numpatches, 2);
+                patchp.pl1 = createIntArray(numpatches);
+                patchp.pl2 = createIntArray(numpatches);
+                
+                
+                
+//sscanf(argv[i+1], "%d", &((rib_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord);
+                
+                for (j=0; j<numpatches; j++)
+                {
+                    patchp.pl1[j] = 10;
+                    patchp.pl2[j] = 10;
+                    patchp.pcoords[j][0] = - (length1+length2)*(j+1);
+                    patchp.pcoords[j][1] = (length1+length2)*(j+1);
+                    
+                    for(i=1; i<argc-1; i++)
+                    {
+                    
+                        sprintf(temp_in_string, "-patch%da1", j);
+                        if(strcmp(temp_in_string, argv[i]) == 0)
+                        {
+                            sscanf(argv[i+1], "%d", &patchp.pcoords[j][0]);
+                        }
+                        sprintf(temp_in_string, "-patch%da2", j);
+                        if(strcmp(temp_in_string, argv[i]) == 0)
+                        {
+                            sscanf(argv[i+1], "%d", &patchp.pcoords[j][1]);
+                        }
+                        sprintf(temp_in_string, "-patch%dl1", j);
+                        if(strcmp(temp_in_string, argv[i]) == 0)
+                        {
+                            sscanf(argv[i+1], "%d", &patchp.pl1[j]);
+                        }
+                        sprintf(temp_in_string, "-patch%dl2", j);
+                        if(strcmp(temp_in_string, argv[i]) == 0)
+                        {
+                            sscanf(argv[i+1], "%d", &patchp.pl2[j]);
+                        }
+                        
+                        if(strcmp("-usePGFlib" , argv[i]) == 0)
+                        {
+                            sscanf(argv[i+1], "%d", &patchp.usePGFlib);
+                        }
+                        
+                        patchp.PGFlibloc = PGFdir;
+                        if(strcmp("-PGFlibloc" , argv[i]) == 0)
+                        {
+                            sscanf(argv[i+1], "%s", patchp.PGFlibloc);
+                        }
+                        
+                        if(strcmp("-patchcenter" , argv[i]) == 0 || strcmp("-patchcentre" , argv[i]) == 0)
+                        {
+                            sscanf(argv[i+1], "%d", &patchcenter);
+                            
+                            pct = (int)  ((length1 - patchp.pl1[j])/4);
+                            pct2 = (int)  ((length1 - patchp.pl1[j])/2 -  (length1 - patchp.pl1[j])/4) ;
+                            
+                            patchp.pcoords[j][0] -=  pct;
+                            patchp.pcoords[j][1] -= pct2;
+                            
+                        }
+                        
+                        
+                    }
+                    
+                    
+                    if(patchp.usePGFlib == 1)
+                    {
+                        sprintf(command, "mkdir -p %s", PGFdir);
+                        system(command);
+                        printf("# PGF directory: %s\n", patchp.PGFlibloc);
+                        
+                        
+                        
+                    }
+                    
+                    
+                }
+                
+                if(output_type == 1)
+                {
+                        sprintf(pstrucfile, "%s.patch", strucfile);
+                }
+                    
+                //call Patchify...
+                Patchify (&System, &patchp, &cellinfo, output_type, pstrucfile);
+                System.patched=1;
+                System.patch_params = &patchp;
+                pos = System.pos;
+                //exit(1);
+
+                //filename -- change leadconf from CUSTOM to PGF (this can be overridden by cmd line using -leadconfname
+
+                
+                
+            }
+	  
+
+
+
 		  
 	  if(ishallbar == 1 || ishallbar == 2)
 	  {
@@ -3699,18 +3870,22 @@ main(int argc, char *argv[])
 		
 		
 	  
-
+//Device Connectivity
 
 	  cnxProfile cnxp;
 	 
  	    cnxp.max_neigh=max_neigh;
 	    device_connectivity (&System, connectrules, default_connection_params, &cnxp);
-	    
+
 		  time = clock() - time;
 		  printf("#made connection profile in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		  time = clock();
    	   //printConnectivity (&System, &cnxp);
-	  
+// <<<<<<< HEAD
+// 	  
+// =======
+// 	
+// >>>>>>> patched
 		
 	  gen_start_params start_p ={};
 	 
@@ -3721,6 +3896,8 @@ main(int argc, char *argv[])
 	  
 	  void *starting_ps;
           starting_ps = &start_p;
+          
+          
           
 	if(metal_leads ==1)
               starting_ps = &mxsp;
@@ -3735,14 +3912,13 @@ main(int argc, char *argv[])
 		starting_cell_mode = 5;
 	}
 		
-	  cellDivision cellinfo;
 	 // genStartingCell(&System, &cellinfo, 2, NULL);
-	  
+ 
 	 if(bandsonly == 0)
 		genStartingCell(&System, &cellinfo, starting_cell_mode, starting_ps);
 	 
-// 	exit(0);
-	  
+ 	//exit(1);
+
 
 		if(output_type == 1)
 		{
@@ -3760,10 +3936,12 @@ main(int argc, char *argv[])
 	if(bandsonly == 0)
 	  cellSplitter(&System, &cnxp, &cellinfo);
 	  
+        
 		time = clock() - time;
 		printf("#split cells in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		time = clock();
 
+        //exit(1);
 
 		
 		
@@ -3910,6 +4088,7 @@ main(int argc, char *argv[])
 	  trans_params tpara = {};
 	  tpara.num_leads=num_leads;
 	  tpara.TRsym=ismagnetic;
+          tpara.filename=gsname;
 	  double **transmissions = createNonSquareDoubleMatrix(num_leads, num_leads);
 	  double **ttildas=createNonSquareDoubleMatrix(num_leads, num_leads);
 	  double **mtrans = createNonSquareDoubleMatrix(num_leads-1, num_leads-1);
@@ -3918,7 +4097,11 @@ main(int argc, char *argv[])
 	  
 
 	  tpara.transmissions = transmissions;
-
+          tpara.ispatched = ispatched;
+          if(ispatched != 0)
+          {
+              tpara.patchpara = &patchp;
+          }
 	  double kavg;
 	  
 	  double kxl;
@@ -3972,6 +4155,8 @@ main(int argc, char *argv[])
 	   }
 	 }
 
+	 
+	 //BAND STRUCTURES
 	  
 	 if(makebands == 1)
 	 {
@@ -4103,6 +4288,8 @@ main(int argc, char *argv[])
 	  
 	    int do_linear_decomp=1;
 	  
+            
+          // MAIN LOOP!  
 	  
 	  for(en=0; en<loop_pts_temp; en++)
 	  {
@@ -4159,15 +4346,13 @@ main(int argc, char *argv[])
 		
 		if( (en % mappings) == 0)
 		{
-		  mapnow = 1;
+		  mapnow = mapmode;
 		}
 		  
 	      }
-	      mapmode = mapnow;
 	      
-// 	      printf("#map mode %d\n", mapmode);
 	      
-	      if(mapmode == 1)
+	      if(mapnow > 0)
 	      {
 		for (i=0; i<Ntot; i++)
 		    { 
@@ -4182,7 +4367,7 @@ main(int argc, char *argv[])
 		      }
 		    }
 	      }
-	      
+	      sprintf(gsname, "%s/E_%+.4lf_B_%+.3lf_%s.conf%02d", direcname, realE, Bfield, job_name, conf_num);
 	     
 	    
 	      hoppara.Btes=Bfield;
@@ -4194,7 +4379,7 @@ main(int argc, char *argv[])
 	      {
 		hoppara.kpar = kmin + k*kstep;
 
-		genTransmissions(realE+eta*I, &System, LeadCells, &cnxp, &cellinfo, hopfn, &hoppara, &leadp, &tpara, mapmode, ldoses, currents);
+		genTransmissions(realE+eta*I, &System, LeadCells, &cnxp, &cellinfo, hopfn, &hoppara, &leadp, &tpara, mapnow, ldoses, currents);
 		kavg += (transmissions[0][1]/kpts);
 	      }
 
@@ -4234,7 +4419,7 @@ main(int argc, char *argv[])
 
 	      
               
-	      if(mapmode==1)
+	      if(mapnow > 0)
 	      {
 		     sprintf(mapname, "%s/E_%+.4lf_B_%+.3lf_%s.conf%02d.ldos", direcname, realE, Bfield, job_name, conf_num);
 		     
@@ -4344,7 +4529,7 @@ main(int argc, char *argv[])
                         
                         
                             //make a composite map for multiprobe systems
-                            if(mapmode == 1)
+                            if(mapnow > 0)
                             {
                                 probe_pots[0] = 1.0;
                                 probe_pots[1] = 0.0;
@@ -4463,7 +4648,7 @@ main(int argc, char *argv[])
                         
                         
                             //make a composite map for multiprobe systems
-                            if(mapmode == 1)
+                            if(mapnow > 0)
                             {
                                 probe_pots[0] = vecx[0];
                                 probe_pots[1] = vecx[1];
@@ -4670,7 +4855,7 @@ main(int argc, char *argv[])
 				
 				
 				//make a composite map for multiprobe systems
-				if(mapmode == 1)
+				if(mapnow > 0)
 				{
 					sprintf(mapname, "%s/E_%+.4lf_B_%+.3lf_%s.conf%02d.cmaps_multi", direcname, realE, Bfield, job_name, conf_num);
 					mapfile = fopen(mapname, "w");

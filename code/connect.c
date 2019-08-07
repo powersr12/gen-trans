@@ -1,4 +1,6 @@
+#include "devices.h"
 #include "connect.h"
+#include "../libs/matrices.h"
 
 void device_connectivity (RectRedux *DeviceCell, cnxRulesFn *rule, void *rule_params, cnxProfile *cnxp)
 {
@@ -106,7 +108,7 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
 	(cellinfo->sites_by_cell)[i] = -1;
     }
     
-    
+
 	
 	int *leadtype;
 
@@ -529,7 +531,7 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
     else if(config==5)
     {
 	custom_start_params *sps = (custom_start_params *) start_params;
-      
+
 	j=0, m=0;
 	cellinfo->num_leads=sps->num_leads;
 	cellinfo->lead_dims=createIntArray(cellinfo->num_leads);
@@ -605,7 +607,7 @@ void genStartingCell (RectRedux *DeviceCell, cellDivision *cellinfo, int config,
 		
 	}
 	cellinfo->cell1dim = j;
-	cellinfo->group_dim = 0;
+	//cellinfo->group_dim = 0;
 	cellinfo->lead_sites = createIntArray( cellinfo->cell1dim );
 	for(l=0; l<cellinfo->cell1dim ; l++)
 	{
@@ -637,6 +639,7 @@ void cellSplitter (RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellin
   
   num_sites_left=0;
   cellinfo->group_cell=-1;
+  cellinfo->group_start=-1;
   
 
   for(i=0; i<alldim; i++)
@@ -647,6 +650,7 @@ void cellSplitter (RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellin
       num_sites_left++;
     }
   }
+  
   
   cellindex=0; last_cell_start=0; last_cell_size=(cellinfo->cell1dim); sites_to_date=(cellinfo->cell1dim);
   
@@ -685,11 +689,13 @@ void cellSplitter (RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellin
 	      {
 		added_with_group=1;
 		group_added=1;
+                
 	      }
 	    }
 	    
 	    if(group_added == 1)
 	    {
+              (cellinfo->group_start)=cell_size;
 	      cellinfo->group_cell = cellindex;
 	      for(m=0; m<(cellinfo->group_dim); m++)
 	      {
@@ -763,7 +769,7 @@ void cellSplitter (RectRedux *DeviceCell, cnxProfile *cnxp, cellDivision *cellin
 //       }
 //       printf("\n");
 //     }
-    
+//     
   
 }
 

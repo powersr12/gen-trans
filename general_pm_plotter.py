@@ -7,7 +7,7 @@ import numpy as np
 from matplotlib.colors import LogNorm
 import scipy.interpolate
 
-filename="/home/powersr/projects/gen-trans/res/BUBBLES_RIBBON_1e-06/AC240_rect_lat_L_72_120_membrane_bub_R_40.6_H_12.2_1x1_xyf_0.0_rf_0.0_zf_0.0/POTDIS_c_0.0200_d_0.020_xi_10.0/abs_pot/Eloop_+0.01_to_+0.10_Bfixed_+0.000_abs5.conf00.disprof"
+filename="../res/CLEAN_RIBBON_1e-06/ZZ80_clean_l2_200/POTDIS_c_0.0010_d_2.000_xi_2.0/.Eloop_-0.40_to_+0.40_Bfixed_+0.000_run.conf00.disprof"
 outputname=filename+"_plot.png"
 
 
@@ -27,7 +27,7 @@ xi, yi = np.meshgrid(xi, yi)
 plot3 = plt.figure()
 pmi = scipy.interpolate.griddata((x, y), pm , (xi, yi), method='linear')
 
-plt.imshow(pmi, vmin=pm.min(), vmax=pm.max(), origin='lower', cmap=cm.jet, 
+plt.imshow(pmi, vmin=pm.min(), vmax=pm.max(), origin='lower', cmap=cm.RdBu, 
            extent=[x.min(), x.max(), y.min(), y.max()])
 plt.colorbar()
 plot3.savefig(outputname, dpi=300)
