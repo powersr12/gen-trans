@@ -3535,6 +3535,12 @@ main(int argc, char *argv[])
 	    double *site_pots = System.site_pots;
 	    
             
+                        
+// 		BASE SYSTEM AND POTENTIALS FULLY GENERATED AND EXPORTED
+//              FROM NOW ON LEADS, PATCHES ETC CAN BE ADDED
+//              EVERYTHING FROM HERE ON RUNS EVERY TIME.... (is not loaded from config files)
+            
+            
             //double *cap_pots = NULL;
 
             if(abs_pots == 1)
@@ -3551,10 +3557,7 @@ main(int argc, char *argv[])
             }
             
             
-            
-// 		BASE SYSTEM AND POTENTIALS FULLY GENERATED AND EXPORTED
-//              FROM NOW ON LEADS, PATCHES ETC CAN BE ADDED
-//              EVERYTHING FROM HERE ON RUNS EVERY TIME.... (is not loaded from config files)
+
             
 
 
@@ -3936,7 +3939,6 @@ main(int argc, char *argv[])
 	if(bandsonly == 0)
 	  cellSplitter(&System, &cnxp, &cellinfo);
 	  
-        
 		time = clock() - time;
 		printf("#split cells in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		time = clock();

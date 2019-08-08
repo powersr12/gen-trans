@@ -5034,6 +5034,8 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
         (ppara->boundary)= (RectRedux *)malloc(sizeof(RectRedux));
         ((ppara->boundary)->Nrem) = (int *)malloc(sizeof(int));
         ((ppara->boundary)->Ntot) = (int *)malloc(sizeof(int));
+        ((ppara->boundary)->pert_pos) = NULL;
+
         
 //         (Patches[i]->geo) = geo;
 //         (Patches[i]->length) = ppara->pl1[i];
