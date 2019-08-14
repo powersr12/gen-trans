@@ -4154,7 +4154,7 @@ void genBubbleDevice(RectRedux *SiteArray, void *p, int struc_out, char *filenam
 			{
                             for(j=0; j< tot_holes; j++)
                             {
-                                fprintf(out, "# BUB %d : %lf	%lf  %lf   %lf %lf\n", j, holes[j][0], holes[j][1], holes[j][2], holes[j][3] );
+                                fprintf(out, "# BUB %d : %lf	%lf  %lf   %lf\n", j, holes[j][0], holes[j][1], holes[j][2], holes[j][3] );
                             }
                             
                             
@@ -6215,6 +6215,7 @@ void simpleBilayerGeo (RectRedux *SiteArray, void *p, int struc_out, char *filen
 	  double *site_pots = createDoubleArray(tot_sites);
 	  int **siteinfo = createNonSquareIntMatrix(tot_sites, 2);
 	  double *subpots = params->subpots;
+          
 	  
          
 
@@ -6706,9 +6707,190 @@ void BLGPotentials (RectRedux *SiteArray, void *p, int struc_out, char *filename
 
 
 
+//Generation of generic multilayer devices
+//Each layer is generated independently from different single layer systems
+//Combined with specified z coordinates, rescaling, shifts and rotations into one RectRedux
 
+void customMultilayer (RectRedux *SiteArray, void *p, int struc_out, char *filename)
+{
+    
+    multilayer_para *params = (multilayer_para *)p;
+    int num_layers = (params->num_layers);
+    
+    int i, j, k, l;
+    int ntot=0, nrem=0, ntc, nrc;
+    int *Nrem = (SiteArray->Nrem);
+    int *Ntot = (SiteArray->Ntot);
+    int need_pert=0;
+    FILE *out;
+    
+    RectRedux *LayerCells[num_layers];
+    
+    double origin[2], origintemp[2];
+    origin[0]=0.0; origin[1]=0.0;
+    origintemp[0]=0.0; origintemp[1]=0.0;
+    
+    
+    if ( (params->origin) == 1)
+    {
+        
+        if ( (SiteArray->geo) ==0)
+        {
+            origin[0] = (int) (SiteArray->length2/2) - 0.5* (  (SiteArray->length % 2) ); 
+            origin[1] = (sqrt(3)/2.0) * (int) (SiteArray->length/2)   ;
+        }
+        
+    }
+    
+    
+    //Individual layer structures
+    for(i=0; i< num_layers; i++)
+    {
+        LayerCells[i] = (RectRedux *)malloc(sizeof(RectRedux));
+        (LayerCells[i]->geo) = (params->geo)[i];
+        (LayerCells[i]->length) = (params->length)[i];
+        (LayerCells[i]->length2) = (params->length2)[i];
+        (LayerCells[i]->Nrem) = (int *)malloc(sizeof(int));
+        (LayerCells[i]->Ntot) = (int *)malloc(sizeof(int));
+        
+        //generate individual layers
+        ((params->layerfn)[i]) (LayerCells[i], (params->layerpara)[i], 0, NULL) ;
+        
+        //total numbers
+        nrem += *(LayerCells[i]->Nrem);
+        ntot += *(LayerCells[i]->Ntot);
+        
+        if((LayerCells[i]->pert_pos) != NULL)
+            need_pert=1;
+        
+    }
+    
+    *Nrem = nrem;
+    *Ntot = ntot;
+    
+    double **site_coords = createNonSquareDoubleMatrix(ntot, 3);
+    double *site_pots = createDoubleArray(ntot);
+    int **siteinfo = createNonSquareIntMatrix(ntot, 2);
+    double **pert_pos = NULL;
+    double x1, y1, z1, cost, sint;
+    
+    if(need_pert ==1)
+    {
+        pert_pos = createNonSquareDoubleMatrix(ntot, 3);
+    }
+    
+    ntc=0; 
+    
+    //new positions of sites in layers
+    for(i=0; i< num_layers; i++)
+    {
+        cost = cos((params->theta)[i]);
+        sint = sin((params->theta)[i]);
+        
+        if ( (params->origin) == 1)
+        {
+            
+            if ( (params->geo)[i] ==0)
+            {
+                origintemp[0] = (int) ((params->length2)[i]/2) - 0.5* (  ((params->length)[i] % 2) ); 
+                origintemp[1] = (sqrt(3)/2.0) * (int) ((params->length)[i]/2)   ;
+            }
+            
+        }
+        
+        
+        
+        for(j=0; j< *(LayerCells[i]->Ntot); j++)
+        {
+            x1 = (LayerCells[i]->pos)[j][0] + (params->delta)[i][0] - origintemp[0];
+            y1 = (LayerCells[i]->pos)[j][1] + (params->delta)[i][1] - origintemp[1];
+            z1 = (LayerCells[i]->pos)[j][2] + (params->delta)[i][2] ;
+            
+            site_coords[ntc + j][0] =  origin[0] + (params->epsilon)[i] * (x1*cost -y1*sint);
+            site_coords[ntc + j][1] =  origin[1] + (params->epsilon)[i] * (x1*sint +y1*cost);
+            site_coords[ntc + j][2] =  z1;
+                        
+            site_pots[ntc + j] = (LayerCells[i]->site_pots)[j] ;
+            siteinfo[ntc + j][0] = (LayerCells[i]->siteinfo)[j][0] ;
+            siteinfo[ntc + j][1] = (LayerCells[i]->siteinfo)[j][1] ;
+            
+            
+            if(need_pert==1)
+            {
+                if((LayerCells[i]->pert_pos) != NULL)
+                {
+                    x1 = (LayerCells[i]->pert_pos)[j][0] + (params->delta)[i][0] ;
+                    y1 = (LayerCells[i]->pert_pos)[j][1] + (params->delta)[i][1] ;
+                    z1 = (LayerCells[i]->pert_pos)[j][2] + (params->delta)[i][2] ;
+                }
+                
+                pert_pos[ntc + j][0] =  (params->epsilon)[i] * (x1*cost -y1*sint);
+                pert_pos[ntc + j][1] =  (params->epsilon)[i] * (x1*sint +y1*cost);
+                pert_pos[ntc + j][2] =  z1;
+            }
+            
+        }
+        
+        ntc+=*(LayerCells[i]->Ntot);
+    }
+ 
+    
+    //Free memory associated with individual layers
+    
+    for(i=0; i< num_layers; i++)
+    {
+        free((LayerCells[i]->siteinfo)[0]); free((LayerCells[i]->siteinfo));
+        free((LayerCells[i]->pos)[0]); free((LayerCells[i]->pos));
+        free((LayerCells[i]->site_pots));
+        
+        if((LayerCells[i]->pert_pos) != NULL)
+        {
+            free((LayerCells[i]->pert_pos)[0]); free((LayerCells[i]->pert_pos));
+        }
+    }
 
-
+    
+    (SiteArray->pos) = site_coords;
+    (SiteArray->site_pots) = site_pots;
+    (SiteArray->siteinfo) = siteinfo;
+    (SiteArray->pert_pos) = pert_pos;
+    
+    
+    if(struc_out != 0)
+    {
+        out = fopen(filename, "w");
+        
+        if(struc_out == 1)
+        {
+            ntc=0; 
+            for(i=0; i<num_layers; i++)
+            {
+                for(j=0; j<*(LayerCells[i]->Ntot); j++)
+                {
+                    
+                    if(need_pert == 0)
+                    {
+                        if(siteinfo[ntc+j][0] == 0 )
+                        {  
+                            fprintf(out, "%lf	%lf   %lf\n", site_coords[ntc+j][0], site_coords[ntc+j][1], site_coords[ntc+j][2]);
+                        }
+                    }
+                    if(need_pert == 1)
+                    {
+                        if(siteinfo[ntc+j][0] == 0 )
+                        {  
+                            fprintf(out, "%lf	%lf   %lf\n", pert_pos[ntc+j][0], pert_pos[ntc+j][1], pert_pos[ntc+j][2]);
+                        }
+                    }
+                }
+                ntc+=*(LayerCells[i]->Ntot);
+                fprintf(out, "\n");
+            }
+            
+        }
+        fclose(out);
+    }
+}
 
 
 

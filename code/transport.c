@@ -69,7 +69,6 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
       //lead sigmas 
 	 (leadfn)(En, DeviceCell, Leads, cellinfo, leadsparams, SigmaR);
 	 
-	 
 
       //calculate retarded GF of system 
          genDeviceGF(En, DeviceCell, cnxp, cellinfo, hoppingfn, hoppingparams, devicemode, devicemode2, g_sys_r, gii, gi1, SigmaR);
@@ -1355,6 +1354,131 @@ double _Complex strainedTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a
 
 
 
+
+
+//A simple implementation of hopping parameters for general multilayers
+//NNTB inplane
+// position dependent interlayer hoppings based on Moon-Koshino models
+//not intended for periodic systems
+double _Complex multilayerTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, int b, double *bshifts, void *hoppingparams)
+{
+  gen_hop_params *para = (gen_hop_params *)hoppingparams; 
+  int num_neigh = para->num_neigh;
+  double _Complex *hops = para->hops;
+  double  *NN_lowdis = para->NN_lowdis;
+  double  *NN_highdis = para->NN_highdis;
+  double  *NN_shifts = para->NN_shifts;
+  double  *NN_zmin= para->NN_zmin;
+  double  *NN_zmax = para->NN_zmax;
+  double t0;
+  double kpar = para->kpar;
+  double _Complex ans=0.0;
+  double x1 = (aDeviceCell->pos)[a][0], y1 = (aDeviceCell->pos)[a][1];
+  double x2 = (bDeviceCell->pos)[b][0] + bshifts[0], y2 = (bDeviceCell->pos)[b][1] + bshifts[1];
+  double z1 = (aDeviceCell->pos)[a][2], z2 = (bDeviceCell->pos)[b][2];
+  double y2p, distp;
+  double basedist[] = {1/sqrt(3), 1, 2/sqrt(3)};
+  double beta = 3.37;
+  
+  double dist = sqrt(pow(x2-x1, 2.0) + pow(y2-y1, 2.0));
+  double zdiff = fabs((bDeviceCell->pos)[b][2] - (aDeviceCell->pos)[a][2]);
+  double ycelldist;
+  int i;
+  double x1r, x2r, y1r, y2r, z1r, z2r, distr, distpr, y2pr;
+  
+  double cosalpha2;
+  
+    if(aDeviceCell->pert_pos != NULL)
+    {
+        x1r = (aDeviceCell->pert_pos)[a][0];
+        y1r = (aDeviceCell->pert_pos)[a][1];
+        z1r = (aDeviceCell->pert_pos)[a][2];
+    }
+    else
+    {
+        x1r=x1;
+        y1r=y1;
+        z1r=z1;
+    }
+    if(bDeviceCell->pert_pos != NULL)
+    {
+        x2r = (bDeviceCell->pert_pos)[b][0] + bshifts[0];
+        y2r = (bDeviceCell->pert_pos)[b][1] + bshifts[1];
+        z2r = (bDeviceCell->pert_pos)[b][2];
+    }
+    else
+    {
+        x2r=x2;
+        y2r=y2;
+        z2r=z2;
+    }
+    distr = sqrt(pow(x2r-x1r, 2.0) + pow(y2r-y1r, 2.0) + pow(z2r-z1r, 2.0));
+  
+    cosalpha2 =  zdiff*zdiff / (distr*distr);
+    t0=0.0;
+    //in plane NNTB
+    if (zdiff < NN_zmax[0])
+    {
+        if(dist >= (para->NN_lowdis[0]) && dist < (para->NN_highdis[0]))
+        {
+            t0 = hops[0];
+        }
+    }
+    
+    //out-of-plane
+    if (zdiff > NN_zmin[1] && zdiff < NN_zmax[1])
+    {
+        if(dist >= (para->NN_lowdis[1]) && dist < (para->NN_highdis[1]))
+        {
+            t0 = cosalpha2 * hops[1] * exp( - (distr - 1.36 )/(0.184))  ; 
+            //+ (1-cosalpha2) * hops[0] * exp( - (distr - 1/sqrt(3) )/(0.184));
+            //printf ("##%lf  %lf %lf %lf %lf\n", t0, cosalpha2, creal(hops[1]), exp( - (distr - 1.36 )/(0.184)), distr); //MAYBE RIGHT!
+        }
+    }
+
+  
+    //which coupling to use
+//     t0=0.0;
+//     for(i=0; i< num_neigh; i++)
+//     {
+//       if(dist >= (para->NN_lowdis[i]) && dist < (para->NN_highdis[i]))
+//       {
+// 		if(zdiff>= NN_zmin[i] && zdiff< NN_zmax[i])
+// 		{ 
+// 			t0 = hops[i];
+//                         
+//                         //strain
+//                         if(aDeviceCell->pert_pos != NULL || bDeviceCell-> pert_pos != NULL)
+//                         {
+//                             t0=t0*exp(-beta * ( (distr/basedist[i]) - 1.0) );
+//                         }
+// 		}
+//       }
+//       
+//       if(dist == 0.0)
+//       {
+// 	t0 += NN_shifts[i];
+//       }
+//     }
+    ans=t0;
+    
+        
+ 
+  
+
+  if((para->isperiodic)==1)
+  {
+    exit(1);
+  }
+  
+  return ans;
+ 
+  
+}
+
+
+
+
 double _Complex peierlsTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int a, int b, double *bshifts, void *hoppingparams)
 {
   gen_hop_params *para = (gen_hop_params *)hoppingparams; 
@@ -1907,7 +2031,9 @@ void multipleLeads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadC
 
 	  //generate the info required for Rubio method
 	  lead_prep(En, LeadCells[leadloop], leadloop, params, ginv, V12, V21);
+	  //listNonZero(V12, dim1, dim1);
 
+          
 	  InvertMatrixGSL(ginv, g00, dim1);
 	  RubioSGF(SL, g00, V12, V21, dim1, &lcount, elemerr*dim1*dim1);
 	  

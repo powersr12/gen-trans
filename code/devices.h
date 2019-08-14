@@ -274,9 +274,24 @@ typedef struct {
 }hallbpara;
 
 
+
+
+
 typedef void (generatefn) (RectRedux *, void *, int , char *);
 typedef void (leadgenfn) (RectRedux *, RectRedux *, int, void *);
 
+typedef struct{
+    int num_layers;
+    int *length;
+    int *length2;
+    int *geo;
+    double *theta;
+    double **delta;
+    double *epsilon;
+    int origin;
+    generatefn **layerfn;
+    void **layerpara;
+}multilayer_para;
 
 void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, int struc_out, char *filename);
 
@@ -318,4 +333,5 @@ void simpleBilayerGeo (RectRedux *SiteArray, void *p, int struc_out, char *filen
 void genSingleBLGLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, void *params);
 void BLGPotentials (RectRedux *SiteArray, void *p, int struc_out, char *filename);
 
+void customMultilayer (RectRedux *SiteArray, void *p, int struc_out, char *filename);
 

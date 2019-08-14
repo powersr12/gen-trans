@@ -8,7 +8,6 @@ void device_connectivity (RectRedux *DeviceCell, cnxRulesFn *rule, void *rule_pa
     int i, j, counter;
     
     (cnxp->site_cnxnum) = createIntArray(N);
-    
     (cnxp->site_cnx) = createNonSquareIntMatrix(N, cnxp->max_neigh);
     
     for(i=0; i<N; i++)
@@ -1487,5 +1486,61 @@ int blg_conn_sep (RectRedux *DeviceCell, void *rule_params, int a, int b)
     
 }
 
+
+//This function simply generates the connections present for a MULTILAYER graphene system 
+//Works using a separation cut off
+//version with two possible device cells
+int mlg_conn_sep2 (RectRedux *DeviceCell, RectRedux *LeadCell, void *rule_params, int a, int b)
+{
+    int i, j, k, l, ans;  //set ans =0 if there is a connection
+    ans=1;
+    blg_conn_para *para = (blg_conn_para *) rule_params;
+    double thresh_min = (para->intra_thresh_min);
+    double thresh_max = (para->intra_thresh_max);
+    double thresh_min2 = (para->inter_thresh_min);
+    double thresh_max2 = (para->inter_thresh_max);
+    double zthresh1 = (para->zthresh1);
+    double zthresh2 = (para->zthresh2);
+    
+    double **pos = (DeviceCell->pos);
+    double **lpos = (LeadCell->pos);
+
+    double cellyshift;
+    int geo = (DeviceCell->geo);
+    int length = DeviceCell->length;
+    
+    double dist= sqrt( pow(lpos[b][0] - pos[a][0], 2) + pow(lpos[b][1] - pos[a][1], 2));
+    double zsep = fabs(lpos[b][2] - pos[a][2]);
+
+    //within the same layer
+    if(dist <= thresh_max && dist >= thresh_min && zsep <= zthresh1)
+    {
+	ans = 0;
+    }
+    
+    //on a neighbouring layer
+    if(dist <= thresh_max2 && dist >= thresh_min2 && zsep > zthresh1 && zsep <= zthresh2)
+    {
+	ans = 0;
+    }
+
+    
+     if(geo==0)
+      cellyshift = length * sqrt(3) / 2;
+    
+     else if (geo==1)
+      cellyshift = length * 0.5;
+    
+    
+    return ans;
+}
+
+int mlg_conn_sep (RectRedux *DeviceCell, void *rule_params, int a, int b)
+{
+    return mlg_conn_sep2 (DeviceCell, DeviceCell,rule_params, a,  b);     
+
+
+    
+}
 
 

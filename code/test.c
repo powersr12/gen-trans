@@ -1539,7 +1539,7 @@ main(int argc, char *argv[])
 			char blgtype[6];
 			double blg_shift[2];
 			bilp.shift_vec = blg_shift;
-			bilp.zsep = 13.4;
+			bilp.zsep = 1.362;
 			
 			//default is to not include skew hopping terms between layers
 			bilp.skews = 0;
@@ -1712,7 +1712,7 @@ main(int argc, char *argv[])
 			char blgtype[6];
 			double blg_shift[2];
 			bilp.shift_vec = blg_shift;
-			bilp.zsep = 13.4;
+			bilp.zsep = 1.362;
 			
 			//default is to not include skew hopping terms between layers
 			bilp.skews = 0;
@@ -1853,6 +1853,152 @@ main(int argc, char *argv[])
 			
 			
 		}
+		
+		
+		//test device for generic multilayers
+		multilayer_para mlp = {};
+ 		char ml_info[66];   //(filename gunk)
+ 		char temp_in_string[40];
+                char **layertype;
+ 		
+		if(strcmp("MLTEST", systemtype) == 0)
+		{	
+                        hop_to_load = &MLG_NNTB_hop_params;
+                        default_connect_rule = &mlg_conn_sep;
+			defdouble_connect_rule = &mlg_conn_sep2;
+			default_connection_params = &blg_cnxpara;
+                        nngm=1;
+                        num_neigh=nngm+1;
+			max_neigh=(hop_to_load->max_neigh)[num_neigh-1];
+                    
+                        //default values
+                        
+                        mlp.num_layers = 2;
+                        mlp.length = createIntArray(mlp.num_layers);
+                        mlp.length2 = createIntArray(mlp.num_layers);
+                        mlp.geo = createIntArray(mlp.num_layers);
+                        mlp.theta = createDoubleArray(mlp.num_layers);
+                        mlp.delta = createNonSquareDoubleMatrix(mlp.num_layers, 3);
+                        mlp.epsilon = createDoubleArray(mlp.num_layers);
+                        mlp.origin = 0; //0 means (0,0), 1 means centre of l1 x l2 device
+                        mlp.layerfn = (generatefn **)malloc(mlp.num_layers * sizeof(generatefn *));
+                        mlp.layerpara = (void **)malloc(mlp.num_layers * sizeof(void *));
+                        layertype=malloc(mlp.num_layers * sizeof(char *));
+                        for(i=0; i< mlp.num_layers ; i++)
+                            layertype[i] = (char *)malloc(40  * sizeof(char)); 
+					/*allocates memory for whole matrix, 
+					returned pointe r= pointer to 1st array*/
+                        
+
+                        for(i=0; i< mlp.num_layers; i++)
+                        {
+                            (mlp.length)[i] = length1;
+                            (mlp.length2)[i] = length2;
+                            (mlp.geo)[i] = geo;
+                            (mlp.theta)[i] = 0;
+                            (mlp.epsilon)[i] = 1.0;
+
+                            (mlp.delta)[i][0] = 0.0;
+                            (mlp.delta)[i][1] = 0.0 + (1/sqrt(3)) * (i %2);
+                            (mlp.delta)[i][2] = i * 1.362;
+                            (mlp.layerfn)[i] = &simpleRibbonGeo;
+                            (mlp.layerpara)[i]  = NULL;
+                            sprintf(layertype[i], "CLEAN");
+                            
+                        }
+                        
+                 
+                        
+                        //check for command line arguments which vary these
+                        for(i=1; i<argc-1; i++)
+                        {
+                            if(strcmp("-numlayers", argv[i]) == 0)
+                            {
+                                    sscanf(argv[i+1], "%d", &(mlp.num_layers));
+                            }
+                        }
+                            
+                        for(i=1; i<argc-1; i++)
+                        {   
+                            for(j=0; j<mlp.num_layers; j++)
+                            {
+                                sprintf(temp_in_string, "-lay%dl1", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%d", &(mlp.length)[j]);
+                                }
+                                sprintf(temp_in_string, "-lay%dl2", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%d", &(mlp.length2)[j]);
+                                }
+                                sprintf(temp_in_string, "-lay%dgeo", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%d", &(mlp.geo)[j]);
+                                }
+                                sprintf(temp_in_string, "-lay%ddeltax", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &(mlp.delta)[j][0]);
+                                }
+                                sprintf(temp_in_string, "-lay%ddeltay", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &(mlp.delta)[j][1]);
+                                }
+                                sprintf(temp_in_string, "-lay%ddeltaz", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &(mlp.delta)[j][2]);
+                                }
+                                sprintf(temp_in_string, "-lay%dtheta", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &(mlp.theta)[j]);
+                                }
+                                sprintf(temp_in_string, "-lay%deps", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &(mlp.epsilon)[j]);
+                                }
+                                
+                                
+                            }
+                            //center of rotation and common origin of layers
+                            if(strcmp("-mlorigin", argv[i]) == 0)
+                            {
+                                    sscanf(argv[i+1], "%d", &(mlp.origin));
+                            }
+                        
+                        }
+                        
+    
+                      
+                        
+      
+                        
+                        
+                        //set functions and params for use below
+                        SysFunction = &customMultilayer;
+                        SysPara = &mlp;
+                        hopfn = &multilayerTB;
+                        
+                        //(amended from bilayer to make connection profiles... (somewhat temporary.....)
+                        blg_cnxpara.intra_thresh_min = MLG_NNTB_hop_params.NN_lowdis[0];
+                        blg_cnxpara.intra_thresh_max = MLG_NNTB_hop_params.NN_highdis[0];
+                        blg_cnxpara.inter_thresh_min = MLG_NNTB_hop_params.NN_lowdis[1];
+                        blg_cnxpara.inter_thresh_max = MLG_NNTB_hop_params.NN_highdis[1];
+                        blg_cnxpara.zthresh1 = MLG_NNTB_hop_params.NN_zmin[1];
+                        blg_cnxpara.zthresh2 = MLG_NNTB_hop_params.NN_zmax[1];
+                        
+                        
+                        sprintf(sysinfo, "L2_%d", length2); 
+                        
+		    
+		}
+		
+		
 	  
 	  
 	  //END OF DEVICE DEFINITIONS!!
@@ -2734,7 +2880,7 @@ main(int argc, char *argv[])
 
 	  
 		
-		char leadconf[40], temp_in_string[40], additional_lead_info[40];
+		char leadconf[40], additional_lead_info[40];
 		multiple_para *mleadps[num_leads];
 		custom_start_params cstart_p ={};
 		cstart_p.leadtype = createIntArray(num_leads);
@@ -3884,11 +4030,7 @@ main(int argc, char *argv[])
 		  printf("#made connection profile in %f seconds\n", ((float)time)/CLOCKS_PER_SEC);
 		  time = clock();
    	   //printConnectivity (&System, &cnxp);
-// <<<<<<< HEAD
-// 	  
-// =======
-// 	
-// >>>>>>> patched
+
 		
 	  gen_start_params start_p ={};
 	 

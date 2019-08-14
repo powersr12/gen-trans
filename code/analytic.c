@@ -162,8 +162,8 @@ double _Complex *graphenegfac_lib(double _Complex En, int *a1, int *a2, int *dia
         
         for (i=0; i < dim; i++)
         {
-            sprintf(direcname, "%s%.0e", PGFlibloc, cimag(En));
-            sprintf(fullname, "%s/%d_%d_%d_E_%+.8lf.dat", direcname, a1[i], a2[i], diagt[i], creal(En));
+            sprintf(direcname, "%s%.0e/E_%+.8lf/", PGFlibloc, cimag(En), creal(En));
+            sprintf(fullname, "%s%d_%d_%d.dat", direcname, a1[i], a2[i], diagt[i]);
             
             if( access( fullname, F_OK ) != -1 ) 
             {
@@ -217,15 +217,19 @@ double _Complex *graphenegfac_lib(double _Complex En, int *a1, int *a2, int *dia
             //save GFS to library
             for (i=0; i<num_to_run; i++)
             {
-                sprintf(direcname, "%s%.0e", PGFlibloc, cimag(En));
+                sprintf(direcname, "%s%.0e/E_%+.8lf/", PGFlibloc, cimag(En), creal(En));
+                //sprintf(direcname, "%s%.0e", PGFlibloc, cimag(En));
                 sprintf(command, "mkdir -p %s", direcname);
                 //printf("%s\n", command);
                 
                 system(command);
                 
-                sprintf(fullname, "%s/%d_%d_%d_E_%+.8lf.dat", direcname, a1s[i], a2s[i], ds[i], creal(En));
+                //sprintf(fullname, "%s/E_%+.8lf/%d_%d_%d.dat", direcname, creal(En), a1s[i], a2s[i], ds[i]);
+                sprintf(fullname, "%s%d_%d_%d.dat", direcname, a1s[i], a2s[i], ds[i]);
+
                 
                 file = fopen(fullname, "w");
+                //printf("## %s", fullname);
                 fprintf(file, "%.10e    %.10e\n", creal(outs[i]), cimag(outs[i]));
                 fclose(file);
                 

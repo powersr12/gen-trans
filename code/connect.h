@@ -68,3 +68,6 @@ int graph_conn_sep2 (RectRedux *DeviceCell, RectRedux *LeadCell, void *rule_para
 int blg_conn_sep2 (RectRedux *DeviceCell, RectRedux *LeadCell, void *rule_params, int a, int b);
 int blg_conn_sep (RectRedux *DeviceCell, void *rule_params, int a, int b);
 
+int mlg_conn_sep2 (RectRedux *DeviceCell, RectRedux *LeadCell, void *rule_params, int a, int b);
+int mlg_conn_sep (RectRedux *DeviceCell, void *rule_params, int a, int b);
+
