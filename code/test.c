@@ -25,7 +25,7 @@ main(int argc, char *argv[])
 	      char systemtype[32];
 	      char geotype[32], peritype[40], leadtype[32], sysinfo[120], loopinfo[80], loopmininfo[80], disinfo[40], cedgeinfo[40], dedgeinfo[40], eedgeinfo[40];
 	      sprintf(systemtype, "SUBLATTICEPOT");
-	      int length1=2, length2=3*length1, geo=0, isperiodic=1, ismagnetic=0, ispatched=0;
+	      int length1=2, length2=3*length1, geo=0, isperiodic=0, ismagnetic=0, ispatched=0;
 	      int makebands = 0, unfold=0, project=0, kxpoints=51, bandsonly=0, bandsminset=0, bandsmaxset=100000;
               int numpatches = 0;
 	      
@@ -1346,7 +1346,67 @@ main(int argc, char *argv[])
 		}
 		
 		
-		
+		symstrain_para symsp = {};
+                double symsmag = 1.0, symswid=1.0;
+                int leadstrain=0;
+
+ 		char symstype[66];   
+                sprintf(symstype, "gaussfold");
+                
+		if(strcmp("SYMSTRAIN", systemtype) == 0)
+		{	
+		    //default values
+		    
+		    symsp.straingeo = symstype;
+                    symsp.strain_mag = symsmag;
+                    symsp.strain_width = symswid;
+                    symsp.location = 0;
+                    
+		    
+		    //check for command line arguments which vary these
+		    for(i=1; i<argc-1; i++)
+		    {
+		      if(strcmp("-symsgeo", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%s", (symsp.straingeo));
+		      }
+		      if(strcmp("-symsmag", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(symsp.strain_mag));
+		      }
+		      if(strcmp("-symswidth", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(symsp.strain_width));
+		      }
+		       if(strcmp("-symsloc", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%d", &(symsp.location));
+		      }
+		       if(strcmp("-leadstrain", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%d", &leadstrain);
+		      }
+		    }
+		    
+// 		    
+                    if( (symsp.location) == 0)
+                    {
+                        sprintf(sysinfo, "%s_centre_%.1lf_%.1lf", (symsp.straingeo),(symsp.strain_mag), (symsp.strain_width));
+                    }
+                    if( (symsp.location) == 1)
+                    {
+                        sprintf(sysinfo, "%s_edges_%.1lf_%.1lf", (symsp.straingeo),(symsp.strain_mag), (symsp.strain_width));
+                    }
+                    
+                    if(leadstrain==0)
+                        sprintf(sysinfo, "%s_nl", sysinfo);
+		    
+		    //set functions and params for use below
+		    SysFunction = &genSymStrain;
+		    SysPara = &symsp;
+                    hopfn = &strainedTB;
+		    
+		}
 		
 		
 		
@@ -3914,6 +3974,15 @@ main(int argc, char *argv[])
 			genSublatticeLeadPots(LeadCells, &sublp);
 		}
 	  
+                //similar for strain
+                if(leadstrain==1 && strcmp("SYMSTRAIN", systemtype) == 0 && ishallbar != 4)
+		{
+			customLeadStrain(LeadCells, &symsp);
+		}
+		
+		
+	  
+	  
 	  if(ishallbar == 4)
 	  {
 		leadp.multiple = mleadps;
@@ -4065,7 +4134,7 @@ main(int argc, char *argv[])
  	//exit(1);
 
 
-		if(output_type == 1)
+		if(output_type == 1 && bandsonly == 0)
 		{
 			sprintf(lstrucfile, "%s.leads", strucfile);
 			printOutLeadStrucs(&System, LeadCells, &cellinfo, lstrucfile);

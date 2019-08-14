@@ -252,6 +252,13 @@ typedef struct {
 
 
 typedef struct {
+	char *straingeo;       //gaussfold
+	double strain_mag;     //strength
+        double strain_width;   //width for gaussian type 
+	int location;          //=0 centre, =1 both edges (for Gaussian)
+}symstrain_para;
+
+typedef struct {
 	int buffer_rows;
 	int sruns;
 	double smax;
@@ -334,4 +341,7 @@ void genSingleBLGLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, void
 void BLGPotentials (RectRedux *SiteArray, void *p, int struc_out, char *filename);
 
 void customMultilayer (RectRedux *SiteArray, void *p, int struc_out, char *filename);
+
+void customLeadStrain(RectRedux **Leads, void *p);
+void genSymStrain(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 

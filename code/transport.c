@@ -469,8 +469,8 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 // // 	  
 // 	  	if(it_count>0)
 // 	  	{
-// 	  	  printf("#V21\n");
-// 	  	  listNonZero(V21, dim, dim_old);
+ 	  	  //printf("#V21\n");
+ 	  	  //listNonZero(V21, dim, dim_old);
 // 	  	  
 // 	  	  printf("#V12\n");
 // 	  	  listNonZero(V12, dim_old, dim);
@@ -2031,7 +2031,7 @@ void multipleLeads (double _Complex En, RectRedux *DeviceCell, RectRedux **LeadC
 
 	  //generate the info required for Rubio method
 	  lead_prep(En, LeadCells[leadloop], leadloop, params, ginv, V12, V21);
-	  //listNonZero(V12, dim1, dim1);
+// 	  listNonZero(V12, dim1, dim1);
 
           
 	  InvertMatrixGSL(ginv, g00, dim1);

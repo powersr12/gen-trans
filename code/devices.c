@@ -2057,6 +2057,104 @@ void genSublatticeLeadPots(RectRedux **Leads, void *p)
 	
 }
 
+//generates symmetric strain in leads similar to device
+void customLeadStrain(RectRedux **Leads, void *p)
+{
+	int i, j, k;
+	symstrain_para *params = (symstrain_para *)p;
+	
+        char *straingeo = (params->straingeo);
+        double strain_mag = (params->strain_mag);
+        double strain_width = (params->strain_width);
+        int location = (params->location);
+        
+        int num_feat =0;
+            if(strcmp("gaussfold", straingeo) == 0)
+            {
+                if(location == 0)
+                {
+                    num_feat =1;
+                }
+                if(location == 1)
+                {
+                    num_feat =2;
+                }
+            }
+        
+            double *featy = createDoubleArray(num_feat);
+            
+            if( (Leads[0]->geo) ==0)
+            {
+                    if(location==0)
+                    {
+                        featy[0] = (Leads[0]->length) * sqrt(3) /4 ;
+                        
+                    }
+                    
+                    if(location==1)
+                    {
+                        featy[0] = 1 / (2*sqrt(3));
+                        featy[1] = (Leads[0]->length) * sqrt(3)/2 -  1 / (2*sqrt(3));
+                    }
+            }
+
+            if((Leads[0]->geo)==1)
+            {
+                    if(location==0)
+                    {
+                        featy[0] = ((Leads[0]->length)-1) * 0.25;
+                    }
+                    
+                    if(location==1)
+                    {
+                        featy[0] = 0.0;
+                        featy[1] = ((Leads[0]->length)-1) * 0.5;
+                    }
+            }
+	  
+	double effx, effy, ux, uy, uz, u0, u1, u2;
+        
+	for(i=0; i<2; i++)
+	{
+                (Leads[i]->pert_pos) = createNonSquareDoubleMatrix(*(Leads[i]->Ntot), 3);
+		for(j=0; j< *(Leads[i]->Ntot); j++)
+		{
+                    (Leads[i]->pert_pos)[j][0] = (Leads[i]->pos)[j][0];
+                    (Leads[i]->pert_pos)[j][1] = (Leads[i]->pos)[j][1];
+                    (Leads[i]->pert_pos)[j][2] = (Leads[i]->pos)[j][2];
+                    
+                    
+                    for(k=0; k<num_feat; k++)
+                    {
+                        effy = (Leads[i]->pert_pos)[j][1] - featy[k];
+                        uz=0; ux=0; uy=0;
+                        
+                        
+                        //Gaussian fold
+                            if(strcmp("gaussfold", straingeo) == 0)
+                            {
+                                //allow deformation out to 3*sigma
+                                if (effy < 3.0*strain_width)
+                                {
+                                    uz = strain_mag * exp (- effy*effy / (strain_width*strain_width) );
+                                }
+                            }
+                            
+                            (Leads[i]->pert_pos)[j][0] += ux;
+                            (Leads[i]->pert_pos)[j][1] += uy;
+                            (Leads[i]->pert_pos)[j][2] += uz;
+                            
+                        
+                        
+                    }
+                    
+			
+		}
+	}
+	
+	
+}
+
 
 
 //A general antidot barrier-type device 
@@ -4191,10 +4289,284 @@ void genBubbleDevice(RectRedux *SiteArray, void *p, int struc_out, char *filenam
 	
 }
 
+//update customLeadStrain in parallel to this, or else trouble will arise!
+void genSymStrain(RectRedux *SiteArray, void *p, int struc_out, char *filename)
+{  
+        symstrain_para *params = (symstrain_para *)p;
+        
+        char *straingeo = (params->straingeo);
+                
+        double strain_mag = (params->strain_mag);
+        double strain_width = (params->strain_width);
+        int location = (params->location);
+
+        int length = SiteArray->length;
+        int length2 = SiteArray->length2;
+        int geo = SiteArray->geo;
+        
+	    
+        double smalldist;
+        
+        FILE *out;
+        
+        if(struc_out != 0)
+        {
+            out = fopen(filename, "w");
+        }
+
+        //atomic coordinates and the atoms that are in and out, similar to previous cases
+        int tot_sites = 2*length*length2;
+        double **site_coords = createNonSquareDoubleMatrix(tot_sites, 3);
+        double **pert_coords = createNonSquareDoubleMatrix(tot_sites, 3);
+        double *site_pots = createDoubleArray(tot_sites);
+        int **siteinfo = createNonSquareIntMatrix(tot_sites, 2);
+        double xstart, ystart;
+        int isclean, l, m, tempint, tempint2;
+        int *Nrem = (SiteArray->Nrem);
+        int i, j, k;
+        int *Ntot = (SiteArray->Ntot);
+	  
+        *Ntot = tot_sites;
+	  
+        
+        //BASE XY GEOMETRIES
+        
+            //zigzag ribbon
+            if(geo==0)
+            {
+                for(l=0; l<length2; l++)
+                {
+                xstart=l*1.0;
+                for(m=0; m<length; m++)
+                {
+                    ystart= m*sqrt(3)/2 + 1/(2*sqrt(3));
+                    
+                    if((m%2) == 0)
+                    {
+                        site_coords[l*2*length + 2*m][0] = xstart+0.5;
+                        site_coords[l*2*length + 2*m + 1][0] = xstart;
+                    }
+                    
+                    if((m%2) == 1)
+                    {
+                        site_coords[l*2*length + 2*m][0] = xstart;
+                        site_coords[l*2*length + 2*m + 1][0] = xstart+0.5;
+                    }
+                    
+                        site_coords[l*2*length + 2*m][1] = ystart;
+                        site_coords[l*2*length + 2*m + 1][1] = ystart + 1/(2*sqrt(3));
+                        siteinfo[l*2*length + 2*m][1]=0;
+                        siteinfo[l*2*length + 2*m +1][1]=1;
+
+                    
+                }
+                }
+            }
+            
+            //armchair ribbon
+            if(geo==1)
+            {
+                for(l=0; l<length2; l++)
+                {
+                    xstart = l*sqrt(3);
+                    for(m=0; m<length; m++)
+                    {
+                    if((m%2) == 0)
+                    {
+                        site_coords[l*2*length + m][0] = xstart;
+                        site_coords[l*2*length + length + m][0] = xstart +2 / sqrt(3);
+                        siteinfo[l*2*length + m][1] = 0;
+                        siteinfo[l*2*length + length + m][1] = 1;
+                    }
+                    if((m%2) == 1)
+                    {
+                        site_coords[l*2*length + m][0] = xstart +  1/(2*sqrt(3));
+                        site_coords[l*2*length + length + m][0] = xstart + (sqrt(3))/2;
+                        siteinfo[l*2*length + m][1] = 1;
+                        siteinfo[l*2*length + length + m][1] = 0;
+                    }
+                    
+                    site_coords[l*2*length + m][1] = m*0.5;
+                    site_coords[l*2*length + length + m][1] = m*0.5;
+
+                    
+                    }
+                    
+                    
+                }
+                    
+            }
+	  
+        //Strain locations
+            
+            int num_feat =0;
+            if(strcmp("gaussfold", straingeo) == 0)
+            {
+                if(location == 0)
+                {
+                    num_feat =1;
+                }
+                if(location == 1)
+                {
+                    num_feat =2;
+                }
+            }
+        
+            double *featy = createDoubleArray(num_feat);
+            if(geo==0)
+            {
+                    if(location==0)
+                    {
+                        featy[0] = length * sqrt(3) /4 ;
+
+                       
+                    }
+                    
+                    if(location==1)
+                    {
+                        featy[0] = 1 / (2*sqrt(3));
+                        featy[1] = length * sqrt(3)/2 -  1 / (2*sqrt(3));
+                    }
+            }
+
+            if(geo==1)
+            {
+                    if(location==0)
+                    {
+                        featy[0] = (length-1) * 0.25;
+                    }
+                    
+                    if(location==1)
+                    {
+                        featy[0] = 0.0;
+                        featy[1] = (length-1) * 0.5;
+                    }
+            }
+	  
+	  //atomic restructuring!
+	  //this assumes no overlapping features -- i.e no site is in two regions
+	  //be  careful with features with ill-defined radii! (Gaussian-type)
+	  
+                double effx, effy, ux, uy, uz, u0, u1, u2;
+                
+                for(i=0; i< tot_sites ; i++)
+                {
+                    pert_coords[i][0] = site_coords[i][0];
+                    pert_coords[i][1] = site_coords[i][1];
+                    pert_coords[i][2] = site_coords[i][2];
+                }
+          
+                for(i=0; i< tot_sites; i++)
+                {
+                    
+                    for(j=0; j< num_feat; j++)
+                    {
+                        effy = site_coords[i][1] - featy[j];
+                        
+                        uz=0; ux=0; uy=0;
+                        
+                        
+                        //various feature types
+                        //convert to ux and uy at bottom, and account for periodicity then
+                        
+                            //Gaussian fold
+                                if(strcmp("gaussfold", straingeo) == 0)
+                                {
+                                    //allow deformation out to 3*sigma
+                                    if (effy < 3.0*strain_width)
+                                    {
+                                        uz = strain_mag * exp (- effy*effy / (strain_width*strain_width) );
+                                    }
+                                }
+                            
+                                
+                                pert_coords[i][0] += ux;
+                                pert_coords[i][1] += uy;
+                                pert_coords[i][2] += uz;
+                    
+                        }
+                    }
+                
+	      
+	      
+		    
+	      //chaininfo needed for conductance calcs (if atoms are missing)
+		      (SiteArray->chaininfo) = createNonSquareIntMatrix(length2, 4);
+		      
+		      tempint=0, tempint2=0;
+	 
+		     
+			for(l=0; l<length2; l++)
+			{
+			  tempint=0;
+			  for(m=0; m<2*length; m++)
+			  {
+			    if(siteinfo[l*2*length +m][0] == 0)
+			    {
+			      tempint ++;
+			      tempint2++;
+			    }
+			  }
+			  (SiteArray->chaininfo)[l][0] = tempint;
+			}
+			*Nrem = tempint2;
+			
+			
+			(SiteArray->chaininfo)[0][1] = 0;
+			for(l=1; l<length2; l++)
+			{
+			  (SiteArray->chaininfo)[l][1] = (SiteArray->chaininfo)[l-1][1] + (SiteArray->chaininfo)[l-1][0];
+			}
 
 
+			//are first and last atoms in each chain present?
+			for(l=1; l<length2; l++)
+			{
+			  if(siteinfo[l*2*length][0] == 1)
+			    (SiteArray->chaininfo)[l][2] = 1;
+			  
+			  if(siteinfo[(l+1)*2*length -1][0] == 1)
+			    (SiteArray->chaininfo)[l][3] = 1;
+			}
+	  
+	  
+	  
+		      
+			if(struc_out == 1)
+			{
+                            
+			  for(l=0; l<2*length*length2; l++)
+			  {
+			    if(siteinfo[l][0] == 0)
+			      fprintf(out, "%lf	%lf  %lf\n", pert_coords[l][0], pert_coords[l][1], pert_coords[l][2]);
+			    
+			  }
+			  
+			}
+			  
+				    
+			    
+			
+			  
+			  //Fill the array of data structures describing the system
+			
+			  
+			  if(struc_out != 0)
+			  {
+			    fclose(out);
+			    
+			  }
+			  
+			  
+			  (SiteArray->pos) = site_coords;
+                          (SiteArray->pert_pos) = pert_coords;
+			  (SiteArray->site_pots) = site_pots;
+			  (SiteArray->siteinfo) = siteinfo;
 
 
+				
+	
+}
 
 
 
