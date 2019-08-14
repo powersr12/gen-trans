@@ -4570,9 +4570,278 @@ void genSymStrain(RectRedux *SiteArray, void *p, int struc_out, char *filename)
 
 
 
+//update customLeadStrain in parallel to this, or else trouble will arise!
+void genRandStrain(RectRedux *SiteArray, void *p, int struc_out, char *filename)
+{  
+        randstrain_para *params = (randstrain_para *)p;
+        
+                
+        double strain_mag = (params->strain_mag);
+        double strain_width = (params->strain_width);
+        int location = (params->location);
+        int buffer_rows = (params->buffer_rows);
+        int seed = (params->seed);
 
 
+        int length = SiteArray->length;
+        int length2 = SiteArray->length2;
+        int geo = SiteArray->geo;
+            srand(time(NULL) + seed);
 
+	    
+        double smalldist;
+        
+        FILE *out;
+        
+        if(struc_out != 0)
+        {
+            out = fopen(filename, "w");
+        }
+
+        //atomic coordinates and the atoms that are in and out, similar to previous cases
+        int tot_sites = 2*length*length2;
+        double **site_coords = createNonSquareDoubleMatrix(tot_sites, 3);
+        double **pert_coords = createNonSquareDoubleMatrix(tot_sites, 3);
+        double *site_pots = createDoubleArray(tot_sites);
+        int **siteinfo = createNonSquareIntMatrix(tot_sites, 2);
+        double xstart, ystart;
+        int isclean, l, m, tempint, tempint2;
+        int *Nrem = (SiteArray->Nrem);
+        int i, j, k;
+        int *Ntot = (SiteArray->Ntot);
+	  
+        *Ntot = tot_sites;
+	  
+        
+        //BASE XY GEOMETRIES
+        
+            //zigzag ribbon
+            if(geo==0)
+            {
+                for(l=0; l<length2; l++)
+                {
+                xstart=l*1.0;
+                for(m=0; m<length; m++)
+                {
+                    ystart= m*sqrt(3)/2 + 1/(2*sqrt(3));
+                    
+                    if((m%2) == 0)
+                    {
+                        site_coords[l*2*length + 2*m][0] = xstart+0.5;
+                        site_coords[l*2*length + 2*m + 1][0] = xstart;
+                    }
+                    
+                    if((m%2) == 1)
+                    {
+                        site_coords[l*2*length + 2*m][0] = xstart;
+                        site_coords[l*2*length + 2*m + 1][0] = xstart+0.5;
+                    }
+                    
+                        site_coords[l*2*length + 2*m][1] = ystart;
+                        site_coords[l*2*length + 2*m + 1][1] = ystart + 1/(2*sqrt(3));
+                        siteinfo[l*2*length + 2*m][1]=0;
+                        siteinfo[l*2*length + 2*m +1][1]=1;
+
+                    
+                }
+                }
+            }
+            
+            //armchair ribbon
+            if(geo==1)
+            {
+                for(l=0; l<length2; l++)
+                {
+                    xstart = l*sqrt(3);
+                    for(m=0; m<length; m++)
+                    {
+                    if((m%2) == 0)
+                    {
+                        site_coords[l*2*length + m][0] = xstart;
+                        site_coords[l*2*length + length + m][0] = xstart +2 / sqrt(3);
+                        siteinfo[l*2*length + m][1] = 0;
+                        siteinfo[l*2*length + length + m][1] = 1;
+                    }
+                    if((m%2) == 1)
+                    {
+                        site_coords[l*2*length + m][0] = xstart +  1/(2*sqrt(3));
+                        site_coords[l*2*length + length + m][0] = xstart + (sqrt(3))/2;
+                        siteinfo[l*2*length + m][1] = 1;
+                        siteinfo[l*2*length + length + m][1] = 0;
+                    }
+                    
+                    site_coords[l*2*length + m][1] = m*0.5;
+                    site_coords[l*2*length + length + m][1] = m*0.5;
+
+                    
+                    }
+                    
+                    
+                }
+                    
+            }
+	  
+        //Strain locations
+            
+            int num_feat =0;
+           
+            if(location == 0)
+            {
+                num_feat =1;
+            }
+            if(location == 1)
+            {
+                num_feat =2;
+            }
+            
+        
+            double *featy = createDoubleArray(num_feat);
+            if(geo==0)
+            {
+                                       
+                    if(location==1)
+                    {
+                        featy[0] = 1 / (2*sqrt(3));
+                        featy[1] = length * sqrt(3)/2 -  1 / (2*sqrt(3));
+                    }
+            }
+
+            if(geo==1)
+            {
+                    
+                    if(location==1)
+                    {
+                        featy[0] = 0.0;
+                        featy[1] = (length-1) * 0.5;
+                    }
+            }
+	  
+	  //atomic restructuring!
+	  //this assumes no overlapping features -- i.e no site is in two regions
+	  //be  careful with features with ill-defined radii! (Gaussian-type)
+	  
+                double ux, uy, uz, effy;
+                
+                for(i=0; i< tot_sites ; i++)
+                {
+                    pert_coords[i][0] = site_coords[i][0];
+                    pert_coords[i][1] = site_coords[i][1];
+                    pert_coords[i][2] = site_coords[i][2];
+                }
+          
+                for(i=0; i< tot_sites; i++)
+                {
+                    
+                    ux=0; uy=0, uz=0;
+                    if(location == 0)
+                    {
+                        ux = myRandNum(-strain_mag, strain_mag);
+                        uy = myRandNum(-strain_mag, strain_mag);
+                    }
+                        
+                    if(location ==1)
+                    {
+                        for(j=0; j< num_feat; j++)
+                        {
+                                                 
+                            effy = site_coords[i][1] - featy[j];
+                            
+                            if( fabs(effy) < strain_width )
+                            {
+                                ux = myRandNum(-strain_mag, strain_mag);
+                                uy = myRandNum(-strain_mag, strain_mag);
+                            }
+                        }
+                    }
+                        
+                     
+                    pert_coords[i][0] += ux;
+                    pert_coords[i][1] += uy;
+                    pert_coords[i][2] += uz;
+                    
+                        
+                }
+                
+	      
+	      
+		    
+	      //chaininfo needed for conductance calcs (if atoms are missing)
+		      (SiteArray->chaininfo) = createNonSquareIntMatrix(length2, 4);
+		      
+		      tempint=0, tempint2=0;
+	 
+		     
+			for(l=0; l<length2; l++)
+			{
+			  tempint=0;
+			  for(m=0; m<2*length; m++)
+			  {
+			    if(siteinfo[l*2*length +m][0] == 0)
+			    {
+			      tempint ++;
+			      tempint2++;
+			    }
+			  }
+			  (SiteArray->chaininfo)[l][0] = tempint;
+			}
+			*Nrem = tempint2;
+			
+			
+			(SiteArray->chaininfo)[0][1] = 0;
+			for(l=1; l<length2; l++)
+			{
+			  (SiteArray->chaininfo)[l][1] = (SiteArray->chaininfo)[l-1][1] + (SiteArray->chaininfo)[l-1][0];
+			}
+
+
+			//are first and last atoms in each chain present?
+			for(l=1; l<length2; l++)
+			{
+			  if(siteinfo[l*2*length][0] == 1)
+			    (SiteArray->chaininfo)[l][2] = 1;
+			  
+			  if(siteinfo[(l+1)*2*length -1][0] == 1)
+			    (SiteArray->chaininfo)[l][3] = 1;
+			}
+	  
+	  
+	  
+		      
+			if(struc_out == 1)
+			{
+                            
+			  for(l=0; l<2*length*length2; l++)
+			  {
+			    if(siteinfo[l][0] == 0)
+			      fprintf(out, "%lf	%lf  %lf\n", pert_coords[l][0], pert_coords[l][1], pert_coords[l][2]);
+			    
+			  }
+			  
+			}
+			  
+				    
+			    
+			
+			  
+			  //Fill the array of data structures describing the system
+			
+			  
+			  if(struc_out != 0)
+			  {
+			    fclose(out);
+			    
+			  }
+			  
+			  
+			  (SiteArray->pos) = site_coords;
+                          (SiteArray->pert_pos) = pert_coords;
+			  (SiteArray->site_pots) = site_pots;
+			  (SiteArray->siteinfo) = siteinfo;
+
+
+				
+	
+}
 
 
 

@@ -259,6 +259,15 @@ typedef struct {
 }symstrain_para;
 
 typedef struct {
+	double strain_mag;     //strength
+	int location;          //=0 everywhere, =1 strips near edges 
+        double strain_width;   //width of strained strip near edge 
+        int buffer_rows;
+        int seed;
+}randstrain_para;
+
+
+typedef struct {
 	int buffer_rows;
 	int sruns;
 	double smax;
@@ -344,4 +353,5 @@ void customMultilayer (RectRedux *SiteArray, void *p, int struc_out, char *filen
 
 void customLeadStrain(RectRedux **Leads, void *p);
 void genSymStrain(RectRedux *SiteArray, void *p, int struc_out, char *filename);
+void genRandStrain(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 

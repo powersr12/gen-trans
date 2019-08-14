@@ -1391,11 +1391,11 @@ main(int argc, char *argv[])
 // 		    
                     if( (symsp.location) == 0)
                     {
-                        sprintf(sysinfo, "%s_centre_%.1lf_%.1lf", (symsp.straingeo),(symsp.strain_mag), (symsp.strain_width));
+                        sprintf(sysinfo, "L2_%d_%s_centre_%.1lf_%.1lf", length2, (symsp.straingeo),(symsp.strain_mag), (symsp.strain_width));
                     }
                     if( (symsp.location) == 1)
                     {
-                        sprintf(sysinfo, "%s_edges_%.1lf_%.1lf", (symsp.straingeo),(symsp.strain_mag), (symsp.strain_width));
+                        sprintf(sysinfo, "L2_%d_%s_edges_%.1lf_%.1lf", length2, (symsp.straingeo),(symsp.strain_mag), (symsp.strain_width));
                     }
                     
                     if(leadstrain==0)
@@ -1410,12 +1410,73 @@ main(int argc, char *argv[])
 		
 		
 		
+		randstrain_para randsp = {};
+                double randsmag = 1.0, randswid=1.0;
+
+		if(strcmp("RANDOMSTRAIN", systemtype) == 0)
+		{	
+		    //default values
+		    
+                    randsp.strain_mag = 0.05;
+                    randsp.strain_width = 2;
+                    randsp.location = 0;
+                    randsp.buffer_rows = 1;
+                    randsp.seed = conf_num;
+
+		    
+		    //check for command line arguments which vary these
+		    for(i=1; i<argc-1; i++)
+		    {
+		      
+		      if(strcmp("-randsmag", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(randsp.strain_mag));
+		      }
+		      if(strcmp("-randswidth", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%lf", &(randsp.strain_width));
+		      }
+		       if(strcmp("-randsloc", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%d", &(randsp.location));
+		      }
+		      if(strcmp("-bufferrows", argv[i]) == 0)
+		      {
+			  sscanf(argv[i+1], "%d", &(randsp.buffer_rows));
+		      }
+		    }
+		    
+// 		    
+                    if( (randsp.location) == 0)
+                    {
+                        sprintf(sysinfo, "L2_%d_BUF_%d_S_%.3lf", length2, randsp.buffer_rows,(randsp.strain_mag));
+                    }
+                    if( (randsp.location) == 1)
+                    {
+                        sprintf(sysinfo, "L2_%d_BUF_%d_S_edges_%.3lf_%.1lf", length2, randsp.buffer_rows, (randsp.strain_mag), (randsp.strain_width));
+                    }
+                    
+                  
+		    
+		    //set functions and params for use below
+		    SysFunction = &genRandStrain;
+		    SysPara = &randsp;
+                    hopfn = &strainedTB;
+		    
+		}
+		
+	
+		
+		
+		
 		
 		int edge_buffer_rows=10, sruns=20;
 		double smax=2.0, minper=40.0;
 		int vacruns =0;
 		double vacprob=0.0;
-		
+                
+            
+                
 		edgedis_para edgedisp = {};
 		if(strcmp("EDGEDIS", systemtype) == 0)
 		{	
