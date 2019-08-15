@@ -874,7 +874,7 @@ main(int argc, char *argv[])
 		
 		adot_para adotp = {};
 		char lattice_info[35], dot_info[45];
-		if(strcmp("ANTIDOTS", systemtype) == 0)
+		if( strcmp("ANTIDOTS", systemtype) == 0 ||  strcmp("DOTS", systemtype) == 0)
 		{	
 		    //default values
 		    
@@ -1028,7 +1028,13 @@ main(int argc, char *argv[])
 		    sprintf(sysinfo, "%s_%s", lattice_info, dot_info);
 		    
 		    //set functions and params for use below
-		    SysFunction = &genAntidotDevice;
+                    
+                    if( strcmp("ANTIDOTS", systemtype) == 0)
+                        SysFunction = &genAntidotDevice;
+                    
+                    if( strcmp("DOTS", systemtype) == 0)
+                        SysFunction = &genDotDevice;
+                    
 		    SysPara = &adotp;
 		    
 		}

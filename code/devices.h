@@ -339,6 +339,8 @@ void genSublatticeDots(RectRedux *SiteArray, void *p, int struc_out, char *filen
 
 void genBubbleDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename);
+void genDotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename);
+
 
 void genEdgeDisorderedDevice(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 
