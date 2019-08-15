@@ -2172,6 +2172,8 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 	  int buffer_rows = (params->buffer_rows);
 	  int AD_length = (params->AD_length);
 	  int AD_length2 = (params->AD_length2);
+          int orientation = (params->orientation);
+
 	  double AD_rad = (params->AD_rad);
 	  double AD_rad2 = (params->AD_rad2);
 
@@ -2313,6 +2315,16 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 	    rad_per_hole=6;
 	    renorm_fac = sqrt(3)/2;
 	  }
+	  if(strcmp("triAC", dotgeo) == 0)
+	  {
+	    rad_per_hole=3;
+	    renorm_fac = 1/ (2*sqrt(3)) ;
+	  }
+	  if(strcmp("triZZ", dotgeo) == 0)
+	  {
+	    rad_per_hole=3;
+	    renorm_fac = 1/ (2*sqrt(3));
+	  }
 	  if(strcmp("rect", dotgeo) == 0)
 	  {
 	    rad_per_hole=4;
@@ -2327,6 +2339,33 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 	  double xshift, yshift;
 	  
 	  double cellyshift;
+          double temprand;
+          int tempsign=1;
+          
+          int *hole_int = createIntArray(tot_holes);
+          
+            for (i=0; i< tot_holes; i++)
+            {
+                if(orientation ==0)
+                    hole_int[i] =1;
+                            
+                if(orientation ==1)
+                    hole_int[i] = -1;
+                        
+                if(orientation ==2)
+                {
+                    temprand = myRandNum(-1.0, 1.0);
+                    
+                    if(temprand  >=0)
+                        hole_int[i] =1;
+                    else
+                        hole_int[i] =-1;
+                }
+            }
+          
+            
+	 
+                      
 	  
 	  if(geo==0)
 	    cellyshift = length * sqrt(3) / 2;
@@ -2490,7 +2529,7 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 	  //double **vertices = createNonSquareDoubleMatrix(rad_per_hole, 2);
 	  double *polyx = createDoubleArray(rad_per_hole);
 	  double *polyy = createDoubleArray(rad_per_hole);
-	  
+   
 	   
 	  //atom removal!
 	      for(i=2*length; i< tot_sites - 2*length ; i++)
@@ -2578,6 +2617,8 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 		    
 		    if(strcmp("hexZZ", dotgeo) == 0)
 		    {
+                        
+                        
 		      if(geo == 0)
 		      {
 			polyx[0] = holes[j][0] + (2*holes[j][2] - holes[j][3])/sqrt(3);
@@ -2651,6 +2692,158 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 		      
 		      
 		    }
+		    
+                    if(strcmp("triZZ", dotgeo) == 0)
+		    {
+                        
+                        
+                        tempsign=hole_int[j];
+                        
+		      if(geo == 0)
+		      {
+			polyx[0] = holes[j][0];
+			polyy[0] = holes[j][1] + tempsign*3*holes[j][2]/2;
+                        
+			polyx[1] = holes[j][0] - sqrt(3) * holes[j][2];
+			polyy[1] = holes[j][1] - tempsign*3*holes[j][2]/2;
+                        
+			polyx[2] = holes[j][0] + sqrt(3) * holes[j][2];
+			polyy[2] = holes[j][1] - tempsign*3*holes[j][2]/2;
+			
+		      }
+		      
+		      if(geo == 1)
+		      {
+			polyx[0] = holes[j][0] + tempsign*3*holes[j][2]/2;
+			polyy[0] = holes[j][1];
+                        
+			polyx[1] = holes[j][0] - tempsign*3*holes[j][2]/2;
+			polyy[1] = holes[j][1] - sqrt(3) * holes[j][2];
+                        
+			polyx[2] = holes[j][0] - tempsign*3*holes[j][2]/2;
+			polyy[2] = holes[j][1] + sqrt(3) * holes[j][2];
+			
+		      }
+		      
+		      
+		      if(pnpoly(rad_per_hole, polyx, polyy, site_coords[i][0], site_coords[i][1]))
+		      {
+			sites[i][0] = 1;
+		      }
+		      
+		      if(struc_out == 1 && i== 2*length)
+		      {
+			for(k=0; k<rad_per_hole; k++)
+			{
+			  fprintf(out, "%lf	%lf\n", polyx[k], polyy[k]);
+			}
+			fprintf(out, "%lf	%lf\n\n", polyx[0], polyy[0]);
+		      }
+		      
+		      if(isperiodic==1)
+		      {
+			for(k=0; k<rad_per_hole; k++)
+			{
+			  polyy[k] = polyy[k] - cellyshift;
+			}
+			
+			if(pnpoly(rad_per_hole, polyx, polyy, site_coords[i][0], site_coords[i][1]))
+			{
+			  sites[i][0] = 1;
+			}
+		      
+			for(k=0; k<rad_per_hole; k++)
+			{
+			  polyy[k] = polyy[k] + 2*cellyshift;
+			}
+		      
+			if(pnpoly(rad_per_hole, polyx, polyy, site_coords[i][0], site_coords[i][1]))
+			{
+			  sites[i][0] = 1;
+			}
+		      }
+		      
+		      
+		      
+		    }
+		    
+		    
+		    if(strcmp("triAC", dotgeo) == 0)
+		    {
+                        tempsign=hole_int[j];
+                        
+                        
+                        
+		      if(geo == 0)
+		      {
+                          			                       
+                        polyx[0] = holes[j][0] + tempsign*3*holes[j][2]/2;
+			polyy[0] = holes[j][1];
+                        
+			polyx[1] = holes[j][0] - tempsign*3*holes[j][2]/2;
+			polyy[1] = holes[j][1] - sqrt(3) * holes[j][2];
+                        
+			polyx[2] = holes[j][0] - tempsign*3*holes[j][2]/2;
+			polyy[2] = holes[j][1] + sqrt(3) * holes[j][2];
+			
+		      }
+		      
+		      if(geo == 1)
+		      {
+			polyx[0] = holes[j][0];
+			polyy[0] = holes[j][1] + tempsign*3*holes[j][2]/2;
+                        
+			polyx[1] = holes[j][0] - sqrt(3) * holes[j][2];
+			polyy[1] = holes[j][1] - tempsign*3*holes[j][2]/2;
+                        
+			polyx[2] = holes[j][0] + sqrt(3) * holes[j][2];
+			polyy[2] = holes[j][1] - tempsign*3*holes[j][2]/2;
+			
+		      }
+		      
+		      
+		      if(pnpoly(rad_per_hole, polyx, polyy, site_coords[i][0], site_coords[i][1]))
+		      {
+			sites[i][0] = 1;
+		      }
+		      
+		      if(struc_out == 1 && i== 2*length)
+		      {
+			for(k=0; k<rad_per_hole; k++)
+			{
+			  fprintf(out, "%lf	%lf\n", polyx[k], polyy[k]);
+			}
+			fprintf(out, "%lf	%lf\n\n", polyx[0], polyy[0]);
+		      }
+		      
+		      if(isperiodic==1)
+		      {
+			for(k=0; k<rad_per_hole; k++)
+			{
+			  polyy[k] = polyy[k] - cellyshift;
+			}
+			
+			if(pnpoly(rad_per_hole, polyx, polyy, site_coords[i][0], site_coords[i][1]))
+			{
+			  sites[i][0] = 1;
+			}
+		      
+			for(k=0; k<rad_per_hole; k++)
+			{
+			  polyy[k] = polyy[k] + 2*cellyshift;
+			}
+		      
+			if(pnpoly(rad_per_hole, polyx, polyy, site_coords[i][0], site_coords[i][1]))
+			{
+			  sites[i][0] = 1;
+			}
+		      }
+		      
+		      
+		      
+		    }
+		    
+		    
 		    
 		    
 		    if(strcmp("hexAC", dotgeo) == 0)
@@ -2874,7 +3067,7 @@ void genAntidotDevice(RectRedux *SiteArray, void *p, int struc_out, char *filena
 			}
 			  
 				    
-			    
+			    free(hole_int);
 			
 			  
 			  //Fill the array of data structures describing the system
