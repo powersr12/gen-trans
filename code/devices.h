@@ -224,6 +224,7 @@ typedef struct {
 	int lat_width;
 	int lat_length;
 	int seed;
+        int orientation;
 	int isperiodic;
 	double radfluc;
 	double xyfluc;

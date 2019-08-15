@@ -1052,6 +1052,7 @@ main(int argc, char *argv[])
 		    sldotp.isperiodic = isperiodic;
 		    sldotp.xyfluc = xyfluc;
 		    sldotp.radfluc = radfluc;
+                    adotp.orientation = 0;
 		    
 		    //check for command line arguments which vary these
 		    for(i=1; i<argc-1; i++)
@@ -1119,6 +1120,10 @@ main(int argc, char *argv[])
 		      if(strcmp("-subbpot", argv[i]) == 0)
 		      {
 			  sscanf(argv[i+1], "%lf", &(sldotp.b_pot));
+		      }
+		      if(strcmp("-SDflip", argv[i]) == 0) //=0 "up", =1 "down", =2 random mix
+		      {
+			  sscanf(argv[i+1], "%d", &(sldotp.orientation));
 		      }
 		      
 		      
@@ -1188,6 +1193,17 @@ main(int argc, char *argv[])
 		    {
 		      sprintf(dot_info, "%s_dot_R_%.1lf_%.1lf_%dx%d_xyf_%.1lf_rf_%.1lf", (sldotp.dotgeo), (sldotp.SD_rad), (sldotp.SD_rad2), (sldotp.lat_width),  (sldotp.lat_length), (sldotp.xyfluc), (sldotp.radfluc)); 
 		    }
+		    
+		    if( strcmp("triAC", dotgeo) == 0 || strcmp("triZZ", dotgeo) == 0 )
+		    {
+                        if(sldotp.orientation == 0)
+                            sprintf(dot_info, "%s_dot_up_R_%.1lf_%dx%d_xyf_%.1lf_rf_%.1lf", (sldotp.dotgeo), (sldotp.SD_rad), (sldotp.lat_width),  (sldotp.lat_length), (sldotp.xyfluc), (sldotp.radfluc)); 
+                        if(sldotp.orientation == 1)
+                            sprintf(dot_info, "%s_dot_down_R_%.1lf_%dx%d_xyf_%.1lf_rf_%.1lf", (sldotp.dotgeo), (sldotp.SD_rad), (sldotp.lat_width),  (sldotp.lat_length), (sldotp.xyfluc), (sldotp.radfluc)); 
+                        if(sldotp.orientation == 2)
+                            sprintf(dot_info, "%s_dot_mix_R_%.1lf_%dx%d_xyf_%.1lf_rf_%.1lf", (sldotp.dotgeo), (sldotp.SD_rad), (sldotp.lat_width),  (sldotp.lat_length), (sldotp.xyfluc), (sldotp.radfluc)); 
+		    }
+
 
 		    
 		    sprintf(sysinfo, "%s_SUBA_%.2lfx%.3lf_SUBB_%.2lfx%.3lf_%s", lattice_info, (sldotp.a_conc), (sldotp.a_pot),(sldotp.b_conc), (sldotp.b_pot), dot_info);
