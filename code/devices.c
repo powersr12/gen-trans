@@ -6734,7 +6734,7 @@ void exportRectConf(RectRedux *System, char *filename)
   fileout = fopen(fullname, "w");
     for(j=0; j<tot_sites; j++)
     {
-      fprintf(fileout, "%lf	%lf\n", (System->pos)[j][0], (System->pos)[j][1]);
+      fprintf(fileout, "%lf %lf %lf\n", (System->pos)[j][0], (System->pos)[j][1], (System->pos)[j][2]);
     }
   fclose(fileout);
   
@@ -6815,7 +6815,7 @@ void importRectConf(RectRedux *System, int length, int length2, char *filename)
     
     for(j=0; j<tot_sites; j++)
       {
-	fscanf(fileout, "%lf	%lf", &(System->pos)[j][0], &(System->pos)[j][1]);
+	fscanf(fileout, "%lf	%lf   %lf", &(System->pos)[j][0], &(System->pos)[j][1], &(System->pos)[j][2] );
       }
     fclose(fileout);
     

@@ -2132,11 +2132,6 @@ main(int argc, char *argv[])
                         }
                         
     
-                      
-                        
-      
-                        
-                        
                         //set functions and params for use below
                         SysFunction = &customMultilayer;
                         SysPara = &mlp;
@@ -2152,11 +2147,282 @@ main(int argc, char *argv[])
                         
                         
                         sprintf(sysinfo, "L2_%d", length2); 
-                        
-		    
+                  
 		}
 		
 		
+		//Bilayer device (using customMultilayer) combining a clean layer and a "Dots" type layer
+		
+                if(strcmp("BLDOTS", systemtype) == 0)
+		{	
+                        //multilayer connectivity
+                        hop_to_load = &MLG_NNTB_hop_params;
+                        default_connect_rule = &mlg_conn_sep;
+			defdouble_connect_rule = &mlg_conn_sep2;
+			default_connection_params = &blg_cnxpara;
+                        nngm=1;
+                        num_neigh=nngm+1;
+			max_neigh=(hop_to_load->max_neigh)[num_neigh-1];
+                    
+                        //multilayer setup
+                        mlp.num_layers = 2;
+                        mlp.length = createIntArray(mlp.num_layers);
+                        mlp.length2 = createIntArray(mlp.num_layers);
+                        mlp.geo = createIntArray(mlp.num_layers);
+                        mlp.theta = createDoubleArray(mlp.num_layers);
+                        mlp.delta = createNonSquareDoubleMatrix(mlp.num_layers, 3);
+                        mlp.epsilon = createDoubleArray(mlp.num_layers);
+                        mlp.origin = 1; //0 means (0,0), 1 means centre of l1 x l2 device
+                        mlp.layerfn = (generatefn **)malloc(mlp.num_layers * sizeof(generatefn *));
+                        mlp.layerpara = (void **)malloc(mlp.num_layers * sizeof(void *));
+                        layertype=malloc(mlp.num_layers * sizeof(char *));
+                        for(i=0; i< mlp.num_layers ; i++)
+                            layertype[i] = (char *)malloc(40  * sizeof(char)); 
+					/*allocates memory for whole matrix, 
+					returned pointe r= pointer to 1st array*/
+                        
+                                        
+                        //dotted layer setup
+                        adotp.buffer_rows = buffer_rows;
+                        adotp.AD_length = AD_length;
+                        adotp.AD_length2 = AD_length2;
+                        adotp.latgeo = latgeo;
+                        adotp.AD_rad = AD_rad;
+                        adotp.AD_rad2 = AD_rad;
+                        adotp.lat_width = lat_width;
+                        adotp.lat_length = lat_length;
+                        adotp.dotgeo = dotgeo;
+                        adotp.seed = conf_num;
+                        adotp.isperiodic = isperiodic;
+                        adotp.xyfluc = xyfluc;
+                        adotp.radfluc = radfluc;
+                        adotp.orientation = 0;
+                        
+                        
+                        
+                        
+                        //check for command line arguments which vary these
+                        for(i=1; i<argc-1; i++)
+                        {
+                            if(strcmp("-ADlength", argv[i]) == 0)
+                            {
+                                sscanf(argv[i+1], "%d", &(adotp.AD_length));
+                            }
+                            if(strcmp("-ADlength2", argv[i]) == 0)
+                            {
+                                sscanf(argv[i+1], "%d", &(adotp.AD_length2));
+                            }
+                            if(strcmp("-ADrad", argv[i]) == 0)
+                            {
+                                sscanf(argv[i+1], "%lf", &(adotp.AD_rad));
+                                adotp.AD_rad2 = adotp.AD_rad;
+                            }
+                            if(strcmp("-ADrad2", argv[i]) == 0)
+                            {
+                                sscanf(argv[i+1], "%lf", &(adotp.AD_rad2));
+                            }
+                            if(strcmp("-latw", argv[i]) == 0)
+                            {
+                                sscanf(argv[i+1], "%d", &(adotp.lat_width));
+                            }
+                            if(strcmp("-latl", argv[i]) == 0)
+                            {
+                                sscanf(argv[i+1], "%d", &(adotp.lat_length));
+                            }
+                            if(strcmp("-bufferrows", argv[i]) == 0)
+                            {
+                                sscanf(argv[i+1], "%d", &(adotp.buffer_rows));
+                            }
+                            if(strcmp("-latgeo", argv[i]) == 0)
+                            {
+                                sscanf(argv[i+1], "%s",  latgeo);
+                                adotp.latgeo = latgeo;
+                            }
+                            if(strcmp("-dotgeo", argv[i]) == 0)
+                            {
+                                sscanf(argv[i+1], "%s", dotgeo);
+                                adotp.dotgeo = dotgeo;
+                            }
+                            if(strcmp("-xyfluc", argv[i]) == 0)
+                            {
+                                sscanf(argv[i+1], "%lf", &(adotp.xyfluc));
+                            }
+                            if(strcmp("-radfluc", argv[i]) == 0)
+                            {
+                                sscanf(argv[i+1], "%lf", &(adotp.radfluc));
+                            }
+                            if(strcmp("-ADflip", argv[i]) == 0) //=0 "up", =1 "down", =2 random mix
+                            {
+                                sscanf(argv[i+1], "%d", &(adotp.orientation));
+                            }
+                        
+                        }
+		    
+                        //system sizes calculated from lattice details
+                        if(strcmp("trig", latgeo) == 0)
+                        {
+                            if(geo==0)
+                            {
+                                length1=2*(adotp.lat_width)*(adotp.AD_length) ; 
+                                length2= 3*(adotp.AD_length)*(adotp.lat_length) + 2*(adotp.buffer_rows);
+                            }
+                        
+                            if(geo==1)
+                            {
+                                length1=6*(adotp.lat_width)*(adotp.AD_length) ; 
+                                length2= (adotp.AD_length)*(adotp.lat_length) + 2*(adotp.buffer_rows);
+                            }
+                        
+                            sprintf(lattice_info, "%s_lat_L_%d", (adotp.latgeo),(adotp.AD_length)); 
+
+                        }
+                        
+                        if(strcmp("rotrig", latgeo) == 0)
+                        {
+                            if(geo==0)
+                            {
+                                length1= 2*((adotp.AD_length)+1)*(adotp.lat_width); 
+                                length2=  ((adotp.AD_length) + 1)*(adotp.lat_length) + 2*(adotp.buffer_rows);
+                            }
+                        
+                            if(geo==1)
+                            {
+                                length1=(2*(adotp.AD_length) + 2)*(adotp.lat_width) ; 
+                                length2= ((adotp.AD_length)+1)*(adotp.lat_length) + 2*(adotp.buffer_rows);
+                            }
+                        
+                            sprintf(lattice_info, "%s_lat_L_%d", (adotp.latgeo),(adotp.AD_length)); 
+                        }
+                        
+                        if(strcmp("rect", latgeo) == 0)
+                        {
+                            if(geo==0)
+                            {
+                                length1=2*(adotp.lat_width)*(adotp.AD_length) ; 
+                                length2= (adotp.AD_length2)*(adotp.lat_length) + 2*(adotp.buffer_rows);
+                            }
+                            
+                            if(geo==1)
+                            {
+                                length1=2*(adotp.lat_width)*(adotp.AD_length2) ; 
+                                length2= (adotp.AD_length)*(adotp.lat_length) + 2*(adotp.buffer_rows);
+                            }
+                            sprintf(lattice_info, "%s_lat_L_%d_%d", (adotp.latgeo),(adotp.AD_length), (adotp.AD_length2)); 
+
+                        }
+                        
+                        if(strcmp("circ", dotgeo) == 0 || strcmp("hexAC", dotgeo) == 0 || strcmp("hexZZ", dotgeo) == 0)
+                        {
+                            sprintf(dot_info, "%s_dot_R_%.1lf_%dx%d_xyf_%.1lf_rf_%.1lf", (adotp.dotgeo), (adotp.AD_rad), (adotp.lat_width),  (adotp.lat_length), (adotp.xyfluc), (adotp.radfluc)); 
+                        }
+                        
+                        if(strcmp("rect", dotgeo) == 0 )
+                        {
+                            sprintf(dot_info, "%s_dot_R_%.1lf_%.1lf_%dx%d_xyf_%.1lf_rf_%.1lf", (adotp.dotgeo), (adotp.AD_rad), (adotp.AD_rad2), (adotp.lat_width),  (adotp.lat_length), (adotp.xyfluc), (adotp.radfluc)); 
+                        }
+                        
+                        if( strcmp("triAC", dotgeo) == 0 || strcmp("triZZ", dotgeo) == 0 )
+                        {
+                            if(adotp.orientation == 0)
+                                sprintf(dot_info, "%s_dot_up_R_%.1lf_%dx%d_xyf_%.1lf_rf_%.1lf", (adotp.dotgeo), (adotp.AD_rad), (adotp.lat_width),  (adotp.lat_length), (adotp.xyfluc), (adotp.radfluc)); 
+                            if(adotp.orientation == 1)
+                                sprintf(dot_info, "%s_dot_down_R_%.1lf_%dx%d_xyf_%.1lf_rf_%.1lf", (adotp.dotgeo), (adotp.AD_rad), (adotp.lat_width),  (adotp.lat_length), (adotp.xyfluc), (adotp.radfluc)); 
+                            if(adotp.orientation == 2)
+                                sprintf(dot_info, "%s_dot_mix_R_%.1lf_%dx%d_xyf_%.1lf_rf_%.1lf", (adotp.dotgeo), (adotp.AD_rad), (adotp.lat_width),  (adotp.lat_length), (adotp.xyfluc), (adotp.radfluc)); 
+                        }
+		    
+                        sprintf(sysinfo, "%s_%s", lattice_info, dot_info);
+                                        
+
+                        //Layer setup (defaults to AB, unrotated)
+                        //AB stacking assumed -- can be changed
+                        for(i=0; i< mlp.num_layers; i++)
+                        {
+                            (mlp.length)[i] = length1;
+                            (mlp.length2)[i] = length2;
+                            (mlp.geo)[i] = geo;
+                            (mlp.theta)[i] = 0;
+                            (mlp.epsilon)[i] = 1.0;
+
+                            (mlp.delta)[i][0] = 0.0;
+                            (mlp.delta)[i][1] = 0.0 + (1/sqrt(3)) * (i %2);
+                            (mlp.delta)[i][2] = i * 1.362;
+                        }
+                        
+                        (mlp.layerfn)[0] = &simpleRibbonGeo;
+                        (mlp.layerpara)[0]  = NULL;
+                        sprintf(layertype[0], "CLEAN");
+                        
+                        (mlp.layerfn)[1] = &genDotDevice;
+                        (mlp.layerpara)[1]  = &adotp;
+                        sprintf(layertype[1], "DOTS");
+                            
+                        
+                        
+                 
+                        
+                        //check for command line arguments which vary these
+                      
+                        for(i=1; i<argc-1; i++)
+                        {   
+                            for(j=0; j<mlp.num_layers; j++)
+                            {
+                                sprintf(temp_in_string, "-lay%ddeltax", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &(mlp.delta)[j][0]);
+                                }
+                                sprintf(temp_in_string, "-lay%ddeltay", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &(mlp.delta)[j][1]);
+                                }
+                                sprintf(temp_in_string, "-lay%ddeltaz", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &(mlp.delta)[j][2]);
+                                }
+                                sprintf(temp_in_string, "-lay%dtheta", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &(mlp.theta)[j]);
+                                }
+                                sprintf(temp_in_string, "-lay%deps", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &(mlp.epsilon)[j]);
+                                }
+                                
+                                
+                            }
+                            //center of rotation and common origin of layers
+                            if(strcmp("-mlorigin", argv[i]) == 0)
+                            {
+                                    sscanf(argv[i+1], "%d", &(mlp.origin));
+                            }
+                        
+                        }
+                        
+    
+                        //set functions and params for use below
+                        SysFunction = &customMultilayer;
+                        SysPara = &mlp;
+                        hopfn = &multilayerTB;
+                        
+                        //(amended from bilayer to make connection profiles... (somewhat temporary.....)
+                        blg_cnxpara.intra_thresh_min = MLG_NNTB_hop_params.NN_lowdis[0];
+                        blg_cnxpara.intra_thresh_max = MLG_NNTB_hop_params.NN_highdis[0];
+                        blg_cnxpara.inter_thresh_min = MLG_NNTB_hop_params.NN_lowdis[1];
+                        blg_cnxpara.inter_thresh_max = MLG_NNTB_hop_params.NN_highdis[1];
+                        blg_cnxpara.zthresh1 = MLG_NNTB_hop_params.NN_zmin[1];
+                        blg_cnxpara.zthresh2 = MLG_NNTB_hop_params.NN_zmax[1];
+                        
+                        
+                        //sprintf(sysinfo, "L2_%d", length2); 
+                  
+		}
+	  
+	  
 	  
 	  
 	  //END OF DEVICE DEFINITIONS!!
@@ -3890,6 +4156,7 @@ main(int argc, char *argv[])
             patch_para patchp = {};
             patchp.numpatches = numpatches;
             char PGFdir[100];
+            int patchv=0; //auto position patchs along y (ac direction), rather than x
             
             sprintf(PGFdir, "%s/PGF/graphene/", maindirec);
             
@@ -3924,10 +4191,34 @@ main(int argc, char *argv[])
                 
                 for (j=0; j<numpatches; j++)
                 {
+                     for(i=1; i<argc-1; i++)
+                    {
+                        sprintf(temp_in_string, "-patchv", j);
+                        if(strcmp(temp_in_string, argv[i]) == 0)
+                        {
+                            sscanf(argv[i+1], "%d", &patchv);
+                        }
+                    }
+                    
+                    
                     patchp.pl1[j] = 10;
                     patchp.pl2[j] = 10;
-                    patchp.pcoords[j][0] = - (length1+length2)*(j+1);
-                    patchp.pcoords[j][1] = (length1+length2)*(j+1);
+                    if(patchv == 0)
+                    {
+                        patchp.pcoords[j][0] = - (length1+length2)*(j+1);
+                        patchp.pcoords[j][1] = (length1+length2)*(j+1);
+                    }
+                    if(patchv == 1)
+                    {
+                        patchp.pcoords[j][0] =  (int) ((length1+length2)*(j+1) /sqrt(3));
+                        patchp.pcoords[j][1] =  (int) ((length1+length2)*(j+1) /sqrt(3));
+                    }
+                    if(patchv == 2)
+                    {
+                        patchp.pcoords[j][0] =  -(int) ((length1+length2)*(j+1) /sqrt(3)) -length1/2;
+                        patchp.pcoords[j][1] =  -(int) ((length1+length2)*(j+1) /sqrt(3)) -length1/2;
+                    }
+                    
                     
                     for(i=1; i<argc-1; i++)
                     {
@@ -3968,18 +4259,42 @@ main(int argc, char *argv[])
                         {
                             sscanf(argv[i+1], "%d", &patchcenter);
                             
+                            
+                           
+                        }
+                        
+                        
+                    }
+                    if(patchcenter == 1)
+                    {
+                        if(patchv == 0)
+                        {
                             pct = (int)  ((length1 - patchp.pl1[j])/4);
                             pct2 = (int)  ((length1 - patchp.pl1[j])/2 -  (length1 - patchp.pl1[j])/4) ;
                             
                             patchp.pcoords[j][0] -=  pct;
                             patchp.pcoords[j][1] -= pct2;
-                            
                         }
                         
+                        if(patchv == 1 || patchv == 2)
+                        {
+                            pct = (int)  ((length2 - patchp.pl2[j])/2);
+                            pct2 = (int)  ((length2 - patchp.pl2[j])/2) ;
+                            
+                            patchp.pcoords[j][0] +=  pct;
+                            patchp.pcoords[j][1] -= pct2;
+                        }
+                        
+//                          printf("# %d, %d\n", patchp.pcoords[j][0], patchp.pcoords[j][1]);
                         
                     }
                     
+                   
                     
+                    
+                }
+                
+                 
                     if(patchp.usePGFlib == 1)
                     {
                         sprintf(command, "mkdir -p %s", PGFdir);
@@ -3989,9 +4304,6 @@ main(int argc, char *argv[])
                         
                         
                     }
-                    
-                    
-                }
                 
                 if(output_type == 1)
                 {
