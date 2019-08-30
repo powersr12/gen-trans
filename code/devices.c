@@ -4404,7 +4404,8 @@ void genSublatticeDots(RectRedux *SiteArray, void *p, int struc_out, char *filen
           
 	   
 	  //atom removal (from antidot code) replaced by sublattice dependent potentials
-	      for(i=2*length; i< tot_sites - 2*length ; i++)
+          //applied to all sites unless buffer specified
+	      for(i=0; i< tot_sites ; i++)
 	      {
 		for(j=0; j< tot_holes; j++)
 		{
