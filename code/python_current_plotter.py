@@ -11,8 +11,8 @@ import scipy.interpolate
 
  
 basefolder="/home/stpower/projects/gen-trans/res/"
-projfolder="SUBLDOTS_2STM_2_LEADS_1_to_0__1e-06/ZZ200_rect_lat_L_100_300_SUBA_1.00x0.100_SUBB_1.00x-0.100_circ_dot_R_41.0_1x1_xyf_0.0_rf_0.0/abs_pot2/"
-projname="E_+0.0400_B_+0.000_run.conf00"
+projfolder="SUBLDOTS_NLPGF_4_LEADS_1_to_0__1e-06/ZZ300_rect_lat_L_30_52_SUBA_1.00x0.400_SUBB_1.00x-0.400_circ_dot_R_10.0_5x8_xyf_0.0_rf_0.0/"
+projname="E_+0.1000_B_+0.000_map.conf00"
  
  
 basefilename=basefolder+projfolder+projname
@@ -21,11 +21,11 @@ odosname=dosname+"__.png"
 filename=basefilename+"_currentsum.dat"
 outputname=filename+"_lr.png"
 #leads = ['l0', 'l2', 'l3', 'l1', 'l4', 'l5', 'multi']
-leads = ['l0']
+#leads = ['l0']
 
 #leads = {'l0'}
 #leads = {'multi'}
-#leads = {'l0', 'l1', 'l2', 'l3', 'multi'}
+leads = {'multi'}
 runzoom = 0
  
 #print dosname
@@ -35,11 +35,11 @@ x, y, ldos = np.loadtxt(dosname, delimiter=' ', unpack=True)
 #x, y = x*0.246, y*0.246
  
 ##regular grid
-xi, yi = np.linspace(x.min()+5, x.max()-5, 800), np.linspace(y.min()+5, y.max()-5, 800 )
+xi, yi = np.linspace(x.min(), x.max(), 800), np.linspace(y.min(), y.max(), 800 )
 xi, yi = np.meshgrid(xi, yi)
  
 #arrow grid
-xim, yim = np.linspace(x.min()+5, x.max()-5, 50), np.linspace(y.min()+5, y.max()-5, 15)
+xim, yim = np.linspace(x.min(), x.max(), 50), np.linspace(y.min(), y.max(), 15)
 xim, yim = np.meshgrid(xim, yim)
  
 ## Interpolate DOS and map, output
@@ -107,7 +107,7 @@ for lead in leads:
   jyim = scipy.interpolate.griddata((x, y), jy, (xim, yim), method='linear')
   curmagim=np.sqrt(jxi**2 + jyi**2)
   plt.quiver(xim, yim, jxim, jyim,        # data
-           headlength=3.5, headaxislength=2.5, width=0.002, headwidth=3.5, scale=0.001, minshaft=2, minlength=1)        # length of the arrows
+           headlength=3.5, headaxislength=2.5, width=0.002, headwidth=3.5, scale=0.1, minshaft=2, minlength=1)        # length of the arrows
   plt.show(plot6)   
   plot6.savefig(filename+"alt.png", dpi=300, bbox_inches='tight')
    
