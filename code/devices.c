@@ -8669,9 +8669,9 @@ void BLGPotentials (RectRedux *SiteArray, void *p, int struc_out, char *filename
             temprandnum = myRandNum(0.0, 1.0);
             if(temprandnum < subconcs[ siteinfo[l][1]])
 		    site_pots[l] = subpots[ siteinfo[l][1]];
-            temprandnum = myRandNum(0.0, 1.0);
-            if(temprandnum < subconcs[ siteinfo[l][1]])
-		    site_pots[l] = subpots[ siteinfo[l][1]];
+//             temprandnum = myRandNum(0.0, 1.0);
+//             if(temprandnum < subconcs[ siteinfo[l][1]])
+// 		    site_pots[l] = subpots[ siteinfo[l][1]];
             
         }
         for(l=2*length*length2 + buffer_rows*2*length; l< 4*length*length2 - 2*buffer_rows*length; l++)
