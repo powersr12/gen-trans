@@ -159,6 +159,18 @@ typedef struct {
 }blgpots_para;
 
 typedef struct {
+        void *BLGpara;
+	int buffer_rows;
+	double **subpots;
+	double **subconcs;
+        int num;
+        int xory;
+	double *int_pos;
+	double *int_width;
+	int seed;
+}blgints_para;
+
+typedef struct {
 	int buffer_rows;
 	double a_conc1;   
 	double a_pot1;
@@ -352,6 +364,8 @@ void importRectConf(RectRedux *System, int length, int length2, char *filename);
 void simpleBilayerGeo (RectRedux *SiteArray, void *p, int struc_out, char *filename);
 void genSingleBLGLead (RectRedux *SiteArray, RectRedux *Lead, int lead_num, void *params);
 void BLGPotentials (RectRedux *SiteArray, void *p, int struc_out, char *filename);
+void BLGInterfaces (RectRedux *SiteArray, void *p, int struc_out, char *filename);
+
 
 void customMultilayer (RectRedux *SiteArray, void *p, int struc_out, char *filename);
 

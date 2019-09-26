@@ -28,6 +28,8 @@ main(int argc, char *argv[])
 	      int length1=2, length2=3*length1, geo=0, isperiodic=0, ismagnetic=0, ispatched=0;
 	      int makebands = 0, unfold=0, project=0, kxpoints=51, bandsonly=0, bandsminset=0, bandsmaxset=100000;
               int numpatches = 0;
+              char temp_in_string[40];
+
 	      
 	      int output_type=1;   //=0 no structure output, =1  atoms / holes
 	      double eta = 1.0E-6;
@@ -687,7 +689,7 @@ main(int argc, char *argv[])
 		      {
 			  sscanf(argv[i+1], "%d", &(sub2intp.xory));
 		      }
-		       if(strcmp("-intwidth", argv[i]) == 0)
+                        if(strcmp("-intwidth", argv[i]) == 0)
 		      {
 			  sscanf(argv[i+1], "%lf", &(sub2intp.int_width1));
 		      }
@@ -1877,6 +1879,8 @@ main(int argc, char *argv[])
 			bilp.subpots = subpotsc;
                         blgp.subpots = subpots;
                         blgp.subconcs = subconcs;
+                        blgp.seed = conf_num;
+
                         
 			
 			//check for command line arguments which vary these
@@ -2012,11 +2016,324 @@ main(int argc, char *argv[])
 			
 		}
 		
+		blgints_para blgintp = {};
+                //int use_av_pots=0;  //use average potentials in the leads / buffer regions, otherwise zero
+               // double **bisubpots, **bisubconcs ;
+
+                
+                double tempintwidth=0;
+		char blgintconfig[40];
+		//bilayer graphene sublattice (doping) interfaces
+		if(strcmp("BLGINTS", systemtype) == 0)
+		{	
+			//this system uses the bilayer graphene hopping parameters
+			//these are defined in 'useful_hops.c'
+			hop_to_load = &BLG_NNTB_hop_params;
+			
+			//default values
+			nngm=1; //mode 1 includes NN intra layer and direct inter layer.
+				//mode 2 adds skew hopping terms to and from nondimer sites
+				//mode 0 (never called), would decouple the two layers completely
+				//(would it??)
+				
+			bilp.type_shift=1;	//default is AB
+			bilp.shift_angle=0;
+			char blgtype[6];
+			double blg_shift[2];
+			bilp.shift_vec = blg_shift;
+			bilp.zsep = 1.362;
+			
+			//default is to not include skew hopping terms between layers
+			bilp.skews = 0;
+			bilp.subpots = subpotsc;
+                        
+                        blgintp.num = 1;
+                        blgintp.seed = conf_num;
+                        blgintp.xory = xory;
+                        
+                        
+			//check for command line arguments which vary these
+			for(i=1; i<argc-1; i++)
+			{
+				if(strcmp("-blgtype", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &(bilp.type_shift));
+					//0=AA, 1=AB, 2=CUSTOM, 12 for alpha-aligned AGNRs
+				}
+				if(strcmp("-blgshiftx", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &(bilp.shift_vec)[0]);
+				}
+				if(strcmp("-blgshifty", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &(bilp.shift_vec)[1]);
+				}
+				//note shift angle not yet implemented
+				if(strcmp("-blgshiftangle", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%lf", &(bilp.shift_angle));
+				}
+				if(strcmp("-blgskews", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &(bilp.skews));
+				}
+				if(strcmp("-useavpots", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &use_av_pots);
+				}
+				if(strcmp("-intnum", argv[i]) == 0)
+				{
+					sscanf(argv[i+1], "%d", &(blgintp.num));
+				}
+                                if(strcmp("-intxory", argv[i]) == 0)
+                                {
+                                    sscanf(argv[i+1], "%d", &(blgintp.xory));
+                                }
+                                if(strcmp("-intwidth", argv[i]) == 0)
+                                {
+                                    sscanf(argv[i+1], "%lf", &tempintwidth);
+                                }
+                                //default -- swap 
+                                if(strcmp("-blgA1", argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &subpots[0]);
+                                }
+                                if(strcmp("-blgB1", argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &subpots[1]);
+                                }
+                                if(strcmp("-blgA2", argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &subpots[2]);
+                                }
+                                if(strcmp("-blgB2", argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &subpots[3]);
+                                }
+                                if(strcmp("-blgA1c", argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &subconcs[0]);
+                                }
+                                if(strcmp("-blgB1c", argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &subconcs[1]);
+                                }
+                                if(strcmp("-blgA2c", argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &subconcs[2]);
+                                }
+                                if(strcmp("-blgB2c", argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &subconcs[3]);
+                                }
+				 if(strcmp("-blintname", argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%s", blgintconfig);
+                                }
+                        }
+                        
+                        blgintp.subpots = createNonSquareDoubleMatrix(blgintp.num + 1, 4);
+                        blgintp.subconcs = createNonSquareDoubleMatrix(blgintp.num + 1, 4);
+                        blgintp.int_pos=createDoubleArray(blgintp.num+1);   //last not used
+                        blgintp.int_width=createDoubleArray(blgintp.num+1); //last not used
+                        
+                        //default values and positions of interfaces and regions
+                        for(j=0; j<blgintp.num +1; j++)
+                        {
+                            for(k=0;k<4;k++)
+                            {
+                                blgintp.subconcs[j][k] = subconcs[k];
+                                
+                                if(j%2 ==0)
+                                    blgintp.subpots[j][k] = subpots[k];
+                                if(j%2 ==1)
+                                    blgintp.subpots[j][k] = -subpots[k];
+                            }
+                            blgintp.int_width[j] = tempintwidth;
+                            
+                            //default interface positions -- check these, not necessarily perfect 
+                            if(geo==0)
+                            {
+                                if(blgintp.xory==0)
+                                {
+                                    blgintp.int_pos[j] = (int)(length2/(blgintp.num +1)) *(j+1)*1.0 - 0.5;
+                                }
+                                
+                                if(blgintp.xory==1)
+                                {
+                                    blgintp.int_pos[j] = (int)(length1/(blgintp.num +1)) *(j+1)*(sqrt(3)/2);
+                                }
+
+                            }
+                            
+                            if(geo==1)
+                            {
+                                if(blgintp.xory==0)
+                                {
+                                    blgintp.int_pos[j] = (int)(length2/(blgintp.num +1)) *(j+1)*sqrt(3) - 1/(2*sqrt(3));
+                                }
+                                
+                                if(blgintp.xory==1)
+                                {
+                                    blgintp.int_pos[j] = (int)((length1-1)/(blgintp.num +1)) *(j+1)*0.5 ;
+                                }
+                            }
+                            
+                            
+                            
+                        }
+                        
+                        
+                        for(i=1; i<argc-1; i++)
+			{
+                            for(j=0; j<blgintp.num+1; j++)
+                            {
+                                
+                                sprintf(temp_in_string, "-blgA1_%d", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &blgintp.subpots[j][0]   );
+                                }
+                                sprintf(temp_in_string, "-blgB1_%d", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &blgintp.subpots[j][1]   );
+                                }
+                                sprintf(temp_in_string, "-blgA2_%d", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &blgintp.subpots[j][2]   );
+                                }
+                                sprintf(temp_in_string, "-blgB2_%d", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &blgintp.subpots[j][3]   );
+                                }
+                                
+                                sprintf(temp_in_string, "-blgA1c_%d", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &blgintp.subconcs[j][0]   );
+                                }
+                                sprintf(temp_in_string, "-blgB1c_%d", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &blgintp.subconcs[j][1]   );
+                                }
+                                sprintf(temp_in_string, "-blgA2c_%d", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &blgintp.subconcs[j][2]   );
+                                }
+                                sprintf(temp_in_string, "-blgB2c_%d", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &blgintp.subconcs[j][3]   );
+                                }   
+                                
+                                sprintf(temp_in_string, "-intpos%d", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &blgintp.int_pos[j]   );
+                                }   
+                                
+                                sprintf(temp_in_string, "-intwidth%d", j);
+                                if(strcmp(temp_in_string, argv[i]) == 0)
+                                {
+                                        sscanf(argv[i+1], "%lf", &blgintp.int_width[j]   );
+                                }  
+                                
+                            }
+				
+			}
+			
+			if(use_av_pots == 1)
+                        {
+                            for(i=0; i<4;i++)
+                            {
+                                subpotsc[i] = subpots[i] *subconcs[i];
+                            }
+                        }
+			
+			
+			if(bilp.type_shift ==1)
+			{
+				sprintf(blgtype, "AB");
+			}
+			else if(bilp.type_shift ==12)
+			{
+				sprintf(blgtype, "ABal");
+			}
+			else if (bilp.type_shift ==0)
+			{
+				sprintf(blgtype, "AA");
+			}
+			else if (bilp.type_shift ==2)
+			{
+				sprintf(blgtype, "CUST");
+			}
+
+			//"blgskews" from command line turns on skew hopping terms if 1NN is being used
+			//else nngm in command line takes precedence.
+			if(bilp.skews == 1)
+			{
+				nngm = 2;
+			}
+			num_neigh=nngm+1;
+			max_neigh=(hop_to_load->max_neigh)[num_neigh-1];
+			
+			
+			//basic BLG connection stuff
+				blg_cnxpara.intra_thresh_min = BLG_NNTB_hop_params.NN_lowdis[0];
+				blg_cnxpara.intra_thresh_max = BLG_NNTB_hop_params.NN_highdis[0];
+				blg_cnxpara.inter_thresh_min = 0.000;
+				blg_cnxpara.inter_thresh_max = BLG_NNTB_hop_params.NN_highdis[num_neigh-1];
+				blg_cnxpara.zthresh1 = 0.1;
+				blg_cnxpara.zthresh2 = bilp.zsep + 0.1;
+		
+			blg_cnxpara.periodic = cnxpara.periodic;
+			
+
+                        blgintp.BLGpara = &bilp;
+						
+			//set functions and params for use below
+			SysFunction = &BLGInterfaces;
+			SysPara = &blgintp;
+			leadp.additional_params = &bilp;
+			gen_leads_mode=1;
+			
+			default_connect_rule = &blg_conn_sep;
+			defdouble_connect_rule = &blg_conn_sep2;
+			default_connection_params = &blg_cnxpara;
+			
+			sprintf(blgintconfig, "A1_%.3lf_%.3lf_B1_%.3lf_%.3lf_A2_%.3lf_%.3lf_B2_%.3lf_%.3lf", subpots[0], subconcs[0], subpots[1], subconcs[1], subpots[2], subconcs[2], subpots[3], subconcs[3]);
+                        
+                        
+                        for(i=1; i<argc-1; i++)
+                        {
+                            if(strcmp("-blintname", argv[i]) == 0)
+                            {
+                                sscanf(argv[i+1], "%s", blgintconfig);
+                            }
+                        }
+                        
+                        
+			
+			
+			//set filename info - what to put in filename from these params
+                        sprintf(sysinfo, "%s_%s_%d", blgtype, blgintconfig, length2);
+			
+			if(use_av_pots ==1)
+                            sprintf(sysinfo, "%s_avlp_%s_L2_%d", blgtype, blgintconfig, length2);
+			
+			
+		}
+		
+		
 		
 		//test device for generic multilayers
 		multilayer_para mlp = {};
  		char ml_info[66];   //(filename gunk)
- 		char temp_in_string[40];
                 char **layertype;
  		
 		if(strcmp("MLTEST", systemtype) == 0)
