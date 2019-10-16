@@ -8705,7 +8705,16 @@ void BLGPotentials (RectRedux *SiteArray, void *p, int struc_out, char *filename
 	{
 		for(l=0; l<*Ntot; l++)
 		{
-			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 0)
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 0 && site_pots[l] > 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+                
+		for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 0 && site_pots[l] < 0)
 			{  
 				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
 			}
@@ -8713,7 +8722,15 @@ void BLGPotentials (RectRedux *SiteArray, void *p, int struc_out, char *filename
 		fprintf(out, "\n");
 		for(l=0; l<*Ntot; l++)
 		{
-			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 1)
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 1 && site_pots[l] > 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+                for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 1 && site_pots[l] < 0)
 			{  
 				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
 			}
@@ -8721,7 +8738,15 @@ void BLGPotentials (RectRedux *SiteArray, void *p, int struc_out, char *filename
 		fprintf(out, "\n");
 		for(l=0; l<*Ntot; l++)
 		{
-			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 2)
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 2 && site_pots[l] > 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+                for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 2 && site_pots[l] < 0)
 			{  
 				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
 			}
@@ -8729,7 +8754,15 @@ void BLGPotentials (RectRedux *SiteArray, void *p, int struc_out, char *filename
 		fprintf(out, "\n");
 		for(l=0; l<*Ntot; l++)
 		{
-			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 3)
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 3 && site_pots[l] > 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+                for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 3 && site_pots[l] < 0)
 			{  
 				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
 			}
@@ -8956,8 +8989,10 @@ void BLGInterfaces (RectRedux *SiteArray, void *p, int struc_out, char *filename
         //disordered potentials here
         int tempi, tempj;   // which two segments we are mixing
         double A1_conc_temp, B1_conc_temp, A2_conc_temp, B2_conc_temp;
+        double A1_temp, B1_temp, A2_temp, B2_temp;
         double A1_delta, B1_delta, A2_delta, B2_delta, A1c_delta, B1c_delta, A2c_delta, B2c_delta;
-        double sidea, sideb, centre, relposa, relposb;
+        double sidea;
+        double relposa, relposb;
         
         
         
@@ -8966,23 +9001,155 @@ void BLGInterfaces (RectRedux *SiteArray, void *p, int struc_out, char *filename
             site_pots[l] = 0.0;
             temprandnum = myRandNum(0.0, 1.0);
             
+            //loop over possible interfaces
+            i=0; 
             
+//       
+            A1_conc_temp=subconcs[0][0]; B1_conc_temp=subconcs[0][1]; 
+            A2_conc_temp=subconcs[0][2]; B2_conc_temp=subconcs[0][3]; 
+            A1_temp=subpots[0][0]; B1_temp=subpots[0][1]; 
+            A2_temp=subpots[0][2]; B2_temp=subpots[0][3]; 
             
+            for(i=0; i<num_ints; i++)
+            {
+                sidea = int_pos[i] - (int_width[i]) / 2;
+                                                
+                if(xory==0)
+		{
+		  relposa = (site_coords[l][0] - sidea)/int_width[i];
+		}
+		
+		if(xory==1)
+		{
+		  relposa = (site_coords[l][1] - sidea)/int_width[i];
+		}
+		
+		if(relposa < 0)
+		  relposa =0;
+		
+		if(relposa > 1)
+		  relposa =1;
+                
+               
+                A1_delta = subpots[i+1][0] - subpots[i][0];  
+                B1_delta = subpots[i+1][1] - subpots[i][1]; 
+                A2_delta = subpots[i+1][2] - subpots[i][2];
+                B2_delta = subpots[i+1][3] - subpots[i][3];
+                A1c_delta = subconcs[i+1][0] - subconcs[i][0];  
+                B1c_delta = subconcs[i+1][1] - subconcs[i][1]; 
+                A2c_delta = subconcs[i+1][2] - subconcs[i][2];
+                B2c_delta = subconcs[i+1][3] - subconcs[i][3];
+                
+                A1_temp += A1_delta*relposa;
+                A2_temp += A2_delta*relposa;
+                B1_temp += B1_delta*relposa;
+                B2_temp += B2_delta*relposa;
+                A1_conc_temp += A1c_delta*relposa;
+                A2_conc_temp += A2c_delta*relposa;
+                B1_conc_temp += B1c_delta*relposa;
+                B2_conc_temp += B2c_delta*relposa;
+                
+            }
             
-            
-            if(temprandnum < subconcs[ siteinfo[l][1]])
-		    site_pots[l] = subpots[ siteinfo[l][1]];
-            temprandnum = myRandNum(0.0, 1.0);
-            if(temprandnum < subconcs[ siteinfo[l][1]])
-		    site_pots[l] = subpots[ siteinfo[l][1]];
+            if(siteinfo[l][1] == 0)
+            {
+                if(temprandnum < A1_conc_temp)
+                    site_pots[l] = A1_temp;
+            }
+            if(siteinfo[l][1] == 1)
+            {
+                if(temprandnum < B1_conc_temp)
+                    site_pots[l] = B1_temp;
+            }
+            if(siteinfo[l][1] == 2)
+            {
+                if(temprandnum < A2_conc_temp)
+                    site_pots[l] = A2_temp;
+            }
+            if(siteinfo[l][1] == 3)
+            {
+                if(temprandnum < B2_conc_temp)
+                    site_pots[l] = B2_temp;
+            }
             
         }
+        
         for(l=2*length*length2 + buffer_rows*2*length; l< 4*length*length2 - 2*buffer_rows*length; l++)
         {
             site_pots[l] = 0.0;
             temprandnum = myRandNum(0.0, 1.0);
-            if(temprandnum < subconcs[ siteinfo[l][1]])
-		    site_pots[l] = subpots[ siteinfo[l][1]];
+            
+            //loop over possible interfaces
+            i=0; 
+            
+//       
+            A1_conc_temp=subconcs[0][0]; B1_conc_temp=subconcs[0][1]; 
+            A2_conc_temp=subconcs[0][2]; B2_conc_temp=subconcs[0][3]; 
+            A1_temp=subpots[0][0]; B1_temp=subpots[0][1]; 
+            A2_temp=subpots[0][2]; B2_temp=subpots[0][3]; 
+            
+            for(i=0; i<num_ints; i++)
+            {
+                sidea = int_pos[i] - (int_width[i]) / 2;
+                                
+                if(xory==0)
+		{
+		  relposa = (site_coords[l][0] - sidea)/int_width[i];
+		}
+		
+		if(xory==1)
+		{
+		  relposa = (site_coords[l][1] - sidea)/int_width[i];
+		}
+		
+		if(relposa < 0)
+		  relposa =0;
+		
+		if(relposa > 1)
+		  relposa =1;
+                
+                A1_delta = subpots[i+1][0] - subpots[i][0];  
+                B1_delta = subpots[i+1][1] - subpots[i][1]; 
+                A2_delta = subpots[i+1][2] - subpots[i][2];
+                B2_delta = subpots[i+1][3] - subpots[i][3];
+                A1c_delta = subconcs[i+1][0] - subconcs[i][0];  
+                B1c_delta = subconcs[i+1][1] - subconcs[i][1]; 
+                A2c_delta = subconcs[i+1][2] - subconcs[i][2];
+                B2c_delta = subconcs[i+1][3] - subconcs[i][3];
+                
+                A1_temp += A1_delta*relposa;
+                A2_temp += A2_delta*relposa;
+                B1_temp += B1_delta*relposa;
+                B2_temp += B2_delta*relposa;
+                A1_conc_temp += A1c_delta*relposa;
+                A2_conc_temp += A2c_delta*relposa;
+                B1_conc_temp += B1c_delta*relposa;
+                B2_conc_temp += B2c_delta*relposa;
+                
+            }
+            
+            if(siteinfo[l][1] == 0)
+            {
+                if(temprandnum < A1_conc_temp)
+                    site_pots[l] = A1_temp;
+            }
+            if(siteinfo[l][1] == 1)
+            {
+                if(temprandnum < B1_conc_temp)
+                    site_pots[l] = B1_temp;
+            }
+            if(siteinfo[l][1] == 2)
+            {
+                if(temprandnum < A2_conc_temp)
+                    site_pots[l] = A2_temp;
+            }
+            if(siteinfo[l][1] == 3)
+            {
+                if(temprandnum < B2_conc_temp)
+                    site_pots[l] = B2_temp;
+            }
+            
+            
         }
         
         
@@ -9010,7 +9177,16 @@ void BLGInterfaces (RectRedux *SiteArray, void *p, int struc_out, char *filename
 	{
 		for(l=0; l<*Ntot; l++)
 		{
-			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 0)
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 0 && site_pots[l] > 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+                
+		for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 0 && site_pots[l] < 0)
 			{  
 				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
 			}
@@ -9018,7 +9194,15 @@ void BLGInterfaces (RectRedux *SiteArray, void *p, int struc_out, char *filename
 		fprintf(out, "\n");
 		for(l=0; l<*Ntot; l++)
 		{
-			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 1)
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 1 && site_pots[l] > 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+                for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 1 && site_pots[l] < 0)
 			{  
 				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
 			}
@@ -9026,7 +9210,15 @@ void BLGInterfaces (RectRedux *SiteArray, void *p, int struc_out, char *filename
 		fprintf(out, "\n");
 		for(l=0; l<*Ntot; l++)
 		{
-			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 2)
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 2 && site_pots[l] > 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+                for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 2 && site_pots[l] < 0)
 			{  
 				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
 			}
@@ -9034,7 +9226,15 @@ void BLGInterfaces (RectRedux *SiteArray, void *p, int struc_out, char *filename
 		fprintf(out, "\n");
 		for(l=0; l<*Ntot; l++)
 		{
-			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 3)
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 3 && site_pots[l] > 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+                for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 3 && site_pots[l] < 0)
 			{  
 				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
 			}

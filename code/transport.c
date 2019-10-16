@@ -409,6 +409,7 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 	  
 	  
 	}
+	
 // 	printf("\n");
 
 	//internal (& external?) hoppings
@@ -463,6 +464,7 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 	  
 	}
 
+	//printEMatrix(g00inv, dim);
 	  	//check non-zero elements at the cell stage
 //  	  	printf("#g00inv\n");
 //  	  	listNonZero(g00inv, dim, dim);
@@ -830,7 +832,7 @@ void genKXbandproj(RectRedux *DeviceCell,  hoppingfunc *hoppingfn, void *hopping
   
   }
   
-  //create mapping of indices
+  //create mapping of indices --assumes monolayer graphene!!
   j=0;
   for(i=0; i <Ntot; i++)
   {

@@ -2007,9 +2007,9 @@ main(int argc, char *argv[])
 			
 			
 			
-			//set filename info - what to put in filename from these params
-                        sprintf(sysinfo, "%s_A1_%.3lf_%.3lf_B1_%.3lf_%.3lf_A2_%.3lf_%.3lf_B2_%.3lf_%.3lf_L2_%d", blgtype, subpots[0], subconcs[0], subpots[1], subconcs[1], subpots[2], subconcs[2], subpots[3], subconcs[3], length2);
-			
+// 			set filename info - what to put in filename from these params
+                         sprintf(sysinfo, "%s_A1_%.3lf_%.3lf_B1_%.3lf_%.3lf_A2_%.3lf_%.3lf_B2_%.3lf_%.3lf_L2_%d", blgtype, subpots[0], subconcs[0], subpots[1], subconcs[1], subpots[2], subconcs[2], subpots[3], subconcs[3], length2);
+                        
 			if(use_av_pots ==1)
                             sprintf(sysinfo, "%s_avlp_A1_%.3lf_%.3lf_B1_%.3lf_%.3lf_A2_%.3lf_%.3lf_B2_%.3lf_%.3lf_L2_%d", blgtype, subpots[0], subconcs[0], subpots[1], subconcs[1], subpots[2], subconcs[2], subpots[3], subconcs[3], length2);
 			
@@ -2022,7 +2022,7 @@ main(int argc, char *argv[])
 
                 
                 double tempintwidth=0;
-		char blgintconfig[40];
+		char blgintconfig[100];
 		//bilayer graphene sublattice (doping) interfaces
 		if(strcmp("BLGINTS", systemtype) == 0)
 		{	
@@ -2175,7 +2175,7 @@ main(int argc, char *argv[])
                                 
                                 if(blgintp.xory==1)
                                 {
-                                    blgintp.int_pos[j] = (int)((length1-1)/(blgintp.num +1)) *(j+1)*0.5 ;
+                                    blgintp.int_pos[j] = ((length1*1.0-0.5)/(blgintp.num +1)) *(j+1)*0.5 ;
                                 }
                             }
                             
@@ -2306,7 +2306,9 @@ main(int argc, char *argv[])
 			defdouble_connect_rule = &blg_conn_sep2;
 			default_connection_params = &blg_cnxpara;
 			
-			sprintf(blgintconfig, "A1_%.3lf_%.3lf_B1_%.3lf_%.3lf_A2_%.3lf_%.3lf_B2_%.3lf_%.3lf", subpots[0], subconcs[0], subpots[1], subconcs[1], subpots[2], subconcs[2], subpots[3], subconcs[3]);
+ 			sprintf(blgintconfig, "A1_%.3lf_%.3lf_B1_%.3lf_%.3lf_A2_%.3lf_%.3lf_B2_%.3lf_%.3lf", subpots[0], subconcs[0], subpots[1], subconcs[1], subpots[2], subconcs[2], subpots[3], subconcs[3]);
+                        
+                        
                         
                         
                         for(i=1; i<argc-1; i++)
@@ -2321,7 +2323,7 @@ main(int argc, char *argv[])
 			
 			
 			//set filename info - what to put in filename from these params
-                        sprintf(sysinfo, "%s_%s_%d", blgtype, blgintconfig, length2);
+                        sprintf(sysinfo, "%s_%s_L2_%d", blgtype, blgintconfig, length2);
 			
 			if(use_av_pots ==1)
                             sprintf(sysinfo, "%s_avlp_%s_L2_%d", blgtype, blgintconfig, length2);
@@ -4510,7 +4512,7 @@ main(int argc, char *argv[])
                 {
                      for(i=1; i<argc-1; i++)
                     {
-                        sprintf(temp_in_string, "-patchv", j);
+                        sprintf(temp_in_string, "-patchv");
                         if(strcmp(temp_in_string, argv[i]) == 0)
                         {
                             sscanf(argv[i+1], "%d", &patchv);
