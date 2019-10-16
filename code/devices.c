@@ -1056,7 +1056,7 @@ void genSublatticeInterface(RectRedux *SiteArray, void *p, int struc_out, char *
 			  
 			  for(l=0; l<2*length*length2; l++)
 			  {
-			    if(siteinfo[l][0] == 0  && siteinfo[l][1] == 0 && site_pots[l] ==0.0)
+			    if(siteinfo[l][0] == 0  && siteinfo[l][1] == 1 && site_pots[l] ==0.0)
 			    {  
 			      fprintf(out, "%lf	%lf	%lf\n", site_coords[l][0], site_coords[l][1], site_pots[l] );
 			    }
@@ -8705,7 +8705,16 @@ void BLGPotentials (RectRedux *SiteArray, void *p, int struc_out, char *filename
 	{
 		for(l=0; l<*Ntot; l++)
 		{
-			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 0)
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 0 && site_pots[l] > 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+                
+		for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 0 && site_pots[l] < 0)
 			{  
 				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
 			}
@@ -8713,7 +8722,15 @@ void BLGPotentials (RectRedux *SiteArray, void *p, int struc_out, char *filename
 		fprintf(out, "\n");
 		for(l=0; l<*Ntot; l++)
 		{
-			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 1)
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 1 && site_pots[l] > 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+                for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 1 && site_pots[l] < 0)
 			{  
 				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
 			}
@@ -8721,7 +8738,15 @@ void BLGPotentials (RectRedux *SiteArray, void *p, int struc_out, char *filename
 		fprintf(out, "\n");
 		for(l=0; l<*Ntot; l++)
 		{
-			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 2)
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 2 && site_pots[l] > 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+                for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 2 && site_pots[l] < 0)
 			{  
 				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
 			}
@@ -8729,7 +8754,15 @@ void BLGPotentials (RectRedux *SiteArray, void *p, int struc_out, char *filename
 		fprintf(out, "\n");
 		for(l=0; l<*Ntot; l++)
 		{
-			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 3)
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 3 && site_pots[l] > 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+                for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 3 && site_pots[l] < 0)
 			{  
 				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
 			}
@@ -8757,7 +8790,476 @@ void BLGPotentials (RectRedux *SiteArray, void *p, int struc_out, char *filename
 }
 
 
+void BLGInterfaces (RectRedux *SiteArray, void *p, int struc_out, char *filename)
+{
+        int length = SiteArray->length;
+        int length2 = SiteArray->length2;
+        int geo = SiteArray->geo;
+        
+        double smalldist;
+        FILE *out;
+        
+        if(struc_out != 0)
+        {
+        out = fopen(filename, "w");
+        
+        }
 
+
+            
+        blgints_para *params = (blgints_para *)p;
+        bilayer_para *blgparams = (bilayer_para *)(params->BLGpara) ;
+        int seed = (params->seed);
+        
+        srand(time(NULL) + seed);
+	  
+        //atomic coordinates and the atoms that are in and out, similar to previous cases
+        int tot_sites = 4*length*length2;
+        double **site_coords = createNonSquareDoubleMatrix(tot_sites, 3);
+        double *site_pots = createDoubleArray(tot_sites);
+        int **siteinfo = createNonSquareIntMatrix(tot_sites, 2);
+        
+        double **subpots = params->subpots;
+        double **subconcs = params->subconcs;
+        int buffer_rows = params->buffer_rows;
+        double *int_pos = params->int_pos;
+        double *int_width = params->int_width;
+        
+        int num_ints = params-> num;
+        int xory =params->xory;
+          
+
+          double *nosubpots = blgparams->subpots;
+	  
+	  double xstart, ystart;
+	  int isclean, l, m, i;
+	  int *Nrem = (SiteArray->Nrem);
+	  int *Ntot = (SiteArray->Ntot);
+	  
+	  //in AB stackd, (type_shift=2), dimers are siteinfo[1] = 1, 2 (L1-B, L2-A)
+	  
+	  *Ntot = tot_sites;
+          
+          
+
+
+	  if(geo==0)
+	  {
+	    //layer 1
+	    for(l=0; l<length2; l++)
+	    {
+	      xstart=l*1.0;
+	      for(m=0; m<length; m++)
+	      {
+		ystart= m*sqrt(3)/2 + 1/(2*sqrt(3));
+		
+		if((m%2) == 0)
+		{
+		    site_coords[l*2*length + 2*m][0] = xstart+0.5;
+		    site_coords[l*2*length + 2*m + 1][0] = xstart;
+		}
+		
+		if((m%2) == 1)
+		{
+		    site_coords[l*2*length + 2*m][0] = xstart;
+		    site_coords[l*2*length + 2*m + 1][0] = xstart+0.5;
+		}
+		
+		    site_coords[l*2*length + 2*m][1] = ystart;
+		    site_coords[l*2*length + 2*m + 1][1] = ystart + 1/(2*sqrt(3));
+		    siteinfo[l*2*length + 2*m][1]=0;
+		    siteinfo[l*2*length + 2*m +1][1]=1;
+		  
+	      }
+	    }
+	    
+		//layer 2
+		if(blgparams->type_shift==0)
+		{
+			blgparams->shift_vec[0]=0.0;
+			blgparams->shift_vec[1]=0.0;
+		}
+		
+		if(blgparams->type_shift==1)
+		{
+			blgparams->shift_vec[0]=0.5;
+			blgparams->shift_vec[1]=1/(2*sqrt(3));
+		}
+	    
+	  }
+	  
+	  if(geo==1)
+	  {
+	      for(l=0; l<length2; l++)
+	      {
+		xstart = l*sqrt(3);
+		for(m=0; m<length; m++)
+		{
+		  if((m%2) == 0)
+		  {
+		    site_coords[l*2*length + m][0] = xstart;
+		    site_coords[l*2*length + length + m][0] = xstart +2 / sqrt(3);
+		    siteinfo[l*2*length + m][1] = 0;
+		    siteinfo[l*2*length + length + m][1] = 1;
+		  }
+		  if((m%2) == 1)
+		  {
+		    site_coords[l*2*length + m][0] = xstart +  1/(2*sqrt(3));
+		    site_coords[l*2*length + length + m][0] = xstart + (sqrt(3))/2;
+		    siteinfo[l*2*length + m][1] = 1;
+		    siteinfo[l*2*length + length + m][1] = 0;
+		  }
+		  
+		  site_coords[l*2*length + m][1] = m*0.5;
+		  site_coords[l*2*length + length + m][1] = m*0.5;
+
+		  
+		}
+		
+		
+	      }
+			//layer 2
+			if(blgparams->type_shift==0)
+			{
+				blgparams->shift_vec[0]=0.0;
+				blgparams->shift_vec[1]=0.0;
+			}
+			
+			if(blgparams->type_shift==1)
+			{
+				blgparams->shift_vec[1]=0.5;
+				blgparams->shift_vec[0]=1/(2*sqrt(3));
+			}
+			
+			if(blgparams->type_shift==12)
+			{
+                                blgparams->shift_vec[1]=0.0;
+				blgparams->shift_vec[0]=-1/(sqrt(3));
+			}
+		
+	  }
+	  
+	  
+	//layer 2
+		     
+	    for(m=0; m<2*length*length2; m++)
+	    {      
+		    site_coords[2*length*length2 + m][0] = site_coords[m][0] + blgparams->shift_vec[0];
+		    site_coords[2*length*length2 + m][1] = site_coords[m][1] + blgparams->shift_vec[1] ;
+		    site_coords[2*length*length2 + m][2] = blgparams->zsep;
+		    siteinfo[2*length*length2 + m][1] = siteinfo[m][1] + 2;
+	     
+	    }
+	     
+	     
+	      	      
+	int tempint=0, tempint2=0;
+
+	
+	for(m=0; m<*Ntot; m++)
+	{
+		if(siteinfo[m][0] == 0)
+		{
+			tempint2++;
+		}
+	}
+	
+	*Nrem = tempint2;
+	
+        
+        double temprandnum;
+        
+        //up to the buffer row on each layer
+        for(l=0; l<buffer_rows*2*length; l++)
+        {
+            if(siteinfo[l][1] >=0 && siteinfo[l][1] < 4)
+            {
+                    site_pots[l] = nosubpots[siteinfo[l][1]];
+            }
+        }
+        for(l=2*length*length2; l< 2*length*length2 + buffer_rows*2*length; l++)
+        {
+            if(siteinfo[l][1] >=0 && siteinfo[l][1] < 4)
+            {
+                    site_pots[l] = nosubpots[siteinfo[l][1]];
+            }
+        }
+        
+        
+        //disordered potentials here
+        int tempi, tempj;   // which two segments we are mixing
+        double A1_conc_temp, B1_conc_temp, A2_conc_temp, B2_conc_temp;
+        double A1_temp, B1_temp, A2_temp, B2_temp;
+        double A1_delta, B1_delta, A2_delta, B2_delta, A1c_delta, B1c_delta, A2c_delta, B2c_delta;
+        double sidea;
+        double relposa, relposb;
+        
+        
+        
+        for(l=buffer_rows*2*length; l<2*length*length2 - 2*buffer_rows*length; l++)
+        {
+            site_pots[l] = 0.0;
+            temprandnum = myRandNum(0.0, 1.0);
+            
+            //loop over possible interfaces
+            i=0; 
+            
+//       
+            A1_conc_temp=subconcs[0][0]; B1_conc_temp=subconcs[0][1]; 
+            A2_conc_temp=subconcs[0][2]; B2_conc_temp=subconcs[0][3]; 
+            A1_temp=subpots[0][0]; B1_temp=subpots[0][1]; 
+            A2_temp=subpots[0][2]; B2_temp=subpots[0][3]; 
+            
+            for(i=0; i<num_ints; i++)
+            {
+                sidea = int_pos[i] - (int_width[i]) / 2;
+                                                
+                if(xory==0)
+		{
+		  relposa = (site_coords[l][0] - sidea)/int_width[i];
+		}
+		
+		if(xory==1)
+		{
+		  relposa = (site_coords[l][1] - sidea)/int_width[i];
+		}
+		
+		if(relposa < 0)
+		  relposa =0;
+		
+		if(relposa > 1)
+		  relposa =1;
+                
+               
+                A1_delta = subpots[i+1][0] - subpots[i][0];  
+                B1_delta = subpots[i+1][1] - subpots[i][1]; 
+                A2_delta = subpots[i+1][2] - subpots[i][2];
+                B2_delta = subpots[i+1][3] - subpots[i][3];
+                A1c_delta = subconcs[i+1][0] - subconcs[i][0];  
+                B1c_delta = subconcs[i+1][1] - subconcs[i][1]; 
+                A2c_delta = subconcs[i+1][2] - subconcs[i][2];
+                B2c_delta = subconcs[i+1][3] - subconcs[i][3];
+                
+                A1_temp += A1_delta*relposa;
+                A2_temp += A2_delta*relposa;
+                B1_temp += B1_delta*relposa;
+                B2_temp += B2_delta*relposa;
+                A1_conc_temp += A1c_delta*relposa;
+                A2_conc_temp += A2c_delta*relposa;
+                B1_conc_temp += B1c_delta*relposa;
+                B2_conc_temp += B2c_delta*relposa;
+                
+            }
+            
+            if(siteinfo[l][1] == 0)
+            {
+                if(temprandnum < A1_conc_temp)
+                    site_pots[l] = A1_temp;
+            }
+            if(siteinfo[l][1] == 1)
+            {
+                if(temprandnum < B1_conc_temp)
+                    site_pots[l] = B1_temp;
+            }
+            if(siteinfo[l][1] == 2)
+            {
+                if(temprandnum < A2_conc_temp)
+                    site_pots[l] = A2_temp;
+            }
+            if(siteinfo[l][1] == 3)
+            {
+                if(temprandnum < B2_conc_temp)
+                    site_pots[l] = B2_temp;
+            }
+            
+        }
+        
+        for(l=2*length*length2 + buffer_rows*2*length; l< 4*length*length2 - 2*buffer_rows*length; l++)
+        {
+            site_pots[l] = 0.0;
+            temprandnum = myRandNum(0.0, 1.0);
+            
+            //loop over possible interfaces
+            i=0; 
+            
+//       
+            A1_conc_temp=subconcs[0][0]; B1_conc_temp=subconcs[0][1]; 
+            A2_conc_temp=subconcs[0][2]; B2_conc_temp=subconcs[0][3]; 
+            A1_temp=subpots[0][0]; B1_temp=subpots[0][1]; 
+            A2_temp=subpots[0][2]; B2_temp=subpots[0][3]; 
+            
+            for(i=0; i<num_ints; i++)
+            {
+                sidea = int_pos[i] - (int_width[i]) / 2;
+                                
+                if(xory==0)
+		{
+		  relposa = (site_coords[l][0] - sidea)/int_width[i];
+		}
+		
+		if(xory==1)
+		{
+		  relposa = (site_coords[l][1] - sidea)/int_width[i];
+		}
+		
+		if(relposa < 0)
+		  relposa =0;
+		
+		if(relposa > 1)
+		  relposa =1;
+                
+                A1_delta = subpots[i+1][0] - subpots[i][0];  
+                B1_delta = subpots[i+1][1] - subpots[i][1]; 
+                A2_delta = subpots[i+1][2] - subpots[i][2];
+                B2_delta = subpots[i+1][3] - subpots[i][3];
+                A1c_delta = subconcs[i+1][0] - subconcs[i][0];  
+                B1c_delta = subconcs[i+1][1] - subconcs[i][1]; 
+                A2c_delta = subconcs[i+1][2] - subconcs[i][2];
+                B2c_delta = subconcs[i+1][3] - subconcs[i][3];
+                
+                A1_temp += A1_delta*relposa;
+                A2_temp += A2_delta*relposa;
+                B1_temp += B1_delta*relposa;
+                B2_temp += B2_delta*relposa;
+                A1_conc_temp += A1c_delta*relposa;
+                A2_conc_temp += A2c_delta*relposa;
+                B1_conc_temp += B1c_delta*relposa;
+                B2_conc_temp += B2c_delta*relposa;
+                
+            }
+            
+            if(siteinfo[l][1] == 0)
+            {
+                if(temprandnum < A1_conc_temp)
+                    site_pots[l] = A1_temp;
+            }
+            if(siteinfo[l][1] == 1)
+            {
+                if(temprandnum < B1_conc_temp)
+                    site_pots[l] = B1_temp;
+            }
+            if(siteinfo[l][1] == 2)
+            {
+                if(temprandnum < A2_conc_temp)
+                    site_pots[l] = A2_temp;
+            }
+            if(siteinfo[l][1] == 3)
+            {
+                if(temprandnum < B2_conc_temp)
+                    site_pots[l] = B2_temp;
+            }
+            
+            
+        }
+        
+        
+        //RHS buffer rows on each layer
+        for(l=2*length*length2 - 2*buffer_rows*length; l<2*length*length2 ; l++)
+        {
+            if(siteinfo[l][1] >=0 && siteinfo[l][1] < 4)
+            {
+                    site_pots[l] = nosubpots[siteinfo[l][1]];
+            }
+        }
+        for(l=4*length*length2 - 2*buffer_rows*length; l<4*length*length2; l++)
+        {
+            if(siteinfo[l][1] >=0 && siteinfo[l][1] < 4)
+            {
+                    site_pots[l] = nosubpots[siteinfo[l][1]];
+            }
+        }
+        
+        
+
+
+	
+	if(struc_out == 1)
+	{
+		for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 0 && site_pots[l] > 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+                
+		for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 0 && site_pots[l] < 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+		for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 1 && site_pots[l] > 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+                for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 1 && site_pots[l] < 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+		for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 2 && site_pots[l] > 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+                for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 2 && site_pots[l] < 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+		for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 3 && site_pots[l] > 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+                for(l=0; l<*Ntot; l++)
+		{
+			if(siteinfo[l][0] == 0 && siteinfo[l][1] == 3 && site_pots[l] < 0)
+			{  
+				fprintf(out, "%lf	%lf\n", site_coords[l][0], site_coords[l][1]);
+			}
+		}
+		fprintf(out, "\n");
+		
+		
+
+		
+	}
+			
+	if(struc_out != 0)
+	{
+		fclose(out);
+	}
+			    
+			
+			  
+	//Fill the array of data structures describing the system
+	(SiteArray->pos) = site_coords;
+	(SiteArray->site_pots) = site_pots;
+	(SiteArray->siteinfo) = siteinfo;
+
+  
+}
 
 
 

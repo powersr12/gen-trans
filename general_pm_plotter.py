@@ -7,7 +7,7 @@ import numpy as np
 from matplotlib.colors import LogNorm
 import scipy.interpolate
 
-filename="../res/CLEAN_RIBBON_1e-06/ZZ80_clean_l2_200/POTDIS_c_0.0010_d_2.000_xi_2.0/.Eloop_-0.40_to_+0.40_Bfixed_+0.000_run.conf00.disprof"
+filename="/home/stpower/projects/gated_triangles/dtures/SUBLDOTS_CUSTOM_4_LEADS_1_to_0__1e-06/ZZ324_rect_lat_L_54_96_SUBA_1.00x0.100_SUBB_1.00x0.100_triZZ_dot_up_R_0.0_3x3_xyf_0.0_rf_0.0/POTDIS_c_0.0010_d_0.010_xi_8.0/map.dat"
 outputname=filename+"_plot.png"
 
 
