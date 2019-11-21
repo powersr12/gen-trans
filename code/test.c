@@ -4508,6 +4508,22 @@ main(int argc, char *argv[])
                 
 //sscanf(argv[i+1], "%d", &((rib_lead_para *)(mleadps[j]->indiv_lead_para))->start_coord);
                 
+                
+                for(i=1; i<argc-1; i++)
+                {
+                    if(strcmp("-usePGFlib" , argv[i]) == 0)
+                    {
+                        sscanf(argv[i+1], "%d", &patchp.usePGFlib);
+                    }
+                    
+                    patchp.PGFlibloc = PGFdir;
+                    if(strcmp("-PGFlibloc" , argv[i]) == 0)
+                    {
+                        sscanf(argv[i+1], "%s", patchp.PGFlibloc);
+                    }
+                }
+                
+                
                 for (j=0; j<numpatches; j++)
                 {
                      for(i=1; i<argc-1; i++)
