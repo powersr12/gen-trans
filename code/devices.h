@@ -264,6 +264,25 @@ typedef struct {
         double ifluc;
 }bubble_para;
 
+typedef struct {
+	int numfolds;
+	double width1;
+	double width2;
+	double w1fluc;
+	double w2fluc;
+	double height;
+	double hfluc;
+	double angle;
+	double angfluc;
+	double posfluc;
+	char *foldgeo;
+	char *arrange;
+	int seed;
+	int isperiodic;
+	double edgepos;
+	double edgesteep;
+}fold_para;
+
 
 typedef struct {
 	char *straingeo;       //gaussfold
@@ -372,4 +391,5 @@ void customMultilayer (RectRedux *SiteArray, void *p, int struc_out, char *filen
 void customLeadStrain(RectRedux **Leads, void *p);
 void genSymStrain(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 void genRandStrain(RectRedux *SiteArray, void *p, int struc_out, char *filename);
+void genStrainFolds(RectRedux *SiteArray, void *p, int struc_out, char *filename);
 

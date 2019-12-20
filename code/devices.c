@@ -5982,6 +5982,328 @@ void genSymStrain(RectRedux *SiteArray, void *p, int struc_out, char *filename)
 }
 
 
+//multiple strained folds in a system -- not necessarily an array?
+void genStrainFolds(RectRedux *SiteArray, void *p, int struc_out, char *filename)
+{  
+        fold_para *params = (fold_para *)p;
+        
+        char *foldgeo = (params->foldgeo);
+        char *arrange = (params->arrange);
+        int numfolds = (params->numfolds);
+        double w1 = (params->width1);
+        double w2 = (params->width2);
+        double w1f = (params->w1fluc);
+        double w2f = (params->w2fluc);
+        double posf = (params->posfluc);
+        double h = (params->height);
+        double hf = (params->hfluc);
+        double ang = (params->angle);
+        double angf = (params->angfluc);
+        
+        double edgepos = (params->edgepos);
+        double steep = (params->edgesteep);
+        int isperiodic = (params->isperiodic);
+        
+		int seed = (params->seed);
+		srand(time(NULL) + seed);
+		
+        int length = SiteArray->length;
+        int length2 = SiteArray->length2;
+        int geo = SiteArray->geo;
+        
+	    
+        double smalldist;
+        
+        FILE *out;
+        
+        if(struc_out != 0)
+        {
+            out = fopen(filename, "w");
+        }
+
+        //atomic coordinates and the atoms that are in and out, similar to previous cases
+        int tot_sites = 2*length*length2;
+        double **site_coords = createNonSquareDoubleMatrix(tot_sites, 3);
+        double **pert_coords = createNonSquareDoubleMatrix(tot_sites, 3);
+        double *site_pots = createDoubleArray(tot_sites);
+        int **siteinfo = createNonSquareIntMatrix(tot_sites, 2);
+        double xstart, ystart;
+        int isclean, l, m, tempint, tempint2;
+        int *Nrem = (SiteArray->Nrem);
+        int i, j, k;
+        int *Ntot = (SiteArray->Ntot);
+	  
+        *Ntot = tot_sites;
+	  
+        
+        //BASE XY GEOMETRIES
+        
+            //zigzag ribbon
+            if(geo==0)
+            {
+                for(l=0; l<length2; l++)
+                {
+                xstart=l*1.0;
+                for(m=0; m<length; m++)
+                {
+                    ystart= m*sqrt(3)/2 + 1/(2*sqrt(3));
+                    
+                    if((m%2) == 0)
+                    {
+                        site_coords[l*2*length + 2*m][0] = xstart+0.5;
+                        site_coords[l*2*length + 2*m + 1][0] = xstart;
+                    }
+                    
+                    if((m%2) == 1)
+                    {
+                        site_coords[l*2*length + 2*m][0] = xstart;
+                        site_coords[l*2*length + 2*m + 1][0] = xstart+0.5;
+                    }
+                    
+                        site_coords[l*2*length + 2*m][1] = ystart;
+                        site_coords[l*2*length + 2*m + 1][1] = ystart + 1/(2*sqrt(3));
+                        siteinfo[l*2*length + 2*m][1]=0;
+                        siteinfo[l*2*length + 2*m +1][1]=1;
+
+                    
+                }
+                }
+            }
+            
+            //armchair ribbon
+            if(geo==1)
+            {
+                for(l=0; l<length2; l++)
+                {
+                    xstart = l*sqrt(3);
+                    for(m=0; m<length; m++)
+                    {
+                    if((m%2) == 0)
+                    {
+                        site_coords[l*2*length + m][0] = xstart;
+                        site_coords[l*2*length + length + m][0] = xstart +2 / sqrt(3);
+                        siteinfo[l*2*length + m][1] = 0;
+                        siteinfo[l*2*length + length + m][1] = 1;
+                    }
+                    if((m%2) == 1)
+                    {
+                        site_coords[l*2*length + m][0] = xstart +  1/(2*sqrt(3));
+                        site_coords[l*2*length + length + m][0] = xstart + (sqrt(3))/2;
+                        siteinfo[l*2*length + m][1] = 1;
+                        siteinfo[l*2*length + length + m][1] = 0;
+                    }
+                    
+                    site_coords[l*2*length + m][1] = m*0.5;
+                    site_coords[l*2*length + length + m][1] = m*0.5;
+
+                    
+                    }
+                    
+                    
+                }
+                    
+            }
+            
+            
+            double bottomy, topy, leftx, rightx, widthrib, lengthrib;
+            bottomy = site_coords[0][1];
+			topy = site_coords[2*length -1][1];
+			leftx =site_coords[0][0];
+			rightx = site_coords[*Ntot -1][0];
+			widthrib = topy-bottomy;
+			lengthrib = rightx - leftx;
+	  
+	  
+        //Strain locations
+            double **origins = createNonSquareDoubleMatrix(numfolds, 2);
+            double *width1s = createDoubleArray(numfolds);
+            double *width2s = createDoubleArray(numfolds);
+            double *angles = createDoubleArray(numfolds);
+            double *amps = createDoubleArray(numfolds);
+            
+            double llim, rlim, tlim, blim;
+            llim = leftx + edgepos;
+            rlim = rightx - edgepos;
+            blim = bottomy + edgepos;
+            tlim = topy - edgepos;
+            
+            for(i=0; i<numfolds; i++)
+			{
+				if(strcmp("random", arrange) == 0)
+				{
+					origins[i][0] = myRandNum(llim, rlim) ;
+					origins[i][1] = myRandNum(topy, bottomy) ;
+				}
+				if(strcmp("equalx", arrange) == 0)
+				{
+					origins[i][0] = llim + (rlim-llim)*(i+1)/(numfolds+1); 
+					origins[i][1] = (topy + bottomy )/2;
+				}
+				if(strcmp("equaly", arrange) == 0)
+				{
+					origins[i][0] = (llim + rlim)/2;
+					origins[i][1] = bottomy + (topy-bottomy)*(i+1)/(numfolds+1); 
+				}
+				
+				origins[i][0] += myRandNum(-posf, posf);
+				origins[i][1] += myRandNum(-posf, posf);
+				
+				width1s[i] =  w1 + myRandNum (-w1f, w1f);
+				width2s[i] =  w2 + myRandNum (-w2f, w2f);
+				angles[i] = ang + myRandNum (-angf, angf);
+				amps[i] = h + myRandNum(-hf, hf);
+				
+			}
+				
+            
+            
+	  
+	  //atomic restructuring!
+	  
+                double effx, effy, ux, uy, uz, u0, u1, u2;
+                double tempa, tempb, tempc;
+                
+                for(i=0; i< tot_sites ; i++)
+                {
+                    pert_coords[i][0] = site_coords[i][0];
+                    pert_coords[i][1] = site_coords[i][1];
+                    pert_coords[i][2] = site_coords[i][2];
+                }
+          
+                for(i=0; i< tot_sites; i++)
+                {
+                    
+                    //effect of each strain feature
+                    for(j=0; j< numfolds; j++)
+                    {
+                        effx = site_coords[i][0] - origins[j][0];
+                        effy = site_coords[i][1] - origins[j][1];
+                        
+                        uz=0; ux=0; uy=0;
+                        
+                        
+                        //various feature types
+                        //convert to ux and uy at bottom, and account for periodicity then
+                        
+                            //Gaussian fold
+                                if(strcmp("gaussfold", foldgeo) == 0)
+                                {
+                                    tempa = pow(cos(angles[j]), 2) /  (2*pow(width1s[j], 2))  + pow(sin(angles[j]), 2) /  (2*pow(width2s[j], 2)) ;
+                                    tempb = sin(2*angles[j]) /  (4*pow(width1s[j], 2))  - sin(2*angles[j]) /  (4*pow(width2s[j], 2)) ;
+                                    tempc = pow(sin(angles[j]), 2) /  (2*pow(width1s[j], 2))  + pow(cos(angles[j]), 2) /  (2*pow(width2s[j], 2)) ;
+                                    //printf("%e	%e	%e\n", tempa, tempb, tempc);
+                                    uz = amps[j] * exp(- ( tempa*pow(effx, 2 ) + 2*tempb*effx*effy + tempc*pow(effy, 2) ) );
+                                    
+
+                                }
+                            
+                                
+                                pert_coords[i][0] += ux;
+                                pert_coords[i][1] += uy;
+                                pert_coords[i][2] += uz;
+                    
+                       }
+                       
+                       
+                       //fade out of z-features near system edge (think more carefully about this for non-gauss folds later...)
+                       
+                       pert_coords[i][2] = pert_coords[i][2] / ( ( 1.0 + exp( - steep*(pert_coords[i][0] - llim) ) )   
+                       *  ( 1.0 + exp( - steep*(rlim - pert_coords[i][0] ) ) ) * 
+                       ( 1.0 + exp( - steep*(pert_coords[i][1] - blim) ) )   
+                       *  ( 1.0 + exp( - steep*(tlim - pert_coords[i][1] ) ) )  );
+                       
+                       
+                   }
+                
+	      
+	      
+		    
+	      //chaininfo needed for conductance calcs (if atoms are missing)
+		      (SiteArray->chaininfo) = createNonSquareIntMatrix(length2, 4);
+		      
+		      tempint=0, tempint2=0;
+	 
+		     
+			for(l=0; l<length2; l++)
+			{
+			  tempint=0;
+			  for(m=0; m<2*length; m++)
+			  {
+			    if(siteinfo[l*2*length +m][0] == 0)
+			    {
+			      tempint ++;
+			      tempint2++;
+			    }
+			  }
+			  (SiteArray->chaininfo)[l][0] = tempint;
+			}
+			*Nrem = tempint2;
+			
+			
+			(SiteArray->chaininfo)[0][1] = 0;
+			for(l=1; l<length2; l++)
+			{
+			  (SiteArray->chaininfo)[l][1] = (SiteArray->chaininfo)[l-1][1] + (SiteArray->chaininfo)[l-1][0];
+			}
+
+
+			//are first and last atoms in each chain present?
+			for(l=1; l<length2; l++)
+			{
+			  if(siteinfo[l*2*length][0] == 1)
+			    (SiteArray->chaininfo)[l][2] = 1;
+			  
+			  if(siteinfo[(l+1)*2*length -1][0] == 1)
+			    (SiteArray->chaininfo)[l][3] = 1;
+			}
+	  
+	  
+	  
+		      
+			if(struc_out == 1)
+			{
+				fprintf(out, "# fold info\n");
+				for(j=0; j< numfolds; j++)
+                {
+					fprintf(out, "## %.8lf %.8lf	%.8lf %.8lf %.8lf %.8lf\n", origins[j][0], origins[j][1], width1s[j], width2s[j], angles[j],amps[j]);
+				}
+                            
+			  for(l=0; l<2*length*length2; l++)
+			  {
+				  
+				  
+			    if(siteinfo[l][0] == 0)
+			      fprintf(out, "%lf	%lf  %lf\n", pert_coords[l][0], pert_coords[l][1], pert_coords[l][2]);
+			    
+			  }
+			  
+			}
+			  
+				    
+			    
+			
+			  
+			  //Fill the array of data structures describing the system
+			
+			  
+			  if(struc_out != 0)
+			  {
+			    fclose(out);
+			    
+			  }
+			  
+			  
+			  (SiteArray->pos) = site_coords;
+              (SiteArray->pert_pos) = pert_coords;
+			  (SiteArray->site_pots) = site_pots;
+			  (SiteArray->siteinfo) = siteinfo;
+
+
+				
+	
+}
+
+
 
 //update customLeadStrain in parallel to this, or else trouble will arise!
 void genRandStrain(RectRedux *SiteArray, void *p, int struc_out, char *filename)
@@ -7434,6 +7756,7 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
                 conn_count++;
             }
             
+		
 //             if(i==0 && j==10)
 //             {
 //                 printf("bdm: %d\n", boundary_device_mat[i][j] );

@@ -1385,6 +1385,124 @@ main(int argc, char *argv[])
 		}
 		
 		
+		
+		fold_para foldp = {};
+                
+
+ 		char foldtype[66], farrange[66];   
+        sprintf(foldtype, "gaussfold");
+        sprintf(farrange, "equaly");
+        double foldh=4.0, fw1=1000.0, fw2=4.0, fangle=0.0, fangf=0.0;
+        double foldedge= 30.0, foldsteep= 0.2;
+        int numfolds = 10;
+                
+		if(strcmp("FOLDS", systemtype) == 0)
+		{	
+		    //default values
+		    
+		    foldp.foldgeo = foldtype;
+		    foldp.numfolds = numfolds;
+			foldp.arrange = farrange;
+			foldp.width1=fw1;
+			foldp.width2=fw2;
+			foldp.height=foldh;
+			foldp.angle=fangle*M_PI;
+			foldp.w1fluc=0.0; foldp.w2fluc=0.0;  foldp.hfluc=0.0; foldp.angfluc=0.0; foldp.posfluc=0.0;
+			foldp.seed = conf_num;
+			foldp.edgepos = foldedge;
+			foldp.edgesteep = foldsteep;
+                    
+		    
+		    //check for command line arguments which vary these
+		    for(i=1; i<argc-1; i++)
+		    {
+		      if(strcmp("-foldgeo", argv[i]) == 0)
+		      {
+				sscanf(argv[i+1], "%s", (foldp.foldgeo));
+		      }
+		      if(strcmp("-farrange", argv[i]) == 0)
+		      {
+				sscanf(argv[i+1], "%s", (foldp.arrange));
+		      }
+		      if(strcmp("-numfolds", argv[i]) == 0)
+		      {
+				sscanf(argv[i+1], "%d", &(foldp.numfolds));
+		      }
+		      if(strcmp("-fw1", argv[i]) == 0)
+		      {
+				sscanf(argv[i+1], "%lf", &(foldp.width1));
+		      }
+		      if(strcmp("-fw2", argv[i]) == 0)
+		      {
+				sscanf(argv[i+1], "%lf", &(foldp.width2));
+		      }
+		      if(strcmp("-fheight", argv[i]) == 0)
+		      {
+				sscanf(argv[i+1], "%lf", &(foldp.height));
+		      }
+		      if(strcmp("-fangle", argv[i]) == 0)
+		      {
+				sscanf(argv[i+1], "%lf", &fangle);
+				foldp.angle = M_PI * fangle;
+		      }
+		      if(strcmp("-fedge", argv[i]) == 0)
+		      {
+				sscanf(argv[i+1], "%lf", &(foldp.edgepos));
+		      }
+		      if(strcmp("-fsteep", argv[i]) == 0)
+		      {
+				sscanf(argv[i+1], "%lf", &(foldp.edgesteep));
+		      }
+		      
+		      if(strcmp("-fw1fluc", argv[i]) == 0)
+		      {
+				sscanf(argv[i+1], "%lf", &(foldp.w1fluc));
+		      }
+		      if(strcmp("-fw2fluc", argv[i]) == 0)
+		      {
+				sscanf(argv[i+1], "%lf", &(foldp.w2fluc));
+		      }
+		      if(strcmp("-fhfluc", argv[i]) == 0)
+		      {
+				sscanf(argv[i+1], "%lf", &(foldp.hfluc));
+		      }
+		      if(strcmp("-fposfluc", argv[i]) == 0)
+		      {
+				sscanf(argv[i+1], "%lf", &(foldp.posfluc));
+		      }
+		      if(strcmp("-fangfluc", argv[i]) == 0)
+		      {
+				sscanf(argv[i+1], "%lf", &fangf);
+				foldp.angfluc = M_PI * fangf;
+		      }
+	
+		    }
+		    
+ 		    
+			if( (foldp.w1fluc) == 0.0 && (foldp.w2fluc) == 0.0 && (foldp.hfluc) == 0.0 && (foldp.angfluc) == 0.0 && (foldp.posfluc)==0)
+			{
+				sprintf(sysinfo, "L2_%d_N%d_%s_%s_%.1lf_x_%.1lf_x_%.1lf_%.1lfPI", length2, (foldp.numfolds), (foldp.foldgeo),(foldp.arrange), (foldp.width1), (foldp.width2), (foldp.height), (foldp.angle) );
+			}
+			else 
+			{
+				sprintf(sysinfo, "L2_%d_N%d_%s_%s_%.1lfpm%.1lf_x_%.1lfpm%.1lf_x%.1lfpm%.1lf_%.1lfpm%.1lfPI_pf%.1lf", 
+				length2, (foldp.numfolds), (foldp.foldgeo),(foldp.arrange), (foldp.width1), (foldp.w1fluc), (foldp.width2), (foldp.w2fluc),
+				 (foldp.height), (foldp.hfluc), (foldp.angle), (foldp.angfluc),  (foldp.posfluc) );
+			}
+       
+		    
+		    //set functions and params for use below
+		    SysFunction = &genStrainFolds;
+		    SysPara = &foldp;
+            hopfn = &strainedTB;
+		    
+		}		
+		
+		
+		
+		
+		
+		
 		symstrain_para symsp = {};
                 double symsmag = 1.0, symswid=1.0;
                 int leadstrain=0;
