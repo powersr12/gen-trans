@@ -10,10 +10,13 @@ import scipy.interpolate
  
 
  
-basefolder="/home/stpower/projects/gen-trans/res/"
-projfolder="SUBLDOTS_NLPGF_4_LEADS_1_to_0__1e-06/ZZ300_rect_lat_L_30_52_SUBA_1.00x0.400_SUBB_1.00x-0.400_circ_dot_R_10.0_5x8_xyf_0.0_rf_0.0/"
-projname="E_+0.1000_B_+0.000_map.conf00"
+basefolder="/home/stpower/projects/valley_dots/lonsdale/"
+projfolder="SUBLDOTS_6NLRIB_6_LEADS_1_to_0__1e-06/ZZ300_rect_lat_L_75_138_SUBA_1.00x0.400_SUBB_1.00x-0.400_circ_dot_R_20.0_2x6_xyf_0.0_rf_0.0/"
+projname="E_+0.1800_B_+0.000_map.conf00"
  
+#basefolder="/home/stpower/projects/gen-trans/res/"
+#projfolder="SUBLDOTS_NLPGF_4_LEADS_1_to_0__1e-06/ZZ300_rect_lat_L_30_52_SUBA_1.00x0.400_SUBB_1.00x-0.400_circ_dot_R_10.0_5x8_xyf_0.0_rf_0.0/"
+#projname="E_+0.1000_B_+0.000_map.conf00"
  
 basefilename=basefolder+projfolder+projname
 dosname=basefilename+".ldos_red.dat"
@@ -59,7 +62,7 @@ for lead in leads:
   maxcur = max(curmag)
   plot2 = plt.figure()
   zi = scipy.interpolate.griddata((x, y), curmag, (xi, yi), method='linear')
-  plt.imshow(zi, vmin=curmag.min(), vmax=0.03*curmag.max(), origin='lower', cmap=cm.hot, extent=[xi.min(), xi.max(), yi.min(), yi.max()])
+  plt.imshow(zi, vmin=curmag.min(), vmax=0.5*curmag.max(), origin='lower', cmap=cm.hot, extent=[xi.min(), xi.max(), yi.min(), yi.max()])
   plt.show(plot2)
   outputname=filename+".png"
   plot2.savefig(outputname, dpi=300)
@@ -101,13 +104,13 @@ for lead in leads:
    
    
   plot6=plt.figure()
-  plt.imshow(zi, vmin=curmag.min(), vmax=0.1*curmag.max(), origin='lower', cmap=cm.coolwarm,
+  plt.imshow(zi, vmin=curmag.min(), vmax=0.5*curmag.max(), origin='lower', cmap=cm.coolwarm,
            extent=[xi.min(), xi.max(), yi.min(), yi.max()])
   jxim = scipy.interpolate.griddata((x, y), jx, (xim, yim), method='linear')
   jyim = scipy.interpolate.griddata((x, y), jy, (xim, yim), method='linear')
   curmagim=np.sqrt(jxi**2 + jyi**2)
   plt.quiver(xim, yim, jxim, jyim,        # data
-           headlength=3.5, headaxislength=2.5, width=0.002, headwidth=3.5, scale=0.1, minshaft=2, minlength=1)        # length of the arrows
+           headlength=3.5, headaxislength=2.5, width=0.002, headwidth=3.5, scale=0.4, minshaft=2, minlength=1)        # length of the arrows
   plt.show(plot6)   
   plot6.savefig(filename+"alt.png", dpi=300, bbox_inches='tight')
    

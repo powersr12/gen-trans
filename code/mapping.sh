@@ -7,9 +7,13 @@ GEO=1
 MAXPTS=100000
 
 
-BASEFOLDER=/home/stpower/projects/gen-trans/res/
-PROJFOLDER=SUBLDOTS_NLPGF_4_LEADS_1_to_0__1e-06/ZZ300_rect_lat_L_30_52_SUBA_1.00x0.400_SUBB_1.00x-0.400_circ_dot_R_10.0_5x8_xyf_0.0_rf_0.0/
-PROJNAME=E_+0.1000_B_+0.000_map.conf00
+BASEFOLDER=/home/stpower/projects/valley_dots/lonsdale/
+PROJFOLDER=SUBLDOTS_6NLRIB_6_LEADS_1_to_0__1e-06/ZZ300_rect_lat_L_75_138_SUBA_1.00x0.400_SUBB_1.00x-0.400_circ_dot_R_20.0_2x6_xyf_0.0_rf_0.0/
+PROJNAME=E_+0.1800_B_+0.000_map.conf00
+
+#BASEFOLDER=/home/stpower/projects/gen-trans/res/
+#PROJFOLDER=SUBLDOTS_NLPGF_4_LEADS_1_to_0__1e-06/ZZ300_rect_lat_L_30_52_SUBA_1.00x0.400_SUBB_1.00x-0.400_circ_dot_R_10.0_5x8_xyf_0.0_rf_0.0/
+#PROJNAME=E_+0.1000_B_+0.000_map.conf00
 
 # BASEFOLDER=/home/powersr/projects/gen-trans/res/
 # PROJFOLDER=BUBBLES_RIBBON_1e-06/AC240_rect_lat_L_72_120_membrane_bub_R_36.6_H_6.0_1x1_xyf_0.0_rf_0.0_zf_0.0_if_0.00/abs_pot/

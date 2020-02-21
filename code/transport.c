@@ -244,46 +244,58 @@ void genTransmissions(double _Complex En, RectRedux *DeviceCell, RectRedux **Lea
       FILE *output;
       
       //full output of Sigmas and Gi1s for analysis elsewhere...
+      //new fix -- dump everything into a binary file to save on memory usage!
       if(mode ==2)
       {
-            s1=0; d1=0;
+            //~ s1=0; d1=0;
             
-            for(k=0; k<num_leads; k++)
-            {
+            sprintf(fulloutname, "%s.%s.out", tpara->filename, "gis");
+            output = fopen(fulloutname, "wb");
+            fwrite(*gi1,cell1dim*Ntot*sizeof(double _Complex),1,output);
+            fclose(output);
+            
+            sprintf(fulloutname, "%s.%s.out", tpara->filename, "gammas");
+            output = fopen(fulloutname, "wb");
+            fwrite(*Gamma,sizeof(double _Complex),1,output);
+            fclose(output);
+            
+            
+            //~ for(k=0; k<num_leads; k++)
+            //~ {
                 
-                d1=(cellinfo->lead_dims)[k];
-                sprintf(fulloutname, "%s.%s%d", tpara->filename, "gi", k);
-                output = fopen(fulloutname, "w");
-                for(i=0; i<Ntot; i++)
-                {
+                //~ d1=(cellinfo->lead_dims)[k];
+                //~ sprintf(fulloutname, "%s.%s%d", tpara->filename, "gi", k);
+                //~ output = fopen(fulloutname, "w");
+                //~ for(i=0; i<Ntot; i++)
+                //~ {
                     
-                    for(m=0; m<d1; m++)
-                    {
+                    //~ for(m=0; m<d1; m++)
+                    //~ {
                        
-                            fprintf(output, "%e\t%e\n", creal(gi1[i][s1+m]), cimag(gi1[i][s1+m]));
+                            //~ fprintf(output, "%e\t%e\n", creal(gi1[i][s1+m]), cimag(gi1[i][s1+m]));
                        
                         
-                    }
+                    //~ }
                     
-                }
-                fclose(output);
+                //~ }
+                //~ fclose(output);
                 
-                sprintf(fulloutname, "%s.%s%d", tpara->filename, "sig_", k);
-                output = fopen(fulloutname, "w");
+                //~ sprintf(fulloutname, "%s.%s%d", tpara->filename, "sig_", k);
+                //~ output = fopen(fulloutname, "w");
                 
-                for(m=0; m<d1; m++)
-		{
-                    for(n=0; n<d1; n++)
-                    {
-                        fprintf(output, "%e\t%e\n", creal(Gamma[s1+m][s1+n]), cimag(Gamma[s1+m][s1+n]));   
-                    }
-		}
-                fclose(output);
+                //~ for(m=0; m<d1; m++)
+				//~ {
+                    //~ for(n=0; n<d1; n++)
+                    //~ {
+                        //~ fprintf(output, "%e\t%e\n", creal(Gamma[s1+m][s1+n]), cimag(Gamma[s1+m][s1+n]));   
+                    //~ }
+				//~ }
+                //~ fclose(output);
                 
                 
                 
-                s1+=d1;
-            }
+                //~ s1+=d1;
+            //~ }
             
             
       }
@@ -477,7 +489,7 @@ void genDeviceGF(double _Complex En, RectRedux *DeviceCell, cnxProfile *cnxp,
 // 	  	  printf("#V12\n");
 // 	  	  listNonZero(V12, dim_old, dim);
 // 	  	}
-      
+//      listNonZero(V12, dim_old, dim);
       
       	  
 
@@ -1432,7 +1444,7 @@ double _Complex multilayerTB(RectRedux *aDeviceCell, RectRedux *bDeviceCell, int
     {
         if(dist >= (para->NN_lowdis[1]) && dist < (para->NN_highdis[1]))
         {
-            t0 = cosalpha2 * hops[1] * exp( - (distr - 1.36 )/(0.184))  ; 
+            t0 = cosalpha2 * hops[1] * exp( - (distr - 1.362 )/(0.184))  ; 
             //+ (1-cosalpha2) * hops[0] * exp( - (distr - 1/sqrt(3) )/(0.184));
             //printf ("##%lf  %lf %lf %lf %lf\n", t0, cosalpha2, creal(hops[1]), exp( - (distr - 1.36 )/(0.184)), distr); //MAYBE RIGHT!
         }

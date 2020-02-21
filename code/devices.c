@@ -7384,8 +7384,7 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
             free(pos[0]); free(pos);
             free(site_pots);
             
-            *Nrem = Nremnew;
-            *Ntot = Ntotnew;
+           
             
             (System->pos) = newpos;
             (System->site_pots) = newpots;
@@ -7561,7 +7560,7 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
             
             
             
-            bigcount = 2*length*length2;
+            bigcount = *Ntot; //2*length*length2;
         //Boundaries and edges of the other patches
             for(i=0; i<numpatches; i++)
             {
@@ -7809,6 +7808,9 @@ void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, in
 //     printf("bdm: %d\n", boundary_device_mat[0][10] );
 //                 
 //     printf("%d, %d, %d\n", max_sep_indices[10][0], max_sep_indices[10][1], max_sep_indices[10][2]);
+    
+     *Nrem = Nremnew;
+     *Ntot = Ntotnew;
     
 
     double dx2, dy2;
@@ -8187,13 +8189,13 @@ void simplifyIndices(double **input, int *output, double *origin, double *a1, do
 //     printf("\t \n", m1 , n1, diagt, init_sep, final_sep );
 
     //will print out if something is dodgy!
-    if(init_sep - final_sep > 0.0001)
-            printf("orig (%d, %d, %d)\t->final (%d, %d, %d)  %lf %lf\n", m , n, dorig, m1 , n1, diagt, init_sep, final_sep  );
+    //~ if(init_sep - final_sep > 0.0001)
+            //~ printf("orig (%d, %d, %d)\t->final (%d, %d, %d)  %lf %lf\n", m , n, dorig, m1 , n1, diagt, init_sep, final_sep  );
 
-     if (m1< 0 || n1 < 0)
-     {
-          printf("orig (%d, %d, %d)\t->final (%d, %d, %d)  %lf %lf\n", m , n, dorig, m1 , n1, diagt, init_sep, final_sep  );
-     }
+     //~ if (m1< 0 || n1 < 0)
+     //~ {
+          //~ printf("orig (%d, %d, %d)\t->final (%d, %d, %d)  %lf %lf\n", m , n, dorig, m1 , n1, diagt, init_sep, final_sep  );
+     //~ }
      
 //      if(m==-1 && n == 2 && dorig ==2)
 //     {

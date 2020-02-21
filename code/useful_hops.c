@@ -52,3 +52,16 @@ double MLG_NNTB_zmax[] = 		{0.01, 1.37};
 double _Complex MLG_NNTB_hops[] = 	{-1.0, 0.178};
 
 gen_hop_params MLG_NNTB_hop_params = {2,  MLG_NNTB_max_neigh, MLG_NNTB_hops, 0, 0, MLG_NNTB_lowdis, MLG_NNTB_highdis, MLG_NNTB_shifts, MLG_NNTB_zmin,  MLG_NNTB_zmax, 0, 0.0, NULL, NULL  };
+
+
+
+//More basic multilayer parameters -- should reproduce typical bilayer hopping systems, but allows use of customMultilayer
+int MLG2_NNTB_max_neigh[] = 	{3, 4};
+double MLG2_NNTB_lowdis[] = 	{0.56, 0.0};
+double MLG2_NNTB_highdis[] = 	{0.59, 0.1};
+double MLG2_NNTB_shifts[] = 	{0.0, 0.0};
+double MLG2_NNTB_zmin[] = 		{0.0, 1.36};
+double MLG2_NNTB_zmax[] = 		{0.01, 1.37};
+double _Complex MLG2_NNTB_hops[] = 	{-1.0, 0.12};
+
+gen_hop_params MLG2_NNTB_hop_params = {2,  MLG2_NNTB_max_neigh, MLG2_NNTB_hops, 0, 0, MLG2_NNTB_lowdis, MLG2_NNTB_highdis, MLG2_NNTB_shifts, MLG2_NNTB_zmin,  MLG2_NNTB_zmax, 0, 0.0, NULL, NULL  };

@@ -2458,17 +2458,18 @@ main(int argc, char *argv[])
  		
 		if(strcmp("MLTEST", systemtype) == 0)
 		{	
-                        hop_to_load = &MLG_NNTB_hop_params;
+                        
                         default_connect_rule = &mlg_conn_sep;
 			defdouble_connect_rule = &mlg_conn_sep2;
 			default_connection_params = &blg_cnxpara;
                         nngm=1;
                         num_neigh=nngm+1;
-			max_neigh=(hop_to_load->max_neigh)[num_neigh-1];
                     
                         //default values
                         
                         mlp.num_layers = 2;
+                        mlp.hoptype = 0;	//by default use simplest (BLG-like) hoppings
+											//hoptype = 1 uses a more complex, Moon-Koshino-esque approach for twisted systems
                         mlp.length = createIntArray(mlp.num_layers);
                         mlp.length2 = createIntArray(mlp.num_layers);
                         mlp.geo = createIntArray(mlp.num_layers);
@@ -2483,6 +2484,9 @@ main(int argc, char *argv[])
                             layertype[i] = (char *)malloc(40  * sizeof(char)); 
 					/*allocates memory for whole matrix, 
 					returned pointe r= pointer to 1st array*/
+					
+					
+							
                         
 
                         for(i=0; i< mlp.num_layers; i++)
@@ -2565,9 +2569,22 @@ main(int argc, char *argv[])
                             {
                                     sscanf(argv[i+1], "%d", &(mlp.origin));
                             }
+                            // simple or moon-koshino hopping
+                            if(strcmp("-mlhoptype", argv[i]) == 0)
+                            {
+                                    sscanf(argv[i+1], "%d", &(mlp.hoptype));
+                            }
                         
                         }
                         
+                        if (mlp.hoptype == 1)
+							hop_to_load = &MLG_NNTB_hop_params;
+								
+						if (mlp.hoptype == 0)
+							hop_to_load = &MLG2_NNTB_hop_params;
+							
+						max_neigh=(hop_to_load->max_neigh)[num_neigh-1];
+
     
                         //set functions and params for use below
                         SysFunction = &customMultilayer;
@@ -2575,12 +2592,12 @@ main(int argc, char *argv[])
                         hopfn = &multilayerTB;
                         
                         //(amended from bilayer to make connection profiles... (somewhat temporary.....)
-                        blg_cnxpara.intra_thresh_min = MLG_NNTB_hop_params.NN_lowdis[0];
-                        blg_cnxpara.intra_thresh_max = MLG_NNTB_hop_params.NN_highdis[0];
-                        blg_cnxpara.inter_thresh_min = MLG_NNTB_hop_params.NN_lowdis[1];
-                        blg_cnxpara.inter_thresh_max = MLG_NNTB_hop_params.NN_highdis[1];
-                        blg_cnxpara.zthresh1 = MLG_NNTB_hop_params.NN_zmin[1];
-                        blg_cnxpara.zthresh2 = MLG_NNTB_hop_params.NN_zmax[1];
+                        blg_cnxpara.intra_thresh_min = (hop_to_load->NN_lowdis)[0];
+                        blg_cnxpara.intra_thresh_max = (hop_to_load->NN_highdis)[0];
+                        blg_cnxpara.inter_thresh_min = (hop_to_load->NN_lowdis)[1];
+                        blg_cnxpara.inter_thresh_max = (hop_to_load->NN_highdis)[1];
+                        blg_cnxpara.zthresh1 = (hop_to_load->NN_zmin)[1];
+                        blg_cnxpara.zthresh2 = (hop_to_load->NN_zmax)[1];
                         
                         
                         sprintf(sysinfo, "L2_%d", length2); 
@@ -2593,16 +2610,18 @@ main(int argc, char *argv[])
                 if(strcmp("BLDOTS", systemtype) == 0)
 		{	
                         //multilayer connectivity
-                        hop_to_load = &MLG_NNTB_hop_params;
+                        //hop_to_load = &MLG_NNTB_hop_params;
                         default_connect_rule = &mlg_conn_sep;
 			defdouble_connect_rule = &mlg_conn_sep2;
 			default_connection_params = &blg_cnxpara;
                         nngm=1;
                         num_neigh=nngm+1;
-			max_neigh=(hop_to_load->max_neigh)[num_neigh-1];
+			
                     
                         //multilayer setup
                         mlp.num_layers = 2;
+                        mlp.hoptype = 0;	//by default use simplest (BLG-like) hoppings
+											//hoptype = 1 uses a more complex, Moon-Koshino-esque approach for twisted systems
                         mlp.length = createIntArray(mlp.num_layers);
                         mlp.length2 = createIntArray(mlp.num_layers);
                         mlp.geo = createIntArray(mlp.num_layers);
@@ -2617,6 +2636,8 @@ main(int argc, char *argv[])
                             layertype[i] = (char *)malloc(40  * sizeof(char)); 
 					/*allocates memory for whole matrix, 
 					returned pointe r= pointer to 1st array*/
+					
+				
                         
                                         
                         //dotted layer setup
@@ -2691,6 +2712,12 @@ main(int argc, char *argv[])
                             if(strcmp("-ADflip", argv[i]) == 0) //=0 "up", =1 "down", =2 random mix
                             {
                                 sscanf(argv[i+1], "%d", &(adotp.orientation));
+                            }
+                            
+                            // simple or moon-koshino hopping
+                            if(strcmp("-mlhoptype", argv[i]) == 0)
+                            {
+                                    sscanf(argv[i+1], "%d", &(mlp.hoptype));
                             }
                         
                         }
@@ -2840,6 +2867,14 @@ main(int argc, char *argv[])
                         
                         }
                         
+                        
+                        if (mlp.hoptype == 1)
+							hop_to_load = &MLG_NNTB_hop_params;
+								
+						if (mlp.hoptype == 0)
+							hop_to_load = &MLG2_NNTB_hop_params;
+							
+						max_neigh=(hop_to_load->max_neigh)[num_neigh-1];
     
                         //set functions and params for use below
                         SysFunction = &customMultilayer;
@@ -2847,12 +2882,12 @@ main(int argc, char *argv[])
                         hopfn = &multilayerTB;
                         
                         //(amended from bilayer to make connection profiles... (somewhat temporary.....)
-                        blg_cnxpara.intra_thresh_min = MLG_NNTB_hop_params.NN_lowdis[0];
-                        blg_cnxpara.intra_thresh_max = MLG_NNTB_hop_params.NN_highdis[0];
-                        blg_cnxpara.inter_thresh_min = MLG_NNTB_hop_params.NN_lowdis[1];
-                        blg_cnxpara.inter_thresh_max = MLG_NNTB_hop_params.NN_highdis[1];
-                        blg_cnxpara.zthresh1 = MLG_NNTB_hop_params.NN_zmin[1];
-                        blg_cnxpara.zthresh2 = MLG_NNTB_hop_params.NN_zmax[1];
+                        blg_cnxpara.intra_thresh_min = (hop_to_load->NN_lowdis)[0];
+                        blg_cnxpara.intra_thresh_max = (hop_to_load->NN_highdis)[0];
+                        blg_cnxpara.inter_thresh_min = (hop_to_load->NN_lowdis)[1];
+                        blg_cnxpara.inter_thresh_max = (hop_to_load->NN_highdis)[1];
+                        blg_cnxpara.zthresh1 = (hop_to_load->NN_zmin)[1];
+                        blg_cnxpara.zthresh2 = (hop_to_load->NN_zmax)[1];
                         
                         
                         //sprintf(sysinfo, "L2_%d", length2); 

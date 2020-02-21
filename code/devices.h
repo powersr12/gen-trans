@@ -340,6 +340,7 @@ typedef struct{
     int origin;
     generatefn **layerfn;
     void **layerpara;
+    int hoptype;
 }multilayer_para;
 
 void Patchify ( RectRedux *System, patch_para *ppara, cellDivision *cellinfo, int struc_out, char *filename);
